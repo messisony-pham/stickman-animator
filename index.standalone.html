@@ -304,7 +304,10 @@
         <button id="mobBtnF" class="w-12 h-12 rounded-full bg-green-500/40 border-2 border-green-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-green-500/70">F</button>
         <button id="mobBtnE" class="w-12 h-12 rounded-full bg-cyan-500/40 border-2 border-cyan-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-cyan-500/70">E</button>
       </div>
-      <button id="mobBtnAtk" class="w-20 h-20 rounded-full bg-yellow-500/40 border-2 border-yellow-400/60 flex items-center justify-center text-white text-2xl font-bold active:bg-yellow-500/70">⚔</button>
+      <div class="flex gap-3 items-end">
+        <button id="mobBtnAtk" class="w-16 h-16 rounded-full bg-yellow-500/40 border-2 border-yellow-400/60 flex items-center justify-center text-white text-xl font-bold active:bg-yellow-500/70">👊</button>
+        <button id="mobBtnKick" class="w-20 h-20 rounded-full bg-pink-500/40 border-2 border-pink-400/60 flex items-center justify-center text-white text-2xl font-bold active:bg-pink-500/70">🦵</button>
+      </div>
       <div class="flex gap-2">
         <button id="mobBtnPause" class="w-10 h-10 rounded-full bg-slate-500/40 border border-slate-400/60 flex items-center justify-center text-white text-sm active:bg-slate-500/70">⏸</button>
         <button id="mobBtnShop" class="w-10 h-10 rounded-full bg-amber-500/40 border border-amber-400/60 flex items-center justify-center text-white text-sm active:bg-amber-500/70">🛒</button>
@@ -851,6 +854,15 @@
       else if (selectedChar === 'ninja') performNinjaSlash();
       else if (selectedChar === 'super') performSuperPunch();
       else performPunch();
+    });
+    document.getElementById('mobBtnKick').addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      if (gameState !== 'playing') return;
+      if (selectedChar === 'soldier') performShotgun();
+      else if (selectedChar === 'fighter') performKickFighter();
+      else if (selectedChar === 'super') performSuperKickDash();
+      else if (selectedChar === 'mage') performMageIceShield();
+      else if (selectedChar === 'ninja') performNinjaKunai();
     });
     function mobAbility1() {
       if (selectedChar === 'soldier') performDash();
