@@ -298,9 +298,11 @@
     <!-- Action Buttons (right) -->
     <div id="actionArea" class="absolute bottom-6 right-6 pointer-events-auto flex flex-col items-center gap-2">
       <div class="flex gap-2">
-        <button id="mobBtn1" class="w-14 h-14 rounded-full bg-red-500/40 border-2 border-red-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-red-500/70"><span class="text-lg">1</span></button>
-        <button id="mobBtn2" class="w-14 h-14 rounded-full bg-orange-500/40 border-2 border-orange-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-orange-500/70"><span class="text-lg">2</span></button>
-        <button id="mobBtnF" class="w-14 h-14 rounded-full bg-green-500/40 border-2 border-green-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-green-500/70"><span class="text-lg">F</span></button>
+        <button id="mobBtn1" class="w-12 h-12 rounded-full bg-red-500/40 border-2 border-red-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-red-500/70">1</button>
+        <button id="mobBtn2" class="w-12 h-12 rounded-full bg-orange-500/40 border-2 border-orange-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-orange-500/70">2</button>
+        <button id="mobBtn3" class="w-12 h-12 rounded-full bg-purple-500/40 border-2 border-purple-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-purple-500/70">3</button>
+        <button id="mobBtnF" class="w-12 h-12 rounded-full bg-green-500/40 border-2 border-green-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-green-500/70">F</button>
+        <button id="mobBtnE" class="w-12 h-12 rounded-full bg-cyan-500/40 border-2 border-cyan-400/60 flex items-center justify-center text-white text-xs font-bold active:bg-cyan-500/70">E</button>
       </div>
       <button id="mobBtnAtk" class="w-20 h-20 rounded-full bg-yellow-500/40 border-2 border-yellow-400/60 flex items-center justify-center text-white text-2xl font-bold active:bg-yellow-500/70">⚔</button>
       <div class="flex gap-2">
@@ -850,9 +852,44 @@
       else if (selectedChar === 'super') performSuperPunch();
       else performPunch();
     });
-    document.getElementById('mobBtn1').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') performDash(); });
-    document.getElementById('mobBtn2').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') performGrenade(); });
-    document.getElementById('mobBtnF').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') spawnAllyGunner(); });
+    function mobAbility1() {
+      if (selectedChar === 'soldier') performDash();
+      else if (selectedChar === 'fighter') performDash();
+      else if (selectedChar === 'super') performSuperCharge();
+      else if (selectedChar === 'mage') performMageLightning();
+      else if (selectedChar === 'ninja') performNinjaFarDash();
+    }
+    function mobAbility2() {
+      if (selectedChar === 'soldier') performGrenade();
+      else if (selectedChar === 'fighter') performSlam();
+      else if (selectedChar === 'super') performSuperBlast();
+      else if (selectedChar === 'mage') performMageFrostNova();
+      else if (selectedChar === 'ninja') performNinjaInvis();
+    }
+    function mobAbility3() {
+      if (selectedChar === 'soldier') performUltimate();
+      else if (selectedChar === 'fighter') performUltimate();
+      else if (selectedChar === 'super') performSuperRage();
+      else if (selectedChar === 'mage') performMageSummonTitan();
+      else if (selectedChar === 'ninja') performNinjaUlt();
+    }
+    function mobAbilityF() {
+      if (selectedChar === 'soldier') spawnAllyGunner();
+      else if (selectedChar === 'fighter') performParry();
+      else if (selectedChar === 'super') performSuperCrossbowAlly();
+      else if (selectedChar === 'mage') performMageHeal();
+      else if (selectedChar === 'ninja') performNinjaClones();
+    }
+    function mobAbilityE() {
+      if (selectedChar === 'super') performSuperShield();
+      else if (selectedChar === 'mage') performMageIceShield();
+      else if (selectedChar === 'ninja') performNinjaSharin();
+    }
+    document.getElementById('mobBtn1').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') mobAbility1(); });
+    document.getElementById('mobBtn2').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') mobAbility2(); });
+    document.getElementById('mobBtn3').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') mobAbility3(); });
+    document.getElementById('mobBtnF').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') mobAbilityF(); });
+    document.getElementById('mobBtnE').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') mobAbilityE(); });
     document.getElementById('mobBtnPause').addEventListener('touchstart', function(e) { e.preventDefault(); togglePause(); });
     document.getElementById('mobBtnShop').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') openShop(); });
     // Settings screen open/close
