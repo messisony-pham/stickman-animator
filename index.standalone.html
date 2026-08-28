@@ -1136,8 +1136,16 @@
 
     function showCutsceneLine(idx) {
       if (idx >= cutsceneData.length) {
-        // End cutscene, start game
+        // End cutscene
         document.getElementById('cutsceneScreen').classList.add('hidden');
+        // If this was the post-level-5 cutscene, go back to menu
+        if (cutsceneData === POST_LEVEL5_CUTSCENE) {
+          gameState = 'menu'; animFrameId = null;
+          gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
+          menuScreen.classList.remove('hidden');
+          updateMenuPoints(); updateCharLockUI();
+          return;
+        }
         launchCampaignLevel(campaignLevel);
         return;
       }
@@ -1298,35 +1306,38 @@
 
     // Campaign: check win condition (override kill handling)
     function campaignWinLevel() {
-      campaignMode = false;
-      gameState = 'gameover';
+      var isFinalLevel = campaignLevel >= campaignMaxLevels;
       // Advance progress
       if (campaignLevel >= campaignProgress && campaignLevel < campaignMaxLevels) {
         campaignProgress = campaignLevel + 1;
         localStorage.setItem('sm_campaignFighter', campaignProgress);
-      } else if (campaignLevel >= campaignMaxLevels) {
+      } else if (isFinalLevel) {
         campaignProgress = campaignMaxLevels;
         localStorage.setItem('sm_campaignFighter', campaignProgress);
       }
       var reward = campaignLevel * 200;
       totalPoints += reward; savePoints();
-      scoreEl.textContent = '✅ VICTORY!';
-      killsEl.textContent = '';
-      createTextParticle(CW / 2, CH / 2 - 40, '🎉 LEVEL COMPLETE!', '#facc15', 28);
-      createTextParticle(CW / 2, CH / 2, '+' + reward + ' pts', '#fbbf24', 18);
-      createParticles(CW / 2, CH / 2 - 20, 40, '#facc15');
-      // After level 5, show post-cutscene
-      if (campaignLevel >= campaignMaxLevels && typeof POST_LEVEL5_CUTSCENE !== 'undefined') {
+      // After level 5, go straight to chase cutscene (skip gameover screen)
+      if (isFinalLevel && typeof POST_LEVEL5_CUTSCENE !== 'undefined') {
+        gameState = 'cutscene';
+        campaignMode = false;
+        scoreEl.textContent = '✅ VICTORY!'; killsEl.textContent = '';
         setTimeout(function() {
           cutsceneData = POST_LEVEL5_CUTSCENE;
           cutsceneIndex = 0; cutsceneTyping = false; cutsceneCharIdx = 0; cutsceneTimer = 0;
           cutsceneCanvas = document.getElementById('cutsceneCanvas');
           cutsceneCtx = cutsceneCanvas.getContext('2d');
-          document.getElementById('gameoverScreen').classList.add('hidden');
           document.getElementById('cutsceneScreen').classList.remove('hidden');
           showCutsceneLine(0);
-        }, 1500);
+        }, 1000);
+        return;
       }
+      // For levels 1-4, show normal victory
+      gameState = 'gameover'; campaignMode = false;
+      scoreEl.textContent = '✅ VICTORY!'; killsEl.textContent = '';
+      createTextParticle(CW / 2, CH / 2 - 40, '🎉 LEVEL COMPLETE!', '#facc15', 28);
+      createTextParticle(CW / 2, CH / 2, '+' + reward + ' pts', '#fbbf24', 18);
+      createParticles(CW / 2, CH / 2 - 20, 40, '#facc15');
     }
     function checkCampaignWin() {
       if (!campaignMode) return;
@@ -4036,7 +4047,7 @@
 
     // ==================== GAME LOOP ====================
     function gameLoop() {
-      if (gameState === 'menu' || gameState === 'paused') { animFrameId = requestAnimationFrame(gameLoop); return; }
+      if (gameState === 'menu' || gameState === 'paused' || gameState === 'cutscene') { animFrameId = requestAnimationFrame(gameLoop); return; }
       if (gameState !== 'playing') { if (gameState === 'gameover') drawGameOver(); animFrameId = null; return; }
       time++; spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn();
       if (gracePeriod > 0) gracePeriod--;
