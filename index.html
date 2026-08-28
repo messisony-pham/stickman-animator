@@ -1159,8 +1159,22 @@
 
     function drawPlayerBullets() {
       if (playerBullets.length === 0) return;
-      ctx.fillStyle = '#4ade80';
-      playerBullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill(); });
+      playerBullets.forEach(function(b) {
+        if (b.type === 'botblast') {
+          // Directional red bolt
+          ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
+          ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 6;
+          var bLen = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 1;
+          ctx.beginPath();
+          ctx.moveTo(b.x - (b.vx / bLen) * 6, b.y - (b.vy / bLen) * 6);
+          ctx.lineTo(b.x + (b.vx / bLen) * 6, b.y + (b.vy / bLen) * 6);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        } else {
+          ctx.fillStyle = '#4ade80';
+          ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill();
+        }
+      });
     }
 
     // ==================== GRENADES ====================
@@ -3169,9 +3183,13 @@
       if (botJetpackCD > 0) botJetpackCD--;
       if (botJetpackFlying) {
         botJetpackTimer--;
-        // Keep flying - counter gravity
-        stick.vy = Math.min(stick.vy, -6);
-        if (!keys.has('w') && !keys.has('W') && !keys.has(' ')) stick.vy = -3;
+        // Keep flying - counter gravity, cap at sun level (y=80)
+        if (stick.y > 80) {
+          stick.vy = Math.min(stick.vy, -6);
+        } else {
+          stick.vy = 0; stick.y = 80;
+        }
+        if (!keys.has('w') && !keys.has('W') && !keys.has(' ')) { stick.vy = stick.y > 80 ? -3 : 0; }
         if (botJetpackTimer <= 0) {
           botJetpackFlying = false;
           botJetpackCD = BOT_JETPACK_CD;
@@ -4469,10 +4487,13 @@
     function performBotBlast() {
       if (attackCooldown > 0) return;
       attackCooldown = PUNCH_CD;
-      var bx = stick.x + stick.facing * 30;
-      var blastDir = stick.facing;
-      playerBullets.push({ x: bx, y: stick.y - 35, vx: blastDir * 10, vy: 0, dmg: BOT_BLAST_DMG, life: 40, type: 'botblast', hit: false });
-      createParticles(bx, stick.y - 35, 5, '#ef4444');
+      var bx = stick.x, by = stick.y - 35;
+      var mdx = mouseX - bx, mdy = mouseY - by;
+      var md = Math.sqrt(mdx * mdx + mdy * mdy) || 1;
+      var spd = 10;
+      playerBullets.push({ x: bx, y: by, vx: (mdx / md) * spd, vy: (mdy / md) * spd, dmg: BOT_BLAST_DMG, life: 40, type: 'botblast', hit: false });
+      stick.facing = mdx > 0 ? 1 : -1;
+      createParticles(bx + (mdx / md) * 15, by + (mdy / md) * 15, 5, '#ef4444');
       stick.state = 'shoot'; stick.animTime = 0;
     }
     function performBotParry() {
