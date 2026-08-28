@@ -1432,13 +1432,6 @@
       gameState = 'playing';
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
       fullReset();
-      // Force spawn initial dummies for campaign
-      var lv2 = CAMPAIGN_LEVELS[level - 1];
-      if (lv2 && lv2.spawnCount) {
-        for (var ic = 0; ic < 2; ic++) {
-          dummies.push(createDummy(550 + ic * 150));
-        }
-      }
       resumeGameLoop();
     });
     document.getElementById('resumeBtn').addEventListener('click', () => { pauseScreen.classList.add('hidden'); gameState = 'playing'; resumeGameLoop(); });
