@@ -102,6 +102,20 @@
           </div>
           <div class="text-[9px] text-rose-500/60 mt-1">HP: 125 → 205 • NO RESET</div>
         </div>
+        <div id="charBots" class="char-card bg-slate-800 border border-slate-600 rounded-xl p-4 w-44 relative" onclick="buyChar('bots')">
+          <div id="botsLock" class="absolute inset-0 bg-slate-900/80 rounded-xl flex flex-col items-center justify-center z-10 cursor-pointer hover:bg-slate-800/80 transition-colors"><span class="text-3xl">🔒</span><span class="text-red-400 text-xs font-bold mt-1">500 🪙 + 3 🏆</span><button class="mt-1 px-3 py-0.5 bg-red-500 hover:bg-red-400 text-slate-900 text-[10px] font-bold rounded pointer-events-none">BUY</button></div>
+          <div class="text-3xl mb-2">🤖</div>
+          <div class="font-bold text-red-400 mb-1">BOTS</div>
+          <div class="text-[10px] text-slate-400 space-y-0.5">
+            <p>💥 L-Click: <span class="text-emerald-400">Blast 10</span></p>
+            <p>🛡 R-Click: <span class="text-cyan-400">Parry</span></p>
+            <p>🚀 1: <span class="text-cyan-400">Jetpack Fly 5s</span></p>
+            <p>🤖 2: <span class="text-orange-400">3 Striders</span></p>
+            <p>🔴 F: <span class="text-rose-400">Laser Core 8s</span></p>
+            <p>☢ 3: <span class="text-yellow-400">Nuclear Stun 5s</span></p>
+          </div>
+          <div class="text-[9px] text-red-500/60 mt-1">HP: 500 • NO LV HP UP</div>
+        </div>
       </div>
 
       <div class="flex gap-3 justify-center mb-4">
@@ -389,15 +403,17 @@
     // Expose character select globally (must be inside IIFE to access selectedChar)
     let boughtSoldier = localStorage.getItem('sm_boughtSoldier') === 'true';
     let boughtSuper = localStorage.getItem('sm_boughtSuper') === 'true';
-    let charUses = { soldier: parseInt(localStorage.getItem('sm_soldierUses') || '0'), super: parseInt(localStorage.getItem('sm_superUses') || '0'), mage: parseInt(localStorage.getItem('sm_mageUses') || '0') };
+    let charUses = { soldier: parseInt(localStorage.getItem('sm_soldierUses') || '0'), super: parseInt(localStorage.getItem('sm_superUses') || '0'), mage: parseInt(localStorage.getItem('sm_mageUses') || '0'), bots: parseInt(localStorage.getItem('sm_botsUses') || '0') };
     let boughtMage = localStorage.getItem('sm_boughtMage') === 'true';
     let boughtNinja = localStorage.getItem('sm_boughtNinja') === 'true';
+    let boughtBots = localStorage.getItem('sm_boughtBots') === 'true';
     function isCharBought(c) {
       if (c === 'fighter') return true;
       if (c === 'soldier') return boughtSoldier;
       if (c === 'super') return boughtSuper;
       if (c === 'mage') return boughtMage;
       if (c === 'ninja') return boughtNinja;
+      if (c === 'bots') return boughtBots;
       return false;
     }
     function trackCharUse(c) {
@@ -408,6 +424,7 @@
         if (c === 'soldier') { boughtSoldier = false; localStorage.removeItem('sm_boughtSoldier'); }
         if (c === 'super') { boughtSuper = false; localStorage.removeItem('sm_boughtSuper'); }
         if (c === 'mage') { boughtMage = false; localStorage.removeItem('sm_boughtMage'); }
+        if (c === 'bots') { boughtBots = false; localStorage.removeItem('sm_boughtBots'); }
         charUses[c] = 0; localStorage.setItem('sm_' + c + 'Uses', 0);
         updateCharLockUI(); updateMenuPoints();
       }
@@ -425,6 +442,9 @@
         charUses.mage = 0; localStorage.setItem('sm_mageUses', 0);
       } else if (c === 'ninja' && totalPoints >= 1000 && bossPoints >= 5) {
         totalPoints -= 1000; bossPoints -= 5; savePoints(); boughtNinja = true; localStorage.setItem('sm_boughtNinja', 'true');
+      } else if (c === 'bots' && totalPoints >= 500 && bossPoints >= 3) {
+        totalPoints -= 500; bossPoints -= 3; savePoints(); boughtBots = true; localStorage.setItem('sm_boughtBots', 'true');
+        charUses.bots = 0; localStorage.setItem('sm_botsUses', 0);
       } else { return; }
       updateCharLockUI(); updateMenuPoints(); selectChar(c);
     };
@@ -441,6 +461,9 @@
       const njLock = document.getElementById('ninjaLock');
       if (mgLock) mgLock.classList.toggle('hidden', isCharBought('mage'));
       if (njLock) njLock.classList.toggle('hidden', isCharBought('ninja'));
+      const bt = document.getElementById('charBots');
+      const btLock = document.getElementById('botsLock');
+      if (btLock) btLock.classList.toggle('hidden', isCharBought('bots'));
       s.style.opacity = isCharBought('soldier') ? '1' : '1';
       sup.style.opacity = isCharBought('super') ? '1' : '1';
       mg.style.opacity = isCharBought('mage') ? '1' : '1';
@@ -454,6 +477,7 @@
       document.getElementById('charSuper').classList.toggle('selected', c === 'super');
       document.getElementById('charMage').classList.toggle('selected', c === 'mage');
       document.getElementById('charNinja').classList.toggle('selected', c === 'ninja');
+      document.getElementById('charBots').classList.toggle('selected', c === 'bots');
     };
 
     // Soldier abilities
@@ -487,6 +511,14 @@
     const NINJA_CLONE_DUR = 300, NINJA_CLONE_CD = 900, NINJA_CLONE_DMG = 7;
     const NINJA_SHARIN_DMG = 40, NINJA_SHARIN_RADIUS = 200, NINJA_SHARIN_CD = 360;
     const NINJA_ULT_DMG = 10, NINJA_ULT_DUR = 600, NINJA_ULT_INTERVAL = 30;
+
+    // Bots/Robot
+    const BOT_HP = 500, BOT_BLAST_DMG = 10, BOT_PARRY_CD = 180, BOT_PARRY_WINDOW = 15;
+    const BOT_JETPACK_DUR = 300, BOT_JETPACK_CD = 300; // 5s flight, 5s cooldown (60fps)
+    const BOT_STRIDER_DMG = 20, BOT_STRIDER_COUNT = 3, BOT_STRIDER_CD = 420;
+    const BOT_LASER_DMG = 5, BOT_LASER_INTERVAL = 36, BOT_LASER_DUR = 480; // 0.6s interval, 8s duration
+    const BOT_NUCLEAR_DMG = 50, BOT_NUCLEAR_RADIUS = 200, BOT_NUCLEAR_CD = 600;
+    const BOT_NUCLEAR_STUN = 300, BOT_NUCLEAR_SPEED_BUFF = 0.2, BOT_NUCLEAR_SPEED_DUR = 300;
 
     // Normal dummy
     const DUMMY_BASE_HP = 75, DUMMY_SPD = 0.4, DUMMY_CHASE_RANGE = 200;
@@ -647,11 +679,19 @@
     let ninjaSharinCD = 0, ninjaSharins = [];
     let ninjaUltCD = 0, ninjaUltActive = false, ninjaUltTimer = 0, ninjaUltSlashTimer = 0;
     let ninjaKunais = [];
+    // Bots state
+    let botJetpackCD = 0, botJetpackFlying = false, botJetpackTimer = 0;
+    let botLaserActive = false, botLaserTimer = 0, botLaserTickTimer = 0;
+    let botStriderCD = 0;
+    let botNuclearCD = 0;
+    let botNuclearSpeedTimer = 0;
+    let botStunTimer = 0; // stun enemy timer
     let isCharging = false, chargeDist = 0, chargeDmgDealt = false;
     let isKickDashing = false, kickDashDist = 0;
     let isDashing = false, dashDist = 0;
     let isParrying = false, parryWindow = 0, parryCD = 0;
     let playerLevel = 1;
+    let MOVE_SPEED_BONUS = 0;
     // Ultimate bar
     let ultCharge = 0, ultReady = false, ultActive = false, ultTimer = 0;
     let mouseX = CW / 2, mouseY = CH / 2;
@@ -853,6 +893,7 @@
       else if (selectedChar === 'mage') performMageFireball();
       else if (selectedChar === 'ninja') performNinjaSlash();
       else if (selectedChar === 'super') performSuperPunch();
+      else if (selectedChar === 'bots') performBotBlast();
       else performPunch();
     });
     document.getElementById('mobBtnKick').addEventListener('touchstart', function(e) {
@@ -863,6 +904,7 @@
       else if (selectedChar === 'super') performSuperKickDash();
       else if (selectedChar === 'mage') performMageIceShield();
       else if (selectedChar === 'ninja') performNinjaKunai();
+      else if (selectedChar === 'bots') performBotParry();
     });
     function mobAbility1() {
       if (selectedChar === 'soldier') performDash();
@@ -870,6 +912,7 @@
       else if (selectedChar === 'super') performSuperCharge();
       else if (selectedChar === 'mage') performMageLightning();
       else if (selectedChar === 'ninja') performNinjaFarDash();
+      else if (selectedChar === 'bots') performBotJetpack();
     }
     function mobAbility2() {
       if (selectedChar === 'soldier') performGrenade();
@@ -877,6 +920,7 @@
       else if (selectedChar === 'super') performSuperBlast();
       else if (selectedChar === 'mage') performMageFrostNova();
       else if (selectedChar === 'ninja') performNinjaInvis();
+      else if (selectedChar === 'bots') performBotStrider();
     }
     function mobAbility3() {
       if (selectedChar === 'soldier') performUltimate();
@@ -884,6 +928,7 @@
       else if (selectedChar === 'super') performSuperRage();
       else if (selectedChar === 'mage') performMageSummonTitan();
       else if (selectedChar === 'ninja') performNinjaUlt();
+      else if (selectedChar === 'bots') performBotNuclear();
     }
     function mobAbilityF() {
       if (selectedChar === 'soldier') spawnAllyGunner();
@@ -891,6 +936,7 @@
       else if (selectedChar === 'super') performSuperCrossbowAlly();
       else if (selectedChar === 'mage') performMageHeal();
       else if (selectedChar === 'ninja') performNinjaClones();
+      else if (selectedChar === 'bots') performBotLaserCore();
     }
     function mobAbilityE() {
       if (selectedChar === 'super') performSuperShield();
@@ -979,6 +1025,10 @@
         PLAYER_MAX_HP_CURRENT = NINJA_HP;
         document.getElementById('charIcon').textContent = '🥷';
         document.getElementById('charName').textContent = 'Ninja' + modeLabel;
+      } else if (selectedChar === 'bots') {
+        PLAYER_MAX_HP_CURRENT = BOT_HP;
+        document.getElementById('charIcon').textContent = '🤖';
+        document.getElementById('charName').textContent = 'Bots' + modeLabel;
       } else {
         PLAYER_MAX_HP_CURRENT = MAGE_HP;
         document.getElementById('charIcon').textContent = '🧙';
@@ -1676,8 +1726,60 @@
         ctx.lineTo(x + 9, headY - 2);
         ctx.closePath(); ctx.fill();
         ctx.shadowBlur = 0;
+      } else if (selectedChar === 'bots') {
+        // Robot body — rectangular torso
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(x - 10, btY + 2, 20, 35);
+        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+        ctx.strokeRect(x - 10, btY + 2, 20, 35);
+        // Red rectangle eye — glowing
+        var eyeGlow = 0.6 + Math.sin(time * 0.15) * 0.4;
+        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = eyeGlow;
+        ctx.fillRect(x - 7, headY - 2, 14, 5);
+        ctx.globalAlpha = eyeGlow * 0.3;
+        ctx.fillRect(x - 10, headY - 5, 20, 11);
+        ctx.globalAlpha = 1;
+        // Head — square robot
+        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2.5;
+        ctx.strokeRect(x - 14, headY - 14, 28, 28);
+        // Antenna
+        ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x, headY - 14); ctx.lineTo(x, headY - 22); ctx.stroke();
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(x, headY - 22, 3, 0, Math.PI * 2); ctx.fill();
+        // Jetpack on back
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(x - facing * 14, btY + 5, 10, 30);
+        ctx.strokeStyle = '#64748b';
+        ctx.strokeRect(x - facing * 14, btY + 5, 10, 30);
+        // Jetpack flame when flying
+        if (botJetpackFlying) {
+          var flameH = 10 + Math.sin(time * 0.5) * 5;
+          ctx.fillStyle = '#f97316';
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(x - facing * 14, btY + 35);
+          ctx.lineTo(x - facing * 9, btY + 35 + flameH);
+          ctx.lineTo(x - facing * 4, btY + 35);
+          ctx.fill();
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.moveTo(x - facing * 13, btY + 35);
+          ctx.lineTo(x - facing * 9, btY + 35 + flameH * 0.6);
+          ctx.lineTo(x - facing * 5, btY + 35);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          // Exhaust particles
+          if (time % 3 < 1) particles.push({ x: x - facing * 9, y: btY + 36 + flameH, vx: (Math.random()-0.5)*2, vy: 2+Math.random()*2, life: 15, color: '#f97316' });
+        }
+        // Chest detail
+        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.5;
+        ctx.fillRect(x - 3, btY + 12, 6, 6);
+        ctx.globalAlpha = 1;
       }
-      ctx.beginPath(); ctx.moveTo(x, btY); ctx.lineTo(x, bbY); ctx.stroke();
+      if (selectedChar !== 'bots') {
+        ctx.beginPath(); ctx.moveTo(x, btY); ctx.lineTo(x, bbY); ctx.stroke();
+      }
       const ls = state === 'walk' ? wc * 18 : (state === 'jump' ? 22 : 14);
       ctx.beginPath(); ctx.moveTo(x, bbY); ctx.lineTo(x - ls * facing + (state === 'kick' && facing === 1 ? ap * 35 : 0), bbY + 32 + (state === 'kick' && facing === -1 ? ap * 20 : 0)); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x, bbY); ctx.lineTo(x + ls * facing - (state === 'kick' && facing === -1 ? ap * 35 : 0), bbY + 32 + (state === 'kick' && facing === 1 ? ap * 20 : 0)); ctx.stroke();
@@ -1698,6 +1800,24 @@
       if (state === 'dash') { ctx.globalAlpha = 0.4; ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(x - i * 20 * facing, headY); ctx.lineTo(x - i * 20 * facing, bbY); ctx.stroke(); } ctx.globalAlpha = 1;      ctx.strokeStyle = playerColor; ctx.lineWidth = 4.5; }
       if (state === 'grenade' && animTime >= 4 && animTime <= 12) { const sa = 1 - (animTime - 4) / 8; const sr = (animTime - 4) * 18; ctx.strokeStyle = '#f97316'; ctx.lineWidth = 3; ctx.globalAlpha = sa * 0.7; ctx.beginPath(); ctx.arc(x, GROUND_Y + 15, sr, Math.PI, 0); ctx.stroke(); ctx.globalAlpha = 1;      ctx.strokeStyle = playerColor; ctx.lineWidth = 4.5; }
       if (isParrying && parryWindow > 0) { ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; ctx.globalAlpha = parryWindow / PARRY_WINDOW * 0.6; ctx.beginPath(); ctx.arc(x, stick.y - 30, 30, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+      // Bots: Laser Core beam
+      if (selectedChar === 'bots' && botLaserActive) {
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.5 + Math.sin(time * 0.5) * 0.3;
+        ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 12;
+        var laserEndX = stick.facing > 0 ? CW : 0;
+        ctx.beginPath();
+        ctx.moveTo(x + stick.facing * 20, stick.y - 30);
+        ctx.lineTo(laserEndX, stick.y - 30);
+        ctx.stroke();
+        // Inner bright core
+        ctx.strokeStyle = '#fca5a5'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + stick.facing * 20, stick.y - 30);
+        ctx.lineTo(laserEndX, stick.y - 30);
+        ctx.stroke();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      }
     }
 
     function drawDummy(d) {
@@ -2075,6 +2195,8 @@
       dummies.forEach(d => {
         if (!d.alive || d.isKamikaze || d.isCrossbow) return;
         if (gracePeriod > 0) return;
+        // Stun check (bots nuclear)
+        if (d.stunTimer && d.stunTimer > 0) { d.stunTimer--; d.hitFlash = 2; return; }
         const dist = Math.abs(stick.x - d.x);
         d.facing = stick.x < d.x ? -1 : 1;
         if (d.isGrenader) {
@@ -2531,7 +2653,7 @@
       if (isCharging) { var chDmg = isRaging ? Math.floor(SUPER_CHARGE_DMG * rageDmgMult) : SUPER_CHARGE_DMG; stick.x += SUPER_CHARGE_SPD * stick.facing; stick.x = Math.max(50, Math.min(CW - 50, stick.x)); chargeDist -= SUPER_CHARGE_SPD; if (!chargeDmgDealt) { dummies.forEach(d => { if (d.alive && Math.abs(stick.x - d.x) < 60) { dealDamageToDummy(d, chDmg, 'dash'); chargeDmgDealt = true; } }); miniBosses.forEach(mb => { if (mb.alive && Math.abs(stick.x - mb.x) < 60) { dealDamageToMiniBoss(mb, chDmg, 'dash'); chargeDmgDealt = true; } }); if (boss && boss.alive && Math.abs(stick.x - boss.x) < 80) { dealDamageToBoss(chDmg, 'dash'); chargeDmgDealt = true; } } if (!chargeDmgDealt && bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 80) { bossRushDeath.hp -= chDmg; createParticles(stick.x, stick.y - 30, 4, '#a855f7'); chargeDmgDealt = true; } if (!chargeDmgDealt) dealUltraBossDamage(chDmg); if (!chargeDmgDealt && bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(stick.x - bossRushSentinel1.x) < 80) { dealColossalSentinelDamage(bossRushSentinel1, chDmg, 'dash'); chargeDmgDealt = true; } if (!chargeDmgDealt && bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(stick.x - bossRushSentinel2.x) < 80) { dealColossalSentinelDamage(bossRushSentinel2, chDmg, 'dash'); chargeDmgDealt = true; } if (!chargeDmgDealt && bossRushColossal && bossRushColossal.hp > 0 && Math.abs(stick.x - bossRushColossal.x) < 80) { dealColossalDamage(chDmg, 'dash'); chargeDmgDealt = true; } if (chargeDist <= 0) { isCharging = false; stick.state = 'idle'; } return; }
       if (bossRushGrabbed) { stick.state = 'idle'; stick.animTime = (stick.animTime + 1) % 60; return; }
       let targetVx = 0;
-      var spdMult = getShopUpgradeEffect('speed'); if (attackCooldown === 0) { if (keys.has('ArrowLeft') || keys.has('a') || keys.has('A')) targetVx -= MOVE_SPEED * spdMult; if (keys.has('ArrowRight') || keys.has('d') || keys.has('D')) targetVx += MOVE_SPEED * spdMult; }
+      var spdMult = getShopUpgradeEffect('speed') + MOVE_SPEED_BONUS / MOVE_SPEED; if (attackCooldown === 0) { if (keys.has('ArrowLeft') || keys.has('a') || keys.has('A')) targetVx -= MOVE_SPEED * spdMult; if (keys.has('ArrowRight') || keys.has('d') || keys.has('D')) targetVx += MOVE_SPEED * spdMult; }
       stick.vx = targetVx; stick.x += stick.vx; stick.x = Math.max(50, Math.min(CW - 50, stick.x));
       if (targetVx !== 0) stick.facing = targetVx > 0 ? 1 : -1;
       if ((keys.has(' ') || keys.has('Spacebar') || keys.has('w') || keys.has('W') || keys.has('ArrowUp')) && stick.y >= GROUND_Y - 1 && stick.vy === 0) { stick.vy = JUMP_FORCE; stick.state = 'jump'; createParticles(stick.x, stick.y + 5, 8, '#94a3b8'); }
@@ -3041,6 +3163,71 @@
       // handled in updateNinjaClones
     }
 
+    // ==================== BOTS UPDATE ====================
+    function updateBotsState() {
+      // Jetpack
+      if (botJetpackCD > 0) botJetpackCD--;
+      if (botJetpackFlying) {
+        botJetpackTimer--;
+        // Keep flying - counter gravity
+        stick.vy = Math.min(stick.vy, -6);
+        if (!keys.has('w') && !keys.has('W') && !keys.has(' ')) stick.vy = -3;
+        if (botJetpackTimer <= 0) {
+          botJetpackFlying = false;
+          botJetpackCD = BOT_JETPACK_CD;
+          createTextParticle(stick.x, stick.y - 80, '⚡ FUEL EMPTY', '#94a3b8', 12);
+        }
+      }
+      // Laser Core
+      if (botLaserActive) {
+        botLaserTimer--;
+        botLaserTickTimer++;
+        if (botLaserTickTimer >= BOT_LASER_INTERVAL) {
+          botLaserTickTimer = 0;
+          // Damage nearest enemy in line
+          var laserDir = stick.facing;
+          var laserX = stick.x;
+          var laserDmg = BOT_LASER_DMG;
+          dummies.forEach(function(d) {
+            if (d.alive) {
+              var inLine = laserDir > 0 ? (d.x > laserX && d.x < laserX + 800) : (d.x < laserX && d.x > laserX - 800);
+              if (inLine && Math.abs(d.y - GROUND_Y) < 60) dealDamageToDummy(d, laserDmg, 'laser');
+            }
+          });
+          miniBosses.forEach(function(mb) {
+            if (mb.alive) {
+              var inLine2 = laserDir > 0 ? (mb.x > laserX && mb.x < laserX + 800) : (mb.x < laserX && mb.x > laserX - 800);
+              if (inLine2) dealDamageToMiniBoss(mb, laserDmg, 'laser');
+            }
+          });
+          if (boss && boss.alive) {
+            var inLine3 = laserDir > 0 ? (boss.x > laserX && boss.x < laserX + 800) : (boss.x < laserX && boss.x > laserX - 800);
+            if (inLine3) dealDamageToBoss(laserDmg, 'laser');
+          }
+          // Boss rush targets
+          if (bossRushUltra && bossRushUltra.hp > 0) { if (Math.abs(bossRushUltra.x - laserX) < 400) dealUltraBossDamage(laserDmg); }
+          if (bossRushColossal && bossRushColossal.hp > 0) { if (Math.abs(bossRushColossal.x - laserX) < 400) dealColossalDamage(laserDmg, 'laser', false); }
+          // Visual tick
+          createParticles(stick.x + laserDir * 30, stick.y - 30, 3, '#ef4444');
+        }
+        if (botLaserTimer <= 0) {
+          botLaserActive = false;
+          createTextParticle(stick.x, stick.y - 80, 'Laser OFF', '#94a3b8', 12);
+        }
+      }
+      // Strider CD
+      if (botStriderCD > 0) botStriderCD--;
+      // Nuclear CD
+      if (botNuclearCD > 0) botNuclearCD--;
+      // Nuclear speed buff
+      if (botNuclearSpeedTimer > 0) {
+        botNuclearSpeedTimer--;
+        MOVE_SPEED_BONUS = 3;
+        if (botNuclearSpeedTimer <= 0) MOVE_SPEED_BONUS = 0;
+      }
+      // Enemy stun (applied in dummy update)
+    }
+
     function updateMageFireballs() {
       let fbi = 0;
       for (let i = 0; i < mageFireballs.length; i++) {
@@ -3150,7 +3337,7 @@
       // Ult charge: 10% per normal kill, 20% per boss
       addUltCharge(10);
       const tl = Math.min(Math.floor(totalKills / LEVEL_UP_KILLS) + 1, MAX_LEVEL);
-      if (tl > playerLevel) { playerLevel = tl; var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; updateHPBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
+      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
     }
 
     // ==================== SPAWNING ====================
@@ -3875,7 +4062,7 @@
       if (isShielded) { shieldTimer--; if (shieldTimer <= 0) { isShielded = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD DOWN', '#94a3b8', 14); } }
       if (shieldCD > 0) shieldCD--;
       updateUltUI(); updateUltimate();
-      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();
+      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt(); updateBotsState();
       if (ninjaSlashCD > 0) ninjaSlashCD--;
       if (ninjaKunaiCD > 0) ninjaKunaiCD--;
       if (ninjaDashCD > 0) ninjaDashCD--;
@@ -4278,6 +4465,67 @@
     }
 
     // ==================== INPUT ====================
+    // Bots ability functions
+    function performBotBlast() {
+      if (attackCooldown > 0) return;
+      attackCooldown = PUNCH_CD;
+      var bx = stick.x + stick.facing * 30;
+      var blastDir = stick.facing;
+      playerBullets.push({ x: bx, y: stick.y - 35, vx: blastDir * 10, vy: 0, dmg: BOT_BLAST_DMG, life: 40, type: 'botblast', hit: false });
+      createParticles(bx, stick.y - 35, 5, '#ef4444');
+      stick.state = 'shoot'; stick.animTime = 0;
+    }
+    function performBotParry() {
+      if (parryCD > 0) return;
+      isParrying = true; parryWindow = BOT_PARRY_WINDOW; parryCD = BOT_PARRY_CD;
+      createParticles(stick.x, stick.y - 30, 8, '#38bdf8');
+    }
+    function performBotJetpack() {
+      if (botJetpackCD > 0 || botJetpackFlying) return;
+      botJetpackFlying = true; botJetpackTimer = BOT_JETPACK_DUR;
+      stick.vy = -8;
+      createTextParticle(stick.x, stick.y - 80, '🚀 JETPACK!', '#f97316', 16);
+      createParticles(stick.x, stick.y, 10, '#f97316');
+    }
+    function performBotStrider() {
+      if (botStriderCD > 0) return;
+      botStriderCD = BOT_STRIDER_CD;
+      // Spawn 3 small kamikaze robot striders
+      for (var i = 0; i < BOT_STRIDER_COUNT; i++) {
+        var sx = stick.x + (i - 1) * 40 + stick.facing * 60;
+        dummies.push({
+          x: sx, y: GROUND_Y, hp: 25, maxHp: 25, speed: 2.5, attackCD: 30,
+          hitFlash: 0, facing: stick.facing, alive: true,
+          isKamikaze: true, isGunner: false, isSummoner: false, isSummon: false,
+          isCrossbow: false, flyTime: -1, isGrenader: false,
+          summonCD: 0, vx: 0, isBotStrider: true
+        });
+      }
+      createTextParticle(stick.x, stick.y - 80, '🤖 3 STRIDERS!', '#f97316', 16);
+      createParticles(stick.x, stick.y, 10, '#f97316');
+    }
+    function performBotLaserCore() {
+      if (botLaserActive) return;
+      botLaserActive = true; botLaserTimer = BOT_LASER_DUR; botLaserTickTimer = 0;
+      createTextParticle(stick.x, stick.y - 80, '🔴 LASER CORE!', '#ef4444', 18);
+      createParticles(stick.x, stick.y - 40, 15, '#ef4444');
+    }
+    function performBotNuclear() {
+      if (botNuclearCD > 0) return;
+      botNuclearCD = BOT_NUCLEAR_CD;
+      // Damage all enemies
+      createTextParticle(CW / 2, 60, '☢️ NUCLEAR!', '#ef4444', 28);
+      createExplosion(stick.x, GROUND_Y - 30, 120, '#ef4444');
+      dummies.forEach(function(d) { if (d.alive && Math.abs(stick.x - d.x) < BOT_NUCLEAR_RADIUS) dealDamageToDummy(d, BOT_NUCLEAR_DMG, 'nuke'); });
+      miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(stick.x - mb.x) < BOT_NUCLEAR_RADIUS) dealDamageToMiniBoss(mb, BOT_NUCLEAR_DMG, 'nuke'); });
+      if (boss && boss.alive && Math.abs(stick.x - boss.x) < BOT_NUCLEAR_RADIUS) dealDamageToBoss(BOT_NUCLEAR_DMG, 'nuke');
+      // Stun enemies
+      dummies.forEach(function(d) { if (d.alive && Math.abs(stick.x - d.x) < BOT_NUCLEAR_RADIUS) d.stunTimer = BOT_NUCLEAR_STUN; });
+      // Speed buff
+      botNuclearSpeedTimer = BOT_NUCLEAR_SPEED_DUR;
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 500);
+      for (var i = 0; i < 30; i++) particles.push({ x: stick.x, y: stick.y - 30, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 30+Math.random()*20, color: '#ef4444' });
+    }
     const GAME_KEYS = new Set(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','a','A','d','D','w','W','s','S','q','Q','e','E','f','F','1','2','3','Escape']);
     window.addEventListener('keydown', (e) => {
       // Don't capture keys when typing in input fields
@@ -4315,6 +4563,11 @@
         if (e.key === '3') performNinjaUlt();
         if (e.key.toLowerCase() === 'f') performNinjaClones();
         if (e.key.toLowerCase() === 'e') performNinjaSharin();
+      } else if (selectedChar === 'bots') {
+        if (e.key === '1') performBotJetpack();
+        if (e.key === '2') performBotStrider();
+        if (e.key === '3') performBotNuclear();
+        if (e.key.toLowerCase() === 'f') performBotLaserCore();
       }
     });
     window.addEventListener('keyup', (e) => keys.delete(e.key));
@@ -4335,6 +4588,8 @@
         if (e.button === 2) performMageIceShield(); else performMageFireball();
       } else if (selectedChar === 'ninja') {
         if (e.button === 2) performNinjaKunai(); else performNinjaSlash();
+      } else if (selectedChar === 'bots') {
+        if (e.button === 2) performBotParry(); else performBotBlast();
       }
     });
     canvas.addEventListener('mousemove', (e) => {
@@ -4349,7 +4604,7 @@
       mouseX = (t.clientX - rect.left) * (CW / rect.width);
       mouseY = (t.clientY - rect.top) * (CH / rect.height);
       if (mouseX > stick.x) stick.facing = 1; else stick.facing = -1;
-      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else performPunch();
+      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else performPunch();
     }, { passive: false });
 
     // ==================== RESET ====================
@@ -4368,6 +4623,9 @@
       ninjaSlashCD = 0; ninjaKunaiCD = 0; ninjaDashCD = 0; ninjaInvisCD = 0; ninjaInvisTimer = 0; ninjaIsInvis = false;
       ninjaCloneCD = 0; ninjaClones = []; ninjaCloneTimer = 0; ninjaSharinCD = 0; ninjaSharins = [];
       ninjaUltCD = 0; ninjaUltActive = false; ninjaUltTimer = 0; ninjaUltSlashTimer = 0; ninjaKunais = []; ninjaSlashTrails = [];
+      botJetpackCD = 0; botJetpackFlying = false; botJetpackTimer = 0;
+      botLaserActive = false; botLaserTimer = 0; botLaserTickTimer = 0;
+      botStriderCD = 0; botNuclearCD = 0; botNuclearSpeedTimer = 0; MOVE_SPEED_BONUS = 0; botStunTimer = 0;
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       isDashing = false; dashDist = 0;
@@ -4381,7 +4639,7 @@
       var hasSummonAlly = false;
       for (var k in shopUpgrades) { if (k.indexOf('summon') === 0 && shopUpgrades[k] > 0) { hasSummonAlly = true; break; } }
       if (hasSummonAlly) { allySpawnTimer = ALLY_SPAWN_INTERVAL; }
-      PLAYER_MAX_HP_CURRENT = selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : 100;
+      PLAYER_MAX_HP_CURRENT = selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : 100;
       PLAYER_MAX_HP_CURRENT += getShopUpgradeEffect('maxHp');
       regenTimer = 0; shopRegenTimer = 0; isParrying = false; parryWindow = 0; parryCD = 0;
       scoreEl.textContent = '0'; killsEl.textContent = '0';
@@ -4392,9 +4650,9 @@
 
     document.getElementById('resetBtn').addEventListener('click', () => { fullReset(); gameState = 'playing'; resumeGameLoop(); });
     document.getElementById('closeInstructions').addEventListener('click', () => { showInstructions = false; instructionsEl.style.display = 'none'; });
-    ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaDash() : performDash(); });
-    ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : performSlam(); });
-    ultBtn3.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performAllyGunner() : selectedChar === 'super' ? performSuperCrossbowAlly() : selectedChar === 'mage' ? performMageHeal() : selectedChar === 'ninja' ? performNinjaClones() : performParry(); });
+    ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
+    ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : performSlam(); });
+    ultBtn3.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performAllyGunner() : selectedChar === 'super' ? performSuperCrossbowAlly() : selectedChar === 'mage' ? performMageHeal() : selectedChar === 'ninja' ? performNinjaClones() : selectedChar === 'bots' ? performBotLaserCore() : performParry(); });
 
     // ==================== DYNAMIC CONTROLS ====================
     function updateControlsList() {
@@ -4441,6 +4699,13 @@
         rows.push(['F', 'CLONES 5s', 'text-cyan-400']);
         rows.push(['E', 'SHARINGAN 40', 'text-cyan-400']);
         rows.push(['3', 'MULTI SLASH', 'text-violet-400']);
+      } else if (selectedChar === 'bots') {
+        rows.push(['L-CLICK', 'BLAST 10', 'text-emerald-400']);
+        rows.push(['R-CLICK', 'PARRY', 'text-cyan-400']);
+        rows.push(['1', 'JETPACK 5s', 'text-cyan-400']);
+        rows.push(['2', '3 STRIDERS', 'text-orange-400']);
+        rows.push(['F', 'LASER CORE 8s', 'text-rose-400']);
+        rows.push(['3', 'NUCLEAR +STUN', 'text-yellow-400']);
       }
       rows.push(['ESC', 'PAUSE', 'text-slate-500']);
       rows.push(['TAB', 'SHOP', 'text-amber-400']);
