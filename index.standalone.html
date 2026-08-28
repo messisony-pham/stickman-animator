@@ -1030,66 +1030,72 @@
     // ==================== CAMPAIGN SYSTEM ====================
     var campaignProgress = parseInt(localStorage.getItem('sm_campaignFighter') || '1');
     var campaignMode = false, campaignLevel = 1, campaignMaxLevels = 5;
+    var campaignTimer = 0, campaignSpawnTimer = 0, campaignSpecialTimers = {};
     var cutsceneData = [], cutsceneIndex = 0, cutsceneTyping = false, cutsceneCharIdx = 0, cutsceneTimer = 0;
     var cutsceneCanvas, cutsceneCtx;
     // Cutscene dialogue data per level
     var CAMPAIGN_LEVELS = [
       {
-        name: 'Level 1: The Beginning',
+        name: 'Level 1: House Under Attack',
         cutscene: [
-          { speaker: 'Fighter', color: '#facc15', text: 'Finally... I've trained long enough. My fists are ready.', portrait: '👊' },
-          { speaker: 'Fighter', color: '#facc15', text: 'The gym is getting boring. I need a real challenge.', portrait: '👊' },
-          { speaker: '???', color: '#ef4444', text: 'Heh... you think you're ready for REAL combat?', portrait: '💀' },
-          { speaker: 'Fighter', color: '#facc15', text: 'Who's there?! Show yourself!', portrait: '👊' },
-          { speaker: 'Villain', color: '#ef4444', text: 'I am the one who will destroy this city. And YOU... are in my way.', portrait: '💀' },
-          { speaker: 'Fighter', color: '#facc15', text: 'Not on my watch. Let's fight!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'What a peaceful day at home...', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Wait... what is that noise outside?!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'NO! Those thugs are trying to break into my HOUSE!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Not today! Nobody messes with my home!', portrait: '👊' },
         ],
-        enemies: 10, bossKills: 5, waveInterval: 3, noGrenader: true, noSummoner: true, noTitan: true
+        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: []
       },
       {
-        name: 'Level 2: Rising Threat',
+        name: 'Level 2: Fast Enemy',
         cutscene: [
-          { speaker: 'Fighter', color: '#facc15', text: 'I won! But... there are more coming.', portrait: '👊' },
-          { speaker: 'Ally', color: '#4ade80', text: 'Fighter! I've been watching your fight. Impressive!', portrait: '🎖' },
-          { speaker: 'Fighter', color: '#facc15', text: 'Who are you?', portrait: '👊' },
-          { speaker: 'Ally', color: '#4ade80', text: 'A soldier. I've intel that they're sending stronger enemies. Gunners this time.', portrait: '🎖' },
-          { speaker: 'Fighter', color: '#facc15', text: 'Bring it on. I'll handle them.', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'I drove them back... but they are regrouping.', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Wait... I see something fast approaching!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'A speed enemy? They brought reinforcements!', portrait: '👊' },
         ],
-        enemies: 15, bossKills: 8, waveInterval: 2, noGrenader: true, noSummoner: true, noTitan: true
+        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'speed', at: 900 }]
       },
       {
-        name: 'Level 3: The Tank',
+        name: 'Level 3: Heavy Hitter',
         cutscene: [
-          { speaker: 'Villain', color: '#ef4444', text: 'You're stronger than I expected... fine. Time for my heavy artillery.', portrait: '💀' },
-          { speaker: 'Fighter', color: '#facc15', text: 'What... is THAT?!', portrait: '👊' },
-          { speaker: 'Narrator', color: '#94a3b8', text: 'A massive Tank enemy charges toward you!', portrait: '🛡' },
-          { speaker: 'Fighter', color: '#facc15', text: 'Doesn't matter how big it is. My fists don't care about size!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Those fast ones were tricky... but manageable.', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'The ground is shaking... what is that?!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'A Tank?! They brought out the big guns!', portrait: '👊' },
         ],
-        enemies: 12, bossKills: 6, waveInterval: 3, noGrenader: true, noSummoner: true, hasTank: true
+        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'tank', at: 900 }]
       },
       {
-        name: 'Level 4: Boss Encounter',
+        name: 'Level 4: Tank + Speed',
         cutscene: [
-          { speaker: 'Fighter', color: '#facc15', text: 'That Tank was tough... but I broke through it!', portrait: '👊' },
-          { speaker: 'Villain', color: '#ef4444', text: 'IMPOSSIBLE! My strongest creation... defeated by a FIST fighter?!', portrait: '💀' },
-          { speaker: 'Fighter', color: '#facc15', text: 'Face me yourself, coward!', portrait: '👊' },
-          { speaker: 'Villain', color: '#ef4444', text: 'Very well... I'll handle you personally. PREPARE TO DIE!', portrait: '💀' },
-          { speaker: 'Narrator', color: '#a855f7', text: 'The BOSS appears! Defeat him to continue!', portrait: '🟣' },
+          { speaker: 'Fighter', color: '#facc15', text: 'They are getting smarter... sending both types at once!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Tank AND speed enemies? This is going to be tough.', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'But I have to protect my house! Let's go!', portrait: '👊' },
         ],
-        enemies: 8, bossKills: 3, waveInterval: 4, noGrenader: true, noSummoner: true, forceBoss: true
+        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'tank', at: 900 }, { type: 'speed', at: 900 }]
       },
       {
-        name: 'Level 5: The Titan Rises',
+        name: 'Level 5: Final Stand',
         cutscene: [
-          { speaker: 'Fighter', color: '#facc15', text: 'I did it... I beat the boss!', portrait: '👊' },
-          { speaker: 'Villain', color: '#ef4444', text: 'You think this is over? I have one last trump card...', portrait: '💀' },
-          { speaker: 'Villain', color: '#ef4444', text: 'RISE... TITAN! DESTROY HIM!', portrait: '💀' },
-          { speaker: 'Narrator', color: '#d97706', text: 'The TITAN emerges from the ground! Final battle!', portrait: '⛏' },
-          { speaker: 'Fighter', color: '#facc15', text: '...A giant? This is going to be the hardest fight of my life.', portrait: '👊' },
-          { speaker: 'Fighter', color: '#facc15', text: 'But I won't back down. FOR THE CITY!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'They are throwing EVERYTHING at me now!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Faster waves... stronger enemies... I have to hold on!', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'This is it. My house. My home. I will NOT let them take it!', portrait: '👊' },
         ],
-        enemies: 15, bossKills: 10, waveInterval: 2, noGrenader: true, noSummoner: true, forceTitan: true
+        duration: 1800, spawnInterval: 420, spawnCount: 2, specialSpawns: [{ type: 'tank', at: 900 }, { type: 'speed', at: 600 }]
       }
+    ];
+    // Post level 5 cutscene
+    var POST_LEVEL5_CUTSCENE = [
+      { speaker: 'Fighter', color: '#facc15', text: 'I did it... they are retreating!', portrait: '👊' },
+      { speaker: 'Fighter', color: '#facc15', text: 'Wait... one of them dropped something.', portrait: '👊' },
+      { speaker: 'Fighter', color: '#facc15', text: 'A house key? This must be how they got in!', portrait: '🔑' },
+      { speaker: 'Fighter', color: '#facc15', text: 'I need to chase them down and take back what is mine!', portrait: '👊' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The Fighter sprints after the retreating enemies...', portrait: '💨' },
+      { speaker: 'Fighter', color: '#facc15', text: 'HEY! Stop right there!', portrait: '👊' },
+      { speaker: 'Enemy', color: '#ef4444', text: 'He is gaining on us! RUN!', portrait: '💀' },
+      { speaker: 'Fighter', color: '#facc15', text: 'Gotcha!', portrait: '👊' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The Fighter catches the enemy and takes back the house key!', portrait: '🔑' },
+      { speaker: 'Fighter', color: '#facc15', text: 'My house is safe again. But this is not over...', portrait: '👊' },
+      { speaker: 'Fighter', color: '#facc15', text: 'I will find who is behind all of this. And I will stop them.', portrait: '👊' },
+      { speaker: 'Narrator', color: '#a855f7', text: '📖 Fighter Campaign — DEMO COMPLETE! Thanks for playing!', portrait: '🏆' },
     ];
 
     // Cutscene rendering
@@ -1272,41 +1278,81 @@
     };
 
     // Campaign: check win condition (override kill handling)
+    function campaignWinLevel() {
+      campaignMode = false;
+      gameState = 'gameover';
+      // Advance progress
+      if (campaignLevel >= campaignProgress && campaignLevel < campaignMaxLevels) {
+        campaignProgress = campaignLevel + 1;
+        localStorage.setItem('sm_campaignFighter', campaignProgress);
+      } else if (campaignLevel >= campaignMaxLevels) {
+        campaignProgress = campaignMaxLevels;
+        localStorage.setItem('sm_campaignFighter', campaignProgress);
+      }
+      var reward = campaignLevel * 200;
+      totalPoints += reward; savePoints();
+      scoreEl.textContent = '✅ VICTORY!';
+      killsEl.textContent = '';
+      createTextParticle(CW / 2, CH / 2 - 40, '🎉 LEVEL COMPLETE!', '#facc15', 28);
+      createTextParticle(CW / 2, CH / 2, '+' + reward + ' pts', '#fbbf24', 18);
+      createParticles(CW / 2, CH / 2 - 20, 40, '#facc15');
+      // After level 5, show post-cutscene
+      if (campaignLevel >= campaignMaxLevels && typeof POST_LEVEL5_CUTSCENE !== 'undefined') {
+        setTimeout(function() {
+          cutsceneData = POST_LEVEL5_CUTSCENE;
+          cutsceneIndex = 0; cutsceneTyping = false; cutsceneCharIdx = 0; cutsceneTimer = 0;
+          cutsceneCanvas = document.getElementById('cutsceneCanvas');
+          cutsceneCtx = cutsceneCanvas.getContext('2d');
+          document.getElementById('gameoverScreen').classList.add('hidden');
+          document.getElementById('cutsceneScreen').classList.remove('hidden');
+          showCutsceneLine(0);
+        }, 1500);
+      }
+    }
     function checkCampaignWin() {
       if (!campaignMode) return;
       var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
-      if (!lv) return;
-      // Level complete when enough kills + boss/titan defeated
-      var bossDone = false;
-      if (lv.forceBoss || lv.forceTitan) {
-        bossDone = !boss || !boss.alive;
-      } else {
-        bossDone = true;
+      if (!lv || !lv.duration) return;
+      // Timer-based: win when campaignTimer >= duration
+      if (campaignTimer >= lv.duration) {
+        campaignWinLevel();
       }
-      if (totalKills >= lv.bossKills && bossDone) {
-        campaignMode = false;
-        gameState = 'gameover';
-        // Advance progress
-        if (campaignLevel >= campaignProgress && campaignLevel < campaignMaxLevels) {
-          campaignProgress = campaignLevel + 1;
-          localStorage.setItem('sm_campaignFighter', campaignProgress);
-        } else if (campaignLevel >= campaignMaxLevels) {
-          // Campaign complete!
-          campaignProgress = campaignMaxLevels;
-          localStorage.setItem('sm_campaignFighter', campaignProgress);
+    }
+    function updateCampaignSpawns() {
+      if (!campaignMode) return;
+      var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
+      if (!lv || !lv.spawnInterval) return;
+      campaignTimer++;
+      // Normal dummy spawns
+      campaignSpawnTimer++;
+      if (campaignSpawnTimer >= lv.spawnInterval) {
+        campaignSpawnTimer = 0;
+        var count = lv.spawnCount || 2;
+        for (var ci = 0; ci < count; ci++) {
+          var sx = stick.x + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 200);
+          dummies.push(createDummy(Math.max(60, Math.min(CW - 60, sx))));
         }
-        // Show victory
-        var el = document.getElementById('scoreEl');
-        if (el) el.textContent = '📖 Level ' + campaignLevel + ' Complete!';
-        scoreEl.textContent = '✅ VICTORY!';
-        killsEl.textContent = '';
-        // Rewards
-        var reward = campaignLevel * 200;
-        totalPoints += reward; savePoints();
-        createTextParticle(CW / 2, CH / 2 - 40, '🎉 LEVEL COMPLETE!', '#facc15', 28);
-        createTextParticle(CW / 2, CH / 2, '+' + reward + ' pts', '#fbbf24', 18);
-        createParticles(CW / 2, CH / 2 - 20, 40, '#facc15');
       }
+      // Special spawns
+      if (lv.specialSpawns) {
+        for (var si = 0; si < lv.specialSpawns.length; si++) {
+          var sp = lv.specialSpawns[si];
+          var key = 'sp_' + si;
+          if (!campaignSpecialTimers[key] && campaignTimer >= sp.at) {
+            campaignSpecialTimers[key] = true;
+            var spx = stick.x + (Math.random() > 0.5 ? 1 : -1) * (350 + Math.random() * 200);
+            spx = Math.max(60, Math.min(CW - 60, spx));
+            if (sp.type === 'speed') {
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: SPEED_HP, maxHp: SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: 1, type: 'speed', animTime: 0, vy: 0 });
+              createTextParticle(CW / 2, 60, '⚡ SPEED ENEMY!', '#fb923c', 20);
+            } else if (sp.type === 'tank') {
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
+              createTextParticle(CW / 2, 60, '🛡 TANK ENEMY!', '#fb923c', 20);
+            }
+          }
+        }
+      }
+    }
     }
 
     // Code redemption
@@ -1384,7 +1430,17 @@
       trackCharUse(selectedChar);
       updateControlsList();
       incrementMatch();
-      gameState = 'playing'; fullReset(); resumeGameLoop();
+      gameState = 'playing';
+      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
+      fullReset();
+      // Force spawn initial dummies for campaign
+      var lv2 = CAMPAIGN_LEVELS[level - 1];
+      if (lv2 && lv2.spawnCount) {
+        for (var ic = 0; ic < 2; ic++) {
+          dummies.push(createDummy(550 + ic * 150));
+        }
+      }
+      resumeGameLoop();
     });
     document.getElementById('resumeBtn').addEventListener('click', () => { pauseScreen.classList.add('hidden'); gameState = 'playing'; resumeGameLoop(); });
     document.getElementById('menuBtn').addEventListener('click', () => {
@@ -4505,7 +4561,7 @@
       if (isShielded) { shieldTimer--; if (shieldTimer <= 0) { isShielded = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD DOWN', '#94a3b8', 14); } }
       if (shieldCD > 0) shieldCD--;
       updateUltUI(); updateUltimate();
-      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt(); updateBotsState(); updateBotStriders();
+      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt(); updateBotsState(); updateBotStriders(); updateCampaignSpawns();
       if (ninjaSlashCD > 0) ninjaSlashCD--;
       if (ninjaKunaiCD > 0) ninjaKunaiCD--;
       if (ninjaDashCD > 0) ninjaDashCD--;
@@ -4989,7 +5045,7 @@
       if (gracePeriod > 0) { ctx.fillStyle = `rgba(74,222,128,${0.6 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('🛡 GRACE — ' + Math.ceil(gracePeriod / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; }
       animFrameId = requestAnimationFrame(gameLoop);
       if (boss && boss.alive) { const tC = boss.type === 'titan' ? 'rgba(217,119,6,' : 'rgba(168,85,247,'; const tN = boss.type === 'titan' ? '⛏ TITAN LOCK — Kill the Titan!' : '🟣 BOSS LOCK — Kill the boss!'; ctx.fillStyle = tC + (0.5 + Math.sin(time * 0.1) * 0.3) + ')'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText(tN, CW / 2, CH - 8); ctx.textAlign = 'start'; }
-      if (!boss || !boss.alive) { const ts = SPAWN_INTERVAL - spawnTimer; if (ts < 120 && ts > 0 && spawnTimer > 30) { ctx.fillStyle = `rgba(251,146,60,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⚠ WAVE ' + Math.ceil(ts / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; } const tk = KAMIKAZE_INTERVAL - kamikazeTimer; if (tk < 120 && tk > 0) { ctx.fillStyle = `rgba(239,68,68,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💣 KAMIKAZE ' + Math.ceil(tk / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const tt = TITAN_SPAWN_INTERVAL - titanTimer; if (tt < 180 && tt > 0) { ctx.fillStyle = `rgba(217,119,6,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⛏ TITAN ' + Math.ceil(tt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; }      const tg = GRENADER_INTERVAL - grenaderTimer; if (tg < 120 && tg > 0) { ctx.fillStyle = `rgba(249,115,22,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💥 GRENADER ' + Math.ceil(tg / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const bt = BOSS_RESPAWN_INTERVAL - bossTimer; if (bossSpawnedOnce && bt < 180 && bt > 0) { ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('🟣 BOSS ' + Math.ceil(bt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; } if (gameMode === 'hard') { var tse = SENTINEL_SPAWN_INTERVAL - sentinelTimer; if (tse < 180 && tse > 0 && !(sentinel && sentinel.alive)) { ctx.fillStyle = `rgba(6,182,212,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('👁 SENTINEL ' + Math.ceil(tse / 60) + 's', CW / 2, 65); ctx.textAlign = 'start'; } } }
+      if (campaignMode) { var campLv = CAMPAIGN_LEVELS[campaignLevel - 1]; if (campLv && campLv.duration) { var remain = Math.max(0, Math.ceil((campLv.duration - campaignTimer) / 60)); ctx.fillStyle = '#facc15'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('📖 TIME: ' + remain + 's', CW / 2, 20); ctx.textAlign = 'start'; } } else if (!boss || !boss.alive) { const ts = SPAWN_INTERVAL - spawnTimer; if (ts < 120 && ts > 0 && spawnTimer > 30) { ctx.fillStyle = `rgba(251,146,60,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⚠ WAVE ' + Math.ceil(ts / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; } const tk = KAMIKAZE_INTERVAL - kamikazeTimer; if (tk < 120 && tk > 0) { ctx.fillStyle = `rgba(239,68,68,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💣 KAMIKAZE ' + Math.ceil(tk / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const tt = TITAN_SPAWN_INTERVAL - titanTimer; if (tt < 180 && tt > 0) { ctx.fillStyle = `rgba(217,119,6,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⛏ TITAN ' + Math.ceil(tt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; }      const tg = GRENADER_INTERVAL - grenaderTimer; if (tg < 120 && tg > 0) { ctx.fillStyle = `rgba(249,115,22,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💥 GRENADER ' + Math.ceil(tg / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const bt = BOSS_RESPAWN_INTERVAL - bossTimer; if (bossSpawnedOnce && bt < 180 && bt > 0) { ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('🟣 BOSS ' + Math.ceil(bt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; } if (gameMode === 'hard') { var tse = SENTINEL_SPAWN_INTERVAL - sentinelTimer; if (tse < 180 && tse > 0 && !(sentinel && sentinel.alive)) { ctx.fillStyle = `rgba(6,182,212,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('👁 SENTINEL ' + Math.ceil(tse / 60) + 's', CW / 2, 65); ctx.textAlign = 'start'; } } }
     }
 
     function drawGameOver() {
@@ -5229,6 +5285,7 @@
       botLaserActive = false; botLaserTimer = 0; botLaserTickTimer = 0;
       botStriderCD = 0;      botNuclearCD = 0; botNuclearSpeedTimer = 0; MOVE_SPEED_BONUS = 0; botStunTimer = 0;
       botStriders = [];
+      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       isDashing = false; dashDist = 0;
