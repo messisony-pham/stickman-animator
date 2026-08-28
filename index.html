@@ -126,6 +126,7 @@
       </div>
       <div class="flex gap-3 justify-center mb-3">
         <button id="settingsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-300 font-bold text-sm transition-all hover:border-slate-400 hover:text-white">⚙️ Settings</button>
+        <button id="campaignBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-500 text-purple-400 font-bold text-sm transition-all hover:border-purple-400 hover:text-purple-300">📖 Campaign</button>
       </div>
       <button id="playBtn" class="px-10 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-orange-500/30 mb-4">
         ▶ PLAY
@@ -188,6 +189,61 @@
         <p id="codeStatus" class="text-[10px] text-slate-500 mt-1"></p>
       </div>
       <button id="closeSettings" class="w-full py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-all">✅ Done</button>
+    </div>
+  </div>
+
+  <!-- Campaign Selection Overlay -->
+  <div id="campaignScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
+    <div class="bg-slate-800 border-2 border-purple-500 rounded-2xl p-6 w-96 shadow-2xl fade-in">
+      <h2 class="text-white font-bold text-xl mb-1 text-center">📖 Campaign <span class="text-purple-400 text-sm">(DEMO)</span></h2>
+      <p class="text-slate-400 text-xs text-center mb-4">Complete levels to unlock more campaigns!</p>
+      <div class="space-y-3 mb-4">
+        <div id="campFighter" class="bg-slate-700 border border-slate-600 rounded-xl p-4 cursor-pointer hover:border-purple-500 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="text-3xl">👊</div>
+            <div class="flex-1">
+              <div class="font-bold text-purple-400">Fighter's Journey</div>
+              <div class="text-[10px] text-slate-400">5 levels • Beat the final boss to win!</div>
+              <div id="campFighterProgress" class="text-[10px] text-amber-400 mt-1">Level 1/5</div>
+            </div>
+            <div class="text-purple-400 font-bold">▶</div>
+          </div>
+        </div>
+        <div class="bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 opacity-50">
+          <div class="flex items-center gap-3">
+            <div class="text-3xl">🎖️</div>
+            <div class="flex-1">
+              <div class="font-bold text-slate-500">Soldier's War</div>
+              <div class="text-[10px] text-slate-600">Coming soon...</div>
+            </div>
+            <div class="text-slate-600">🔒</div>
+          </div>
+        </div>
+        <div class="bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 opacity-50">
+          <div class="flex items-center gap-3">
+            <div class="text-3xl">🤖</div>
+            <div class="flex-1">
+              <div class="font-bold text-slate-500">Bots Rising</div>
+              <div class="text-[10px] text-slate-600">Coming soon...</div>
+            </div>
+            <div class="text-slate-600">🔒</div>
+          </div>
+        </div>
+      </div>
+      <button id="closeCampaign" class="w-full py-2 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-bold text-sm transition-all">⬅ Back</button>
+    </div>
+  </div>
+
+  <!-- Cutscene Overlay -->
+  <div id="cutsceneScreen" class="fixed inset-0 flex items-end justify-center z-55 hidden" style="z-index:55; background: rgba(0,0,0,0.95);">
+    <canvas id="cutsceneCanvas" width="900" height="500" class="block" style="max-width:100vw; max-height:100vh;"></canvas>
+    <div id="cutsceneUI" class="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-8">
+      <div id="cutscenePortrait" class="w-12 h-12 rounded-full bg-slate-700 border-2 border-purple-500 mb-2 flex items-center justify-center text-xl"></div>
+      <div id="cutsceneBox" class="bg-slate-900/90 border border-slate-600 rounded-xl px-6 py-3 max-w-lg text-center">
+        <div id="cutsceneName" class="text-purple-400 font-bold text-sm mb-1"></div>
+        <div id="cutsceneText" class="text-white text-sm leading-relaxed"></div>
+      </div>
+      <div id="cutsceneHint" class="text-slate-500 text-[10px] mt-2 animate-pulse">Click or press Space to continue...</div>
     </div>
   </div>
 
@@ -970,6 +1026,289 @@
     document.getElementById('bgSetRain').addEventListener('click', function() { selectBg('rain'); });
     document.getElementById('bgSetHouse').addEventListener('click', function() { selectBg('house'); });
     document.getElementById('bgSetVolcano').addEventListener('click', function() { selectBg('volcano'); });
+
+    // ==================== CAMPAIGN SYSTEM ====================
+    var campaignProgress = parseInt(localStorage.getItem('sm_campaignFighter') || '1');
+    var campaignMode = false, campaignLevel = 1, campaignMaxLevels = 5;
+    var cutsceneData = [], cutsceneIndex = 0, cutsceneTyping = false, cutsceneCharIdx = 0, cutsceneTimer = 0;
+    var cutsceneCanvas, cutsceneCtx;
+    // Cutscene dialogue data per level
+    var CAMPAIGN_LEVELS = [
+      {
+        name: 'Level 1: The Beginning',
+        cutscene: [
+          { speaker: 'Fighter', color: '#facc15', text: 'Finally... I've trained long enough. My fists are ready.', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'The gym is getting boring. I need a real challenge.', portrait: '👊' },
+          { speaker: '???', color: '#ef4444', text: 'Heh... you think you're ready for REAL combat?', portrait: '💀' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Who's there?! Show yourself!', portrait: '👊' },
+          { speaker: 'Villain', color: '#ef4444', text: 'I am the one who will destroy this city. And YOU... are in my way.', portrait: '💀' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Not on my watch. Let's fight!', portrait: '👊' },
+        ],
+        enemies: 10, bossKills: 5, waveInterval: 3, noGrenader: true, noSummoner: true, noTitan: true
+      },
+      {
+        name: 'Level 2: Rising Threat',
+        cutscene: [
+          { speaker: 'Fighter', color: '#facc15', text: 'I won! But... there are more coming.', portrait: '👊' },
+          { speaker: 'Ally', color: '#4ade80', text: 'Fighter! I've been watching your fight. Impressive!', portrait: '🎖' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Who are you?', portrait: '👊' },
+          { speaker: 'Ally', color: '#4ade80', text: 'A soldier. I've intel that they're sending stronger enemies. Gunners this time.', portrait: '🎖' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Bring it on. I'll handle them.', portrait: '👊' },
+        ],
+        enemies: 15, bossKills: 8, waveInterval: 2, noGrenader: true, noSummoner: true, noTitan: true
+      },
+      {
+        name: 'Level 3: The Tank',
+        cutscene: [
+          { speaker: 'Villain', color: '#ef4444', text: 'You're stronger than I expected... fine. Time for my heavy artillery.', portrait: '💀' },
+          { speaker: 'Fighter', color: '#facc15', text: 'What... is THAT?!', portrait: '👊' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'A massive Tank enemy charges toward you!', portrait: '🛡' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Doesn't matter how big it is. My fists don't care about size!', portrait: '👊' },
+        ],
+        enemies: 12, bossKills: 6, waveInterval: 3, noGrenader: true, noSummoner: true, hasTank: true
+      },
+      {
+        name: 'Level 4: Boss Encounter',
+        cutscene: [
+          { speaker: 'Fighter', color: '#facc15', text: 'That Tank was tough... but I broke through it!', portrait: '👊' },
+          { speaker: 'Villain', color: '#ef4444', text: 'IMPOSSIBLE! My strongest creation... defeated by a FIST fighter?!', portrait: '💀' },
+          { speaker: 'Fighter', color: '#facc15', text: 'Face me yourself, coward!', portrait: '👊' },
+          { speaker: 'Villain', color: '#ef4444', text: 'Very well... I'll handle you personally. PREPARE TO DIE!', portrait: '💀' },
+          { speaker: 'Narrator', color: '#a855f7', text: 'The BOSS appears! Defeat him to continue!', portrait: '🟣' },
+        ],
+        enemies: 8, bossKills: 3, waveInterval: 4, noGrenader: true, noSummoner: true, forceBoss: true
+      },
+      {
+        name: 'Level 5: The Titan Rises',
+        cutscene: [
+          { speaker: 'Fighter', color: '#facc15', text: 'I did it... I beat the boss!', portrait: '👊' },
+          { speaker: 'Villain', color: '#ef4444', text: 'You think this is over? I have one last trump card...', portrait: '💀' },
+          { speaker: 'Villain', color: '#ef4444', text: 'RISE... TITAN! DESTROY HIM!', portrait: '💀' },
+          { speaker: 'Narrator', color: '#d97706', text: 'The TITAN emerges from the ground! Final battle!', portrait: '⛏' },
+          { speaker: 'Fighter', color: '#facc15', text: '...A giant? This is going to be the hardest fight of my life.', portrait: '👊' },
+          { speaker: 'Fighter', color: '#facc15', text: 'But I won't back down. FOR THE CITY!', portrait: '👊' },
+        ],
+        enemies: 15, bossKills: 10, waveInterval: 2, noGrenader: true, noSummoner: true, forceTitan: true
+      }
+    ];
+
+    // Cutscene rendering
+    function drawCutsceneBg() {
+      if (!cutsceneCtx) return;
+      var cctx = cutsceneCtx;
+      var cw = 900, ch = 500;
+      cctx.fillStyle = '#0f172a'; cctx.fillRect(0, 0, cw, ch);
+      // Dark gradient floor
+      var grad = cctx.createLinearGradient(0, ch - 100, 0, ch);
+      grad.addColorStop(0, '#1e293b'); grad.addColorStop(1, '#0f172a');
+      cctx.fillStyle = grad; cctx.fillRect(0, ch - 100, cw, 100);
+      // Stars
+      cctx.fillStyle = '#475569';
+      for (var si = 0; si < 30; si++) {
+        var sx = (si * 97 + 13) % cw;
+        var sy = (si * 53 + 7) % (ch - 120);
+        var twinkle = 0.3 + Math.sin(Date.now() * 0.002 + si) * 0.3;
+        cctx.globalAlpha = twinkle;
+        cctx.fillRect(sx, sy, 2, 2);
+      }
+      cctx.globalAlpha = 1;
+    }
+
+    function startCutscene(levelIdx) {
+      campaignLevel = levelIdx + 1;
+      var level = CAMPAIGN_LEVELS[levelIdx];
+      cutsceneData = level.cutscene;
+      cutsceneIndex = 0;
+      cutsceneTyping = false;
+      cutsceneCharIdx = 0;
+      cutsceneTimer = 0;
+      cutsceneCanvas = document.getElementById('cutsceneCanvas');
+      cutsceneCtx = cutsceneCanvas.getContext('2d');
+      document.getElementById('campaignScreen').classList.add('hidden');
+      document.getElementById('cutsceneScreen').classList.remove('hidden');
+      showCutsceneLine(0);
+    }
+
+    function showCutsceneLine(idx) {
+      if (idx >= cutsceneData.length) {
+        // End cutscene, start game
+        document.getElementById('cutsceneScreen').classList.add('hidden');
+        launchCampaignLevel(campaignLevel);
+        return;
+      }
+      cutsceneIndex = idx;
+      cutsceneTyping = true;
+      cutsceneCharIdx = 0;
+      var line = cutsceneData[idx];
+      document.getElementById('cutsceneName').textContent = line.speaker;
+      document.getElementById('cutsceneName').style.color = line.color;
+      document.getElementById('cutscenePortrait').textContent = line.portrait;
+      document.getElementById('cutscenePortrait').style.borderColor = line.color;
+      document.getElementById('cutsceneText').textContent = '';
+      document.getElementById('cutsceneHint').textContent = 'Click or press Space to continue...';
+    }
+
+    function advanceCutscene() {
+      if (cutsceneTyping) {
+        // Skip to full text
+        cutsceneTyping = false;
+        document.getElementById('cutsceneText').textContent = cutsceneData[cutsceneIndex].text;
+      } else {
+        // Next line
+        showCutsceneLine(cutsceneIndex + 1);
+      }
+    }
+
+    // Cutscene click/key handler
+    document.getElementById('cutsceneScreen').addEventListener('click', function() { advanceCutscene(); });
+    document.getElementById('cutsceneCanvas').addEventListener('click', function(e) { e.stopPropagation(); advanceCutscene(); });
+
+    // Cutscene animation loop
+    var cutsceneAnimId = null;
+    function cutsceneAnimLoop() {
+      if (document.getElementById('cutsceneScreen').classList.contains('hidden')) { cutsceneAnimId = null; return; }
+      drawCutsceneBg();
+      if (cutsceneTyping) {
+        cutsceneTimer++;
+        if (cutsceneTimer % 2 === 0) {
+          cutsceneCharIdx++;
+          var full = cutsceneData[cutsceneIndex].text;
+          if (cutsceneCharIdx <= full.length) {
+            document.getElementById('cutsceneText').textContent = full.substring(0, cutsceneCharIdx);
+          } else {
+            cutsceneTyping = false;
+          }
+        }
+      }
+      // Draw character silhouettes
+      var cctx = cutsceneCtx;
+      var cw = 900, ch = 500;
+      var line = cutsceneData[cutsceneIndex];
+      if (line) {
+        // Speaker character glow
+        var glowX = line.speaker === 'Fighter' ? 200 : line.speaker === 'Narrator' ? cw / 2 : cw - 200;
+        cctx.globalAlpha = 0.15 + Math.sin(Date.now() * 0.003) * 0.08;
+        cctx.fillStyle = line.color;
+        cctx.beginPath(); cctx.arc(glowX, ch - 140, 60, 0, Math.PI * 2); cctx.fill();
+        cctx.globalAlpha = 1;
+      }
+      cutsceneAnimId = requestAnimationFrame(cutsceneAnimLoop);
+    }
+
+    // Override showCutsceneLine to start animation
+    var origShowLine = showCutsceneLine;
+    showCutsceneLine = function(idx) {
+      origShowLine(idx);
+      if (!cutsceneAnimId) cutsceneAnimId = requestAnimationFrame(cutsceneAnimLoop);
+    };
+
+    // Launch campaign level as a special game
+    function launchCampaignLevel(level) {
+      var lv = CAMPAIGN_LEVELS[level - 1];
+      if (!lv) return;
+      campaignMode = true;
+      selectedChar = 'fighter';
+      gameMode = 'easy';
+      menuScreen.classList.add('hidden');
+      gameUI.classList.remove('hidden');
+      gameUI.classList.add('flex');
+      PLAYER_MAX_HP_CURRENT = 100;
+      document.getElementById('charIcon').textContent = '👊';
+      document.getElementById('charName').textContent = '📖 ' + lv.name;
+      ultBarWrap.classList.remove('hidden');
+      updateControlsList();
+      incrementMatch();
+      gameState = 'playing';
+      fullReset();
+      resumeGameLoop();
+    }
+
+    // Campaign screen open/close
+    document.getElementById('campaignBtn').addEventListener('click', function() {
+      menuScreen.classList.add('hidden');
+      document.getElementById('campaignScreen').classList.remove('hidden');
+      var prog = document.getElementById('campFighterProgress');
+      if (prog) prog.textContent = 'Level ' + campaignProgress + '/5' + (campaignProgress >= 5 ? ' ✅ Complete!' : '');
+    });
+    document.getElementById('closeCampaign').addEventListener('click', function() {
+      document.getElementById('campaignScreen').classList.add('hidden');
+      menuScreen.classList.remove('hidden');
+    });
+    document.getElementById('campFighter').addEventListener('click', function() {
+      if (campaignProgress <= campaignMaxLevels) startCutscene(campaignProgress - 1);
+    });
+
+    // Campaign hook: override fullReset for campaign levels
+    var origFullReset = fullReset;
+    fullReset = function() {
+      origFullReset();
+      if (campaignMode && campaignLevel <= CAMPAIGN_LEVELS.length) {
+        var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
+        // Override spawn counts
+        spawnTimer = 0;
+        // Store campaign config for spawn logic
+        window._campConfig = lv;
+      }
+    };
+
+    // Hook into game over to handle campaign level complete
+    var origCheckBossSpawn = checkBossSpawn;
+    checkBossSpawn = function() {
+      origCheckBossSpawn();
+      if (!campaignMode) return;
+      var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
+      if (!lv) return;
+      // Force specific enemy spawns for campaign
+      if (lv.forceBoss && !boss && totalKills >= lv.bossKills) {
+        boss = { x: stick.x > CW / 2 ? 100 : CW - 100, y: GROUND_Y, hp: 300, maxHp: 300, facing: stick.x < CW / 2 ? 1 : -1, state: 'chase', animTime: 0, attackCD: 60, hitFlash: 0, alive: true, vy: 0, dashDist: 0, dashVx: 0, dashHit: false };
+        createTextParticle(CW / 2, 60, '⚠ BOSS FIGHT! ⚠', '#a855f7', 24);
+        createParticles(CW / 2, GROUND_Y, 30, '#a855f7');
+      }
+      if (lv.forceTitan && !boss && totalKills >= lv.bossKills) {
+        boss = { x: stick.x > CW / 2 ? 80 : CW - 80, y: GROUND_Y, hp: 500, maxHp: 500, facing: stick.x < CW / 2 ? 1 : -1, state: 'chase', animTime: 0, attackCD: 60, hitFlash: 0, alive: true, vy: 0, type: 'titan', slamHit: false, stompCD: 0 };
+        createTextParticle(CW / 2, 60, '⛏ TITAN RISES!', '#d97706', 26);
+        createParticles(CW / 2, GROUND_Y, 40, '#d97706');
+      }
+    };
+
+    // Campaign: check win condition (override kill handling)
+    function checkCampaignWin() {
+      if (!campaignMode) return;
+      var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
+      if (!lv) return;
+      // Level complete when enough kills + boss/titan defeated
+      var bossDone = false;
+      if (lv.forceBoss || lv.forceTitan) {
+        bossDone = !boss || !boss.alive;
+      } else {
+        bossDone = true;
+      }
+      if (totalKills >= lv.bossKills && bossDone) {
+        campaignMode = false;
+        gameState = 'gameover';
+        // Advance progress
+        if (campaignLevel >= campaignProgress && campaignLevel < campaignMaxLevels) {
+          campaignProgress = campaignLevel + 1;
+          localStorage.setItem('sm_campaignFighter', campaignProgress);
+        } else if (campaignLevel >= campaignMaxLevels) {
+          // Campaign complete!
+          campaignProgress = campaignMaxLevels;
+          localStorage.setItem('sm_campaignFighter', campaignProgress);
+        }
+        // Show victory
+        var el = document.getElementById('scoreEl');
+        if (el) el.textContent = '📖 Level ' + campaignLevel + ' Complete!';
+        scoreEl.textContent = '✅ VICTORY!';
+        killsEl.textContent = '';
+        // Rewards
+        var reward = campaignLevel * 200;
+        totalPoints += reward; savePoints();
+        createTextParticle(CW / 2, CH / 2 - 40, '🎉 LEVEL COMPLETE!', '#facc15', 28);
+        createTextParticle(CW / 2, CH / 2, '+' + reward + ' pts', '#fbbf24', 18);
+        createParticles(CW / 2, CH / 2 - 20, 40, '#facc15');
+      }
+    }
+
     // Code redemption
     var usedCodes = JSON.parse(localStorage.getItem('sm_usedCodes') || '[]');
     var CODE_REWARDS = {
@@ -1052,6 +1391,8 @@
       pauseScreen.classList.add('hidden'); gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
       var mc = document.getElementById('mobileControls'); if (mc) mc.classList.add('hidden');
       menuScreen.classList.remove('hidden'); gameState = 'menu'; animFrameId = null;
+      campaignMode = false; campaignLevel = 0;
+      try { stopBossMusic(); } catch(e) {}
       updateMenuPoints(); updateCharLockUI();
     });
     function togglePause() {
@@ -2212,7 +2553,7 @@
         createParticles(d.x, GROUND_Y - 30, 20, d.isZombie ? '#22c55e' : '#4ade80');
         createTextParticle(d.x, GROUND_Y - 75, (d.isNecroZombie ? '🧟 NECRO ZOMBIE' : d.isZombie ? '🧟 ZOMBIE' : '') + ' +10 🪙', '#fbbf24', 11);
         if (!d.isKamikaze && !d.isSummon && !d.isZombie && Math.random() < 0.15) pickups.push(createPickup(d.x, GROUND_Y));
-        checkUltimateUnlock(); checkBossSpawn();
+        checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
       }
     }
 
@@ -2272,7 +2613,7 @@
           createTextParticle(mb.x, GROUND_Y - 80, '💀 NECRO DOWN! +50', '#7c3aed', 18);
           spawnZombie(mb.x, true);
           createTextParticle(mb.x, GROUND_Y - 100, '🧟 RISES!', '#22c55e', 14);
-          checkUltimateUnlock(); checkBossSpawn();
+          checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
         } else {
           const pts = mb.type === 'tank' ? 40 : 20;
           totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
@@ -2280,7 +2621,7 @@
           createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, (mb.type === 'tank' ? '🛡 TANK' : '⚡ SPEED') + ' DOWN! +' + pts, '#facc15', 16);
           if (Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
-          checkUltimateUnlock(); checkBossSpawn();
+          checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
         }
       }
     }
@@ -2382,7 +2723,7 @@
           createExplosion(d.x, GROUND_Y - 30, 80, '#ef4444');
           createTextParticle(d.x, GROUND_Y - 70, '💥 -' + kDmg, '#ef4444', 18);
           score += 15; kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
-          checkUltimateUnlock(); checkBossSpawn();
+          checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
         }
       });
     }
@@ -3450,7 +3791,7 @@
         const x = stick.x + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 200);
         const r = Math.random();
         let opts = {};
-        if (gameMode === 'easy') {
+        if (gameMode === 'easy' || (campaignMode && window._campConfig && window._campConfig.noGrenader)) {
           // Easy mode: only basic dummies and gunners, no special enemies
           if (r < 0.15 && totalKills > 5) opts = { isGunner: true, hp: EASY_GUNNER_HP, speed: GUNNER_SPD };
         } else if (gameMode === 'hard') {
@@ -4787,6 +5128,11 @@
       // Don't capture keys when typing in input fields
       if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
       if (GAME_KEYS.has(e.key)) e.preventDefault();
+      // Cutscene: Space advances dialogue
+      if (!document.getElementById('cutsceneScreen').classList.contains('hidden')) {
+        if (e.key === ' ') { e.preventDefault(); advanceCutscene(); }
+        return;
+      }
       if (e.key === 'Escape') { togglePause(); return; }
       if (e.key === 'Tab' && gameState === 'playing') { e.preventDefault(); openShop(); return; }
       if (gameState !== 'playing') return;
