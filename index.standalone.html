@@ -119,6 +119,7 @@
       </div>
 
       <div class="flex gap-3 justify-center mb-4">
+        <button id="modeEasy" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-cyan-400 font-bold text-sm transition-all">🟢 EASY</button>
         <button id="modeNormal" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-500 text-emerald-400 font-bold text-sm transition-all">🟢 NORMAL</button>
         <button id="modeHard" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all">🔴 HARD</button>
         <button id="modeBossRush" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all">🔥 BOSS RUSH</button>
@@ -835,10 +836,12 @@
     // Game mode selection
     function selectMode(m) {
       gameMode = m;
+      document.getElementById('modeEasy').className = m === 'easy' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-cyan-500 text-cyan-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-cyan-400 font-bold text-sm transition-all';
       document.getElementById('modeNormal').className = m === 'normal' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-500 text-emerald-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all';
       document.getElementById('modeHard').className = m === 'hard' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-red-500 text-red-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all';
       document.getElementById('modeBossRush').className = m === 'bossrush' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-orange-500 text-orange-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all';
     }
+    document.getElementById('modeEasy').addEventListener('click', () => selectMode('easy'));
     document.getElementById('modeNormal').addEventListener('click', () => selectMode('normal'));
     document.getElementById('modeHard').addEventListener('click', () => selectMode('hard'));
     document.getElementById('modeBossRush').addEventListener('click', () => selectMode('bossrush'));
@@ -1004,7 +1007,7 @@
     document.getElementById('playBtn').addEventListener('click', () => {
       menuScreen.classList.add('hidden'); gameUI.classList.remove('hidden'); gameUI.classList.add('flex');
       // Apply character-specific stats
-      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'bossrush' ? ' 🔥BR' : '';
+      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : '';
       if (selectedChar === 'soldier') {
         PLAYER_MAX_HP_CURRENT = 110;
         document.getElementById('charIcon').textContent = '🎖';
@@ -1101,9 +1104,16 @@
     document.getElementById('shopOpenBtn').addEventListener('click', function() { if (gameState === 'playing') openShop(); });
 
     // ==================== FACTORIES ====================
+    // Easy mode helper
+    function easyHpMult() { return gameMode === 'easy' ? 0.5 : 1; }
+    function easyDmgMult() { return gameMode === 'easy' ? 0.5 : 1; }
+    function easyPointMult() { return gameMode === 'easy' ? 0.5 : 1; }
+    function easyBossHp() { return gameMode === 'easy' ? 300 : BOSS_HP; }
+
     function createDummy(x, opts = {}) {
+      var baseHp = (opts.hp || DUMMY_BASE_HP) * easyHpMult();
       return {
-        x, y: opts.y || GROUND_Y, hp: opts.hp || DUMMY_BASE_HP, maxHp: opts.hp || DUMMY_BASE_HP,
+        x, y: opts.y || GROUND_Y, hp: baseHp, maxHp: baseHp,
         speed: opts.speed || DUMMY_SPD, attackCD: 30 + Math.floor(Math.random() * 30),
         hitFlash: 0, facing: x > stick.x ? -1 : 1, alive: true,
         isKamikaze: opts.isKamikaze || false, isGunner: opts.isGunner || false,
@@ -1114,7 +1124,7 @@
       };
     }
     function createPickup(x, y) { return { x, y: y - 20, vy: -2, life: 600, bobPhase: Math.random() * Math.PI * 2 }; }
-    function spawnInitialDummies() { dummies = gameMode === 'hard' ? [createDummy(500), createDummy(650), createDummy(800)] : [createDummy(550), createDummy(700)]; }
+    function spawnInitialDummies() { dummies = gameMode === 'hard' ? [createDummy(500), createDummy(650), createDummy(800)] : gameMode === 'easy' ? [createDummy(550), createDummy(700)] : [createDummy(550), createDummy(700)]; }
 
     // ==================== PARTICLES ====================
     function createParticles(px, py, count, color) {
@@ -2146,6 +2156,7 @@
     // ==================== DAMAGE ====================
     function damagePlayer(dmg, color, bypassShield) {
       if (gracePeriod > 0) return;
+      dmg = Math.floor(dmg * easyDmgMult());
       if (ninjaIsInvis) { createTextParticle(stick.x, stick.y - 55, '👻 PHASE!', '#94a3b8', 12); return; }
       if (isShielded && !bypassShield) {
         createTextParticle(stick.x, stick.y - 55, '🛡 BLOCKED!', '#38bdf8', 14);
@@ -2183,7 +2194,7 @@
       createParticles(d.x, GROUND_Y - 30, 6, c);
       if (d.hp <= 0) {
         d.alive = false; score += d.isKamikaze ? 15 : d.isGunner ? 15 : d.isSummoner ? 20 : d.isSummon ? 5 : d.isCrossbow ? 15 : d.isZombie ? 10 : 10;
-        totalPoints += 10 + getShopUpgradeEffect('coinBoost'); savePoints();
+        totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
         kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
         createParticles(d.x, GROUND_Y - 30, 20, d.isZombie ? '#22c55e' : '#4ade80');
         createTextParticle(d.x, GROUND_Y - 75, (d.isNecroZombie ? '🧟 NECRO ZOMBIE' : d.isZombie ? '🧟 ZOMBIE' : '') + ' +10 🪙', '#fbbf24', 11);
@@ -2242,7 +2253,7 @@
       if (mb.hp <= 0) {
         mb.alive = false;
         if (mb.type === 'necro') {
-          totalPoints += 10 + getShopUpgradeEffect('coinBoost'); savePoints();
+          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
           score += 50; kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           createParticles(mb.x, GROUND_Y - 30, 30, '#7c3aed');
           createTextParticle(mb.x, GROUND_Y - 80, '💀 NECRO DOWN! +50', '#7c3aed', 18);
@@ -2251,7 +2262,7 @@
           checkUltimateUnlock(); checkBossSpawn();
         } else {
           const pts = mb.type === 'tank' ? 40 : 20;
-          totalPoints += 10 + getShopUpgradeEffect('coinBoost'); savePoints();
+          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
           score += pts; kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, (mb.type === 'tank' ? '🛡 TANK' : '⚡ SPEED') + ' DOWN! +' + pts, '#facc15', 16);
@@ -2415,7 +2426,7 @@
     function checkBossSpawn() {
       if (boss && boss.alive) return;
       // Titan spawns every 60s
-      if (titanTimer >= TITAN_SPAWN_INTERVAL && !boss) {
+      if (titanTimer >= TITAN_SPAWN_INTERVAL && !boss && gameMode !== 'easy') {
         titanTimer = 0;
         var titanHp = gameMode === 'hard' ? 1500 : TITAN_HP;
         boss = { x: stick.x > CW / 2 ? 80 : CW - 80, y: GROUND_Y, hp: titanHp, maxHp: titanHp, facing: stick.x < CW / 2 ? 1 : -1, state: 'chase', animTime: 0, attackCD: 60, hitFlash: 0, alive: true, vy: 0, type: 'titan', slamHit: false, stompCD: 0 };
@@ -2427,7 +2438,7 @@
       if (!boss) {
         if (!bossSpawnedOnce && totalKills >= BOSS_KILLS_FOR_REGULAR) {
           bossSpawnedOnce = true;
-          boss = { x: stick.x > CW / 2 ? 100 : CW - 100, y: GROUND_Y, hp: BOSS_HP, maxHp: BOSS_HP, facing: stick.x < CW / 2 ? 1 : -1, state: 'chase', animTime: 0, attackCD: 60, hitFlash: 0, alive: true, vy: 0, dashDist: 0, dashVx: 0, dashHit: false };
+          boss = { x: stick.x > CW / 2 ? 100 : CW - 100, y: GROUND_Y, hp: easyBossHp(), maxHp: easyBossHp(), facing: stick.x < CW / 2 ? 1 : -1, state: 'chase', animTime: 0, attackCD: 60, hitFlash: 0, alive: true, vy: 0, dashDist: 0, dashVx: 0, dashHit: false };
           createTextParticle(CW / 2, 60, '⚠ BOSS FIGHT! ⚠', '#a855f7', 24);
           createParticles(CW / 2, GROUND_Y, 30, '#a855f7');
           if (gameMode === 'hard') {
@@ -2437,7 +2448,7 @@
           }
         } else if (bossSpawnedOnce && bossTimer >= BOSS_RESPAWN_INTERVAL) {
           bossTimer = 0;
-          boss = { x: stick.x > CW / 2 ? 100 : CW - 100, y: GROUND_Y, hp: BOSS_HP, maxHp: BOSS_HP, facing: stick.x < CW / 2 ? 1 : -1, state: 'chase', animTime: 0, attackCD: 60, hitFlash: 0, alive: true, vy: 0, dashDist: 0, dashVx: 0, dashHit: false };
+          boss = { x: stick.x > CW / 2 ? 100 : CW - 100, y: GROUND_Y, hp: easyBossHp(), maxHp: easyBossHp(), facing: stick.x < CW / 2 ? 1 : -1, state: 'chase', animTime: 0, attackCD: 60, hitFlash: 0, alive: true, vy: 0, dashDist: 0, dashVx: 0, dashHit: false };
           createTextParticle(CW / 2, 60, '⚠ BOSS FIGHT! ⚠', '#a855f7', 24);
           createParticles(CW / 2, GROUND_Y, 30, '#a855f7');
           if (gameMode === 'hard') {
@@ -3426,7 +3437,10 @@
         const x = stick.x + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 200);
         const r = Math.random();
         let opts = {};
-        if (gameMode === 'hard') {
+        if (gameMode === 'easy') {
+          // Easy mode: only basic dummies and gunners, no special enemies
+          if (r < 0.15 && totalKills > 5) opts = { isGunner: true, hp: GUNNER_HP, speed: GUNNER_SPD };
+        } else if (gameMode === 'hard') {
           if (r < 0.15 && totalKills > 5) opts = { isCrossbow: true, hp: CROSSBOW_HP, speed: CROSSBOW_SPD, landingTime: 720 };
           else if (r < 0.22 && totalKills > 5) opts = { isSummoner: true, hp: SUMMONER_HP, speed: SUMMONER_SPD };
         } else {
@@ -3652,7 +3666,7 @@
             createParticles(CW / 2, GROUND_Y, 30, '#ef4444');
             for (var bi = 0; bi < 3; bi++) {
               var bx = 500 + bi * 80;
-              miniBosses.push({ x: bx, y: GROUND_Y, hp: BOSS_HP, maxHp: BOSS_HP, speed: BOSS_SPD, attackCD: BOSS_ATK_CD, hitFlash: 0, alive: true, facing: -1, type: 'tank', animTime: 0, vy: 0 });
+              miniBosses.push({ x: bx, y: GROUND_Y, hp: easyBossHp(), maxHp: easyBossHp(), speed: BOSS_SPD, attackCD: BOSS_ATK_CD, hitFlash: 0, alive: true, facing: -1, type: 'tank', animTime: 0, vy: 0 });
             }
             for (var ni = 0; ni < 2; ni++) {
               var nx = 650 + ni * 60;
@@ -3859,7 +3873,7 @@
           bossRushUltraSpawnBossCd--;
           if (bossRushUltraSpawnBossCd <= 0) {
             bossRushUltraSpawnBossCd = 1800;
-            miniBosses.push({ x: ud.x + (Math.random() < 0.5 ? -100 : 100), y: GROUND_Y, hp: BOSS_HP, maxHp: BOSS_HP, speed: BOSS_SPD, attackCD: BOSS_ATK_CD, hitFlash: 0, alive: true, facing: -1, type: 'tank', animTime: 0, vy: 0 });
+            miniBosses.push({ x: ud.x + (Math.random() < 0.5 ? -100 : 100), y: GROUND_Y, hp: easyBossHp(), maxHp: easyBossHp(), speed: BOSS_SPD, attackCD: BOSS_ATK_CD, hitFlash: 0, alive: true, facing: -1, type: 'tank', animTime: 0, vy: 0 });
             createTextParticle(CW / 2, 40, '🟣 BOSS SPAWNED!', '#a855f7', 16);
           }
           // Check if ultra boss is dead -> transition to sentinel wave
@@ -4124,7 +4138,7 @@
       } else {
         if (spawnTimer >= SPAWN_INTERVAL) { spawnTimer = 0; spawnWave(); }
         if (kamikazeTimer >= KAMIKAZE_INTERVAL) { kamikazeTimer = 0; spawnKamikazes(); }
-        if (grenaderTimer >= GRENADER_INTERVAL) { grenaderTimer = 0; spawnGrenaderWave(); }
+        if (grenaderTimer >= GRENADER_INTERVAL && gameMode !== 'easy') { grenaderTimer = 0; spawnGrenaderWave(); }
         if (miniBossTimer >= (gameMode === 'hard' ? 1200 : MINI_BOSS_INTERVAL)) { miniBossTimer = 0; spawnMiniBosses(); }
         if (gameMode === 'hard') { necroTimer++; if (necroTimer >= NECRO_SPAWN_INTERVAL) { necroTimer = 0; spawnNecromancer(); } }
       }
