@@ -103,7 +103,7 @@
           <div class="text-[9px] text-rose-500/60 mt-1">HP: 125 → 205 • NO RESET</div>
         </div>
         <div id="charBots" class="char-card bg-slate-800 border border-slate-600 rounded-xl p-4 w-44 relative" onclick="buyChar('bots')">
-          <div id="botsLock" class="absolute inset-0 bg-slate-900/80 rounded-xl flex flex-col items-center justify-center z-10 cursor-pointer hover:bg-slate-800/80 transition-colors"><span class="text-3xl">🔒</span><span class="text-red-400 text-xs font-bold mt-1">500 🪙 + 3 🏆</span><button class="mt-1 px-3 py-0.5 bg-red-500 hover:bg-red-400 text-slate-900 text-[10px] font-bold rounded pointer-events-none">BUY</button></div>
+          <div id="botsLock" class="absolute inset-0 bg-slate-900/80 rounded-xl flex flex-col items-center justify-center z-10 cursor-pointer hover:bg-slate-800/80 transition-colors"><span class="text-3xl">🔒</span><span class="text-red-400 text-xs font-bold mt-1">650 🪙 + 3 🏆</span><button class="mt-1 px-3 py-0.5 bg-red-500 hover:bg-red-400 text-slate-900 text-[10px] font-bold rounded pointer-events-none">BUY</button></div>
           <div class="text-3xl mb-2">🤖</div>
           <div class="font-bold text-red-400 mb-1">BOTS</div>
           <div class="text-[10px] text-slate-400 space-y-0.5">
@@ -443,7 +443,7 @@
       } else if (c === 'ninja' && totalPoints >= 1000 && bossPoints >= 5) {
         totalPoints -= 1000; bossPoints -= 5; savePoints(); boughtNinja = true; localStorage.setItem('sm_boughtNinja', 'true');
       } else if (c === 'bots' && totalPoints >= 500 && bossPoints >= 3) {
-        totalPoints -= 500; bossPoints -= 3; savePoints(); boughtBots = true; localStorage.setItem('sm_boughtBots', 'true');
+        totalPoints -= 650; bossPoints -= 3; savePoints(); boughtBots = true; localStorage.setItem('sm_boughtBots', 'true');
         charUses.bots = 0; localStorage.setItem('sm_botsUses', 0);
       } else { return; }
       updateCharLockUI(); updateMenuPoints(); selectChar(c);
@@ -516,7 +516,7 @@
     const BOT_HP = 500, BOT_BLAST_DMG = 10, BOT_PARRY_CD = 180, BOT_PARRY_WINDOW = 15;
     const BOT_JETPACK_DUR = 300, BOT_JETPACK_CD = 300; // 5s flight, 5s cooldown (60fps)
     const BOT_STRIDER_DMG = 20, BOT_STRIDER_COUNT = 3, BOT_STRIDER_CD = 420;
-    const BOT_LASER_DMG = 5, BOT_LASER_INTERVAL = 36, BOT_LASER_DUR = 480; // 0.6s interval, 8s duration
+    const BOT_LASER_DMG = 10, BOT_LASER_INTERVAL = 36, BOT_LASER_DUR = 480; // 0.6s interval, 8s duration
     const BOT_NUCLEAR_DMG = 50, BOT_NUCLEAR_RADIUS = 200, BOT_NUCLEAR_CD = 600;
     const BOT_NUCLEAR_STUN = 300, BOT_NUCLEAR_SPEED_BUFF = 0.2, BOT_NUCLEAR_SPEED_DUR = 300;
 
@@ -1816,16 +1816,25 @@
       if (isParrying && parryWindow > 0) { ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; ctx.globalAlpha = parryWindow / PARRY_WINDOW * 0.6; ctx.beginPath(); ctx.arc(x, stick.y - 30, 30, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
       // Bots: Laser Core beam
       if (selectedChar === 'bots' && botLaserActive) {
-        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 4;
-        ctx.globalAlpha = 0.5 + Math.sin(time * 0.5) * 0.3;
-        ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 12;
+        // Outer glow
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 16;
+        ctx.globalAlpha = 0.15 + Math.sin(time * 0.5) * 0.1;
+        ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 20;
         var laserEndX = stick.facing > 0 ? CW : 0;
         ctx.beginPath();
         ctx.moveTo(x + stick.facing * 20, stick.y - 30);
         ctx.lineTo(laserEndX, stick.y - 30);
         ctx.stroke();
+        // Mid beam
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 8;
+        ctx.globalAlpha = 0.5 + Math.sin(time * 0.5) * 0.3;
+        ctx.beginPath();
+        ctx.moveTo(x + stick.facing * 20, stick.y - 30);
+        ctx.lineTo(laserEndX, stick.y - 30);
+        ctx.stroke();
         // Inner bright core
-        ctx.strokeStyle = '#fca5a5'; ctx.lineWidth = 2;
+        ctx.strokeStyle = '#fca5a5'; ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.9;
         ctx.beginPath();
         ctx.moveTo(x + stick.facing * 20, stick.y - 30);
         ctx.lineTo(laserEndX, stick.y - 30);
