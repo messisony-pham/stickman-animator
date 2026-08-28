@@ -1102,21 +1102,138 @@
       if (!cutsceneCtx) return;
       var cctx = cutsceneCtx;
       var cw = 900, ch = 500;
-      cctx.fillStyle = '#0f172a'; cctx.fillRect(0, 0, cw, ch);
-      // Dark gradient floor
-      var grad = cctx.createLinearGradient(0, ch - 100, 0, ch);
-      grad.addColorStop(0, '#1e293b'); grad.addColorStop(1, '#0f172a');
-      cctx.fillStyle = grad; cctx.fillRect(0, ch - 100, cw, 100);
-      // Stars
-      cctx.fillStyle = '#475569';
-      for (var si = 0; si < 30; si++) {
-        var sx = (si * 97 + 13) % cw;
-        var sy = (si * 53 + 7) % (ch - 120);
-        var twinkle = 0.3 + Math.sin(Date.now() * 0.002 + si) * 0.3;
-        cctx.globalAlpha = twinkle;
-        cctx.fillRect(sx, sy, 2, 2);
+      var t = Date.now();
+      var isPost5 = cutsceneData === POST_LEVEL5_CUTSCENE;
+      if (isPost5) {
+        // Chase scene — night sky with moving speed lines
+        cctx.fillStyle = '#0a0a1a'; cctx.fillRect(0, 0, cw, ch);
+        var grad = cctx.createLinearGradient(0, ch - 80, 0, ch);
+        grad.addColorStop(0, '#1e293b'); grad.addColorStop(1, '#0a0a1a');
+        cctx.fillStyle = grad; cctx.fillRect(0, ch - 80, cw, 80);
+        // Moving stars (parallax for speed feel)
+        for (var si = 0; si < 25; si++) {
+          var sx2 = ((si * 97 + 13 + t * 0.15) % (cw + 40)) - 20;
+          var sy2 = (si * 53 + 7) % (ch - 100);
+          cctx.globalAlpha = 0.5 + Math.sin(t * 0.003 + si) * 0.3;
+          cctx.fillStyle = '#475569';
+          cctx.fillRect(sx2, sy2, 3, 1);
+        }
+        cctx.globalAlpha = 1;
+        // Draw chase scene based on cutscene index
+        var idx = cutsceneIndex;
+        var cx = cw / 2;
+        // Fighter body helper
+        function drawFighterStick(fx, fy, col, facing, isSlamming) {
+          cctx.strokeStyle = col; cctx.lineWidth = 4; cctx.lineCap = 'round';
+          // Head
+          cctx.beginPath(); cctx.arc(fx, fy - 55, 10, 0, Math.PI * 2); cctx.stroke();
+          // Body
+          cctx.beginPath(); cctx.moveTo(fx, fy - 45); cctx.lineTo(fx, fy - 10); cctx.stroke();
+          // Legs
+          if (isSlamming) {
+            cctx.beginPath(); cctx.moveTo(fx, fy - 10); cctx.lineTo(fx - 12, fy + 5); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(fx, fy - 10); cctx.lineTo(fx + 12, fy + 5); cctx.stroke();
+          } else {
+            cctx.beginPath(); cctx.moveTo(fx, fy - 10); cctx.lineTo(fx - 10, fy + 8); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(fx, fy - 10); cctx.lineTo(fx + 10, fy + 8); cctx.stroke();
+          }
+          // Arms
+          if (isSlamming) {
+            cctx.beginPath(); cctx.moveTo(fx, fy - 35); cctx.lineTo(fx + facing * 25, fy - 20); cctx.stroke();
+          } else {
+            cctx.beginPath(); cctx.moveTo(fx, fy - 35); cctx.lineTo(fx + facing * 15, fy - 25); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(fx, fy - 35); cctx.lineTo(fx - facing * 10, fy - 25); cctx.stroke();
+          }
+        }
+        if (idx <= 2) {
+          // Lines 0-2: Fighter spots enemy fleeing (both running right)
+          var runBob = Math.sin(t * 0.01) * 3;
+          // Cyan enemy running right
+          drawFighterStick(cx + 120, ch - 80 + runBob, '#22d3ee', 1, false);
+          // Motion lines behind enemy
+          for (var ml = 0; ml < 4; ml++) {
+            cctx.strokeStyle = '#22d3ee'; cctx.lineWidth = 1; cctx.globalAlpha = 0.4 - ml * 0.08;
+            cctx.beginPath(); cctx.moveTo(cx + 90 - ml * 15, ch - 90 + ml * 8); cctx.lineTo(cx + 70 - ml * 15, ch - 90 + ml * 8);
+            cctx.stroke();
+          }
+          cctx.globalAlpha = 1;
+          // Fighter running behind
+          drawFighterStick(cx - 20, ch - 80 + runBob, '#facc15', 1, false);
+          // 'HEY!' text
+          cctx.fillStyle = '#facc15'; cctx.font = 'bold 16px monospace'; cctx.textAlign = 'center';
+          cctx.fillText('HEY!', cx - 20, ch - 100); cctx.textAlign = 'start';
+        } else if (idx <= 5) {
+          // Lines 3-5: Fighter closing in, enemy panicking
+          var runBob2 = Math.sin(t * 0.012) * 2;
+          // Cyan enemy closer, running
+          drawFighterStick(cx + 60, ch - 80 + runBob2, '#22d3ee', 1, false);
+          // Sweat drops on enemy
+          cctx.fillStyle = '#22d3ee';
+          cctx.beginPath(); cctx.arc(cx + 65, ch - 100, 2, 0, Math.PI * 2); cctx.fill();
+          cctx.beginPath(); cctx.arc(cx + 72, ch - 95, 2, 0, Math.PI * 2); cctx.fill();
+          // Fighter very close now
+          drawFighterStick(cx - 10, ch - 80 + runBob2, '#facc15', 1, false);
+          // Speed lines
+          cctx.strokeStyle = '#facc15'; cctx.lineWidth = 2; cctx.globalAlpha = 0.5;
+          for (var sl = 0; sl < 3; sl++) {
+            cctx.beginPath(); cctx.moveTo(cx - 40 - sl * 12, ch - 95 + sl * 10); cctx.lineTo(cx - 55 - sl * 12, ch - 95 + sl * 10);
+            cctx.stroke();
+          }
+          cctx.globalAlpha = 1;
+        } else if (idx <= 8) {
+          // Lines 6-8: Fighter slams enemy to ground
+          // Cyan enemy on ground
+          cctx.strokeStyle = '#22d3ee'; cctx.lineWidth = 4; cctx.lineCap = 'round';
+          cctx.beginPath(); cctx.arc(cx + 30, ch - 50, 10, 0, Math.PI * 2); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(cx + 20, ch - 45); cctx.lineTo(cx + 40, ch - 45); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(cx + 20, ch - 45); cctx.lineTo(cx + 15, ch - 35); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(cx + 40, ch - 45); cctx.lineTo(cx + 45, ch - 35); cctx.stroke();
+          // Impact stars
+          cctx.fillStyle = '#facc15'; cctx.globalAlpha = 0.6 + Math.sin(t * 0.01) * 0.3;
+          for (var ist = 0; ist < 5; ist++) {
+            var isa = (ist / 5) * Math.PI * 2 + t * 0.005;
+            cctx.beginPath(); cctx.arc(cx + 30 + Math.cos(isa) * 25, ch - 50 + Math.sin(isa) * 15, 3, 0, Math.PI * 2);
+            cctx.fill();
+          }
+          cctx.globalAlpha = 1;
+          // Fighter standing over enemy, fist raised
+          drawFighterStick(cx - 10, ch - 78, '#facc15', 1, true);
+          // 'THAT'S WHAT YOU GET' text
+          cctx.fillStyle = '#facc15'; cctx.font = 'bold 14px monospace'; cctx.textAlign = 'center';
+          cctx.fillText('THAT\'S WHAT YOU GET!', cx, ch - 110); cctx.textAlign = 'start';
+        } else {
+          // Lines 9+: Enemy defeated, victory
+          cctx.fillStyle = '#facc15'; cctx.font = 'bold 28px monospace'; cctx.textAlign = 'center';
+          cctx.fillText('🏆 DEMO COMPLETE! 🏆', cw / 2, ch / 2 - 30);
+          cctx.fillStyle = '#94a3b8'; cctx.font = '16px monospace';
+          cctx.fillText('Thanks for playing!', cw / 2, ch / 2 + 10);
+          cctx.textAlign = 'start';
+          // Celebration particles
+          for (var cp = 0; cp < 8; cp++) {
+            var cpa = (cp / 8) * Math.PI * 2 + t * 0.002;
+            var cpr = 60 + Math.sin(t * 0.003 + cp) * 20;
+            cctx.fillStyle = cp % 2 === 0 ? '#facc15' : '#a855f7';
+            cctx.globalAlpha = 0.6;
+            cctx.beginPath(); cctx.arc(cw / 2 + Math.cos(cpa) * cpr, ch / 2 + Math.sin(cpa) * cpr, 4, 0, Math.PI * 2); cctx.fill();
+          }
+          cctx.globalAlpha = 1;
+        }
+      } else {
+        // Normal campaign cutscene — stars background
+        cctx.fillStyle = '#0f172a'; cctx.fillRect(0, 0, cw, ch);
+        var grad2 = cctx.createLinearGradient(0, ch - 100, 0, ch);
+        grad2.addColorStop(0, '#1e293b'); grad2.addColorStop(1, '#0f172a');
+        cctx.fillStyle = grad2; cctx.fillRect(0, ch - 100, cw, 100);
+        cctx.fillStyle = '#475569';
+        for (var si2 = 0; si2 < 30; si2++) {
+          var sx3 = (si2 * 97 + 13) % cw;
+          var sy3 = (si2 * 53 + 7) % (ch - 120);
+          var twinkle2 = 0.3 + Math.sin(t * 0.002 + si2) * 0.3;
+          cctx.globalAlpha = twinkle2;
+          cctx.fillRect(sx3, sy3, 2, 2);
+        }
+        cctx.globalAlpha = 1;
       }
-      cctx.globalAlpha = 1;
     }
 
     function startCutscene(levelIdx) {
@@ -1192,18 +1309,6 @@
             cutsceneTyping = false;
           }
         }
-      }
-      // Draw character silhouettes
-      var cctx = cutsceneCtx;
-      var cw = 900, ch = 500;
-      var line = cutsceneData[cutsceneIndex];
-      if (line) {
-        // Speaker character glow
-        var glowX = line.speaker === 'Fighter' ? 200 : line.speaker === 'Narrator' ? cw / 2 : cw - 200;
-        cctx.globalAlpha = 0.15 + Math.sin(Date.now() * 0.003) * 0.08;
-        cctx.fillStyle = line.color;
-        cctx.beginPath(); cctx.arc(glowX, ch - 140, 60, 0, Math.PI * 2); cctx.fill();
-        cctx.globalAlpha = 1;
       }
       cutsceneAnimId = requestAnimationFrame(cutsceneAnimLoop);
     }
