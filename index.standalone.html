@@ -1052,7 +1052,7 @@
           { speaker: 'Fighter', color: '#facc15', text: 'Wait... I see something fast approaching!', portrait: '👊' },
           { speaker: 'Fighter', color: '#facc15', text: 'A speed enemy? They brought reinforcements!', portrait: '👊' },
         ],
-        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'speed', at: 900 }]
+        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'speed', interval: 900 }]
       },
       {
         name: 'Level 3: Heavy Hitter',
@@ -1061,7 +1061,7 @@
           { speaker: 'Fighter', color: '#facc15', text: 'The ground is shaking... what is that?!', portrait: '👊' },
           { speaker: 'Fighter', color: '#facc15', text: 'A Tank?! They brought out the big guns!', portrait: '👊' },
         ],
-        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'tank', at: 900 }]
+        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'tank', interval: 900 }]
       },
       {
         name: 'Level 4: Tank + Speed',
@@ -1070,7 +1070,7 @@
           { speaker: 'Fighter', color: '#facc15', text: 'Tank AND speed enemies? This is going to be tough.', portrait: '👊' },
           { speaker: 'Fighter', color: '#facc15', text: 'But I have to protect my house! Lets go!', portrait: '👊' },
         ],
-        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'tank', at: 900 }, { type: 'speed', at: 900 }]
+        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'speed', interval: 900 }, { type: 'tank', interval: 900 }]
       },
       {
         name: 'Level 5: Final Stand',
@@ -1079,7 +1079,7 @@
           { speaker: 'Fighter', color: '#facc15', text: 'Faster waves... stronger enemies... I have to hold on!', portrait: '👊' },
           { speaker: 'Fighter', color: '#facc15', text: 'This is it. My house. My home. I will NOT let them take it!', portrait: '👊' },
         ],
-        duration: 1800, spawnInterval: 420, spawnCount: 2, specialSpawns: [{ type: 'tank', at: 900 }, { type: 'speed', at: 600 }]
+        duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'speed', interval: 420 }, { type: 'tank', interval: 420 }]
       }
     ];
     // Post level 5 cutscene
@@ -1333,13 +1333,15 @@
           dummies.push(createDummy(Math.max(60, Math.min(CW - 60, sx))));
         }
       }
-      // Special spawns
+      // Special spawns (repeat every interval)
       if (lv.specialSpawns) {
         for (var si = 0; si < lv.specialSpawns.length; si++) {
           var sp = lv.specialSpawns[si];
           var key = 'sp_' + si;
-          if (!campaignSpecialTimers[key] && campaignTimer >= sp.at) {
-            campaignSpecialTimers[key] = true;
+          if (!campaignSpecialTimers[key]) campaignSpecialTimers[key] = 0;
+          campaignSpecialTimers[key]++;
+          if (sp.interval && campaignSpecialTimers[key] >= sp.interval) {
+            campaignSpecialTimers[key] = 0;
             var spx = stick.x + (Math.random() > 0.5 ? 1 : -1) * (350 + Math.random() * 200);
             spx = Math.max(60, Math.min(CW - 60, spx));
             if (sp.type === 'speed') {
