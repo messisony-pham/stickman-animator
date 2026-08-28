@@ -1936,6 +1936,54 @@
       }
     }
 
+    function drawBotStriders() {
+      botStriders.forEach(function(s) {
+        if (!s.alive) return;
+        var sx = s.x, sy = GROUND_Y - 12;
+        var fc = s.hitFlash > 0 ? '#fff' : '#f97316';
+        // Spider body — small oval
+        ctx.fillStyle = s.hitFlash > 0 ? '#fff' : '#78350f';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, 10, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = fc; ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Head
+        ctx.fillStyle = s.hitFlash > 0 ? '#fff' : '#92400e';
+        ctx.beginPath();
+        ctx.arc(sx + s.facing * 10, sy - 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+        // Red eyes
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(sx + s.facing * 12, sy - 3, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx + s.facing * 8, sy - 3, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        // 8 legs (4 per side)
+        ctx.strokeStyle = fc; ctx.lineWidth = 1.2;
+        for (var leg = 0; leg < 4; leg++) {
+          var lx = sx - 6 + leg * 4;
+          var legWave = Math.sin(time * 0.4 + leg * 1.5) * 3;
+          ctx.beginPath();
+          ctx.moveTo(lx, sy);
+          ctx.lineTo(lx - 6, sy + 8 + legWave);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(lx, sy);
+          ctx.lineTo(lx + 6, sy + 8 - legWave);
+          ctx.stroke();
+        }
+        // HP bar
+        var barW = 20, barX = sx - barW / 2, barY = sy - 18;
+        var pct = s.hp / s.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(barX - 1, barY - 1, barW + 2, 5);
+        ctx.fillStyle = pct > 0.5 ? '#4ade80' : '#f87171';
+        ctx.fillRect(barX, barY, barW * Math.max(0, pct), 3);
+      });
+    }
+
     function drawBoss() {
       if (!boss || !boss.alive) return;
       const dx = boss.x;
@@ -4080,7 +4128,7 @@
       if (isShielded) { shieldTimer--; if (shieldTimer <= 0) { isShielded = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD DOWN', '#94a3b8', 14); } }
       if (shieldCD > 0) shieldCD--;
       updateUltUI(); updateUltimate();
-      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt(); updateBotsState();
+      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt(); updateBotsState(); updateBotStriders();
       if (ninjaSlashCD > 0) ninjaSlashCD--;
       if (ninjaKunaiCD > 0) ninjaKunaiCD--;
       if (ninjaDashCD > 0) ninjaDashCD--;
@@ -4266,7 +4314,7 @@
       drawSpikes();
       dummies.forEach(d => drawDummy(d));
       miniBosses.forEach(mb => drawMiniBoss(mb));
-      drawAllyGunners(); drawAllies();
+      drawAllyGunners(); drawAllies(); drawBotStriders();
       // Draw Ultra Boss — normal boss style but bigger with cool crown
       if (bossRushUltra && bossRushUltra.hp > 0) {
         var ud = bossRushUltra;
@@ -4511,19 +4559,54 @@
     function performBotStrider() {
       if (botStriderCD > 0) return;
       botStriderCD = BOT_STRIDER_CD;
-      // Spawn 3 small kamikaze robot striders
+      // Spawn 3 small spider robot kamikazes that target ENEMIES
       for (var i = 0; i < BOT_STRIDER_COUNT; i++) {
-        var sx = stick.x + (i - 1) * 40 + stick.facing * 60;
-        dummies.push({
-          x: sx, y: GROUND_Y, hp: 25, maxHp: 25, speed: 2.5, attackCD: 30,
-          hitFlash: 0, facing: stick.facing, alive: true,
-          isKamikaze: true, isGunner: false, isSummoner: false, isSummon: false,
-          isCrossbow: false, flyTime: -1, isGrenader: false,
-          summonCD: 0, vx: 0, isBotStrider: true
+        var sx = stick.x + (i - 1) * 30 + stick.facing * 50;
+        botStriders.push({
+          x: sx, y: GROUND_Y, hp: 25, maxHp: 25, speed: 3.5, alive: true,
+          facing: stick.facing, hitFlash: 0, dmg: BOT_STRIDER_DMG
         });
       }
-      createTextParticle(stick.x, stick.y - 80, '🤖 3 STRIDERS!', '#f97316', 16);
+      createTextParticle(stick.x, stick.y - 80, '🕷 3 SPIDERS!', '#f97316', 16);
       createParticles(stick.x, stick.y, 10, '#f97316');
+    }
+    let botStriders = [];
+    function updateBotStriders() {
+      for (var i = botStriders.length - 1; i >= 0; i--) {
+        var s = botStriders[i];
+        if (!s.alive) { botStriders.splice(i, 1); continue; }
+        // Find nearest enemy (dummy, miniboss, or boss)
+        var nearest = null, nearDist = 9999;
+        dummies.forEach(function(d) {
+          if (!d.alive) return;
+          var dd = Math.abs(d.x - s.x);
+          if (dd < nearDist) { nearDist = dd; nearest = d; }
+        });
+        miniBosses.forEach(function(mb) {
+          if (!mb.alive) return;
+          var dd = Math.abs(mb.x - s.x);
+          if (dd < nearDist) { nearDist = dd; nearest = mb; }
+        });
+        if (boss && boss.alive) {
+          var dd = Math.abs(boss.x - s.x);
+          if (dd < nearDist) { nearDist = dd; nearest = boss; }
+        }
+        if (!nearest) { botStriders.splice(i, 1); continue; }
+        // Chase nearest enemy
+        s.facing = nearest.x > s.x ? 1 : -1;
+        s.x += s.facing * s.speed;
+        s.x = Math.max(10, Math.min(CW - 10, s.x));
+        if (s.hitFlash > 0) s.hitFlash--;
+        // Explode on enemy
+        if (nearDist < 30) {
+          s.alive = false;
+          if (nearest === boss) { dealDamageToBoss(s.dmg, 'strider'); }
+          else if (nearest.maxHp > 100) { dealDamageToMiniBoss(nearest, s.dmg, 'strider'); }
+          else { dealDamageToDummy(nearest, s.dmg, 'strider'); }
+          createExplosion(s.x, GROUND_Y - 30, 50, '#f97316');
+          createTextParticle(s.x, GROUND_Y - 60, '💥 -' + s.dmg, '#f97316', 14);
+        }
+      }
     }
     function performBotLaserCore() {
       if (botLaserActive) return;
@@ -4646,7 +4729,8 @@
       ninjaUltCD = 0; ninjaUltActive = false; ninjaUltTimer = 0; ninjaUltSlashTimer = 0; ninjaKunais = []; ninjaSlashTrails = [];
       botJetpackCD = 0; botJetpackFlying = false; botJetpackTimer = 0;
       botLaserActive = false; botLaserTimer = 0; botLaserTickTimer = 0;
-      botStriderCD = 0; botNuclearCD = 0; botNuclearSpeedTimer = 0; MOVE_SPEED_BONUS = 0; botStunTimer = 0;
+      botStriderCD = 0;      botNuclearCD = 0; botNuclearSpeedTimer = 0; MOVE_SPEED_BONUS = 0; botStunTimer = 0;
+      botStriders = [];
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       isDashing = false; dashDist = 0;
