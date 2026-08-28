@@ -198,16 +198,16 @@
       <h2 class="text-white font-bold text-xl mb-1 text-center">📖 Campaign <span class="text-purple-400 text-sm">(DEMO)</span></h2>
       <p class="text-slate-400 text-xs text-center mb-4">Complete levels to unlock more campaigns!</p>
       <div class="space-y-3 mb-4">
-        <div id="campFighter" class="bg-slate-700 border border-slate-600 rounded-xl p-4 cursor-pointer hover:border-purple-500 transition-all">
-          <div class="flex items-center gap-3">
+        <div id="campFighter" class="bg-slate-700 border border-slate-600 rounded-xl p-4 transition-all">
+          <div class="flex items-center gap-3 mb-2">
             <div class="text-3xl">👊</div>
             <div class="flex-1">
               <div class="font-bold text-purple-400">Fighter's Journey</div>
-              <div class="text-[10px] text-slate-400">5 levels • Beat the final boss to win!</div>
+              <div class="text-[10px] text-slate-400">5 levels • Defend your house!</div>
               <div id="campFighterProgress" class="text-[10px] text-amber-400 mt-1">Level 1/5</div>
             </div>
-            <div class="text-purple-400 font-bold">▶</div>
           </div>
+          <div id="campLevelSelect" class="grid grid-cols-5 gap-1.5"></div>
         </div>
         <div class="bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 opacity-50">
           <div class="flex items-center gap-3">
@@ -1085,17 +1085,16 @@
     // Post level 5 cutscene
     var POST_LEVEL5_CUTSCENE = [
       { speaker: 'Fighter', color: '#facc15', text: 'I did it... they are retreating!', portrait: '👊' },
-      { speaker: 'Fighter', color: '#facc15', text: 'Wait... one of them dropped something.', portrait: '👊' },
-      { speaker: 'Fighter', color: '#facc15', text: 'A house key? This must be how they got in!', portrait: '🔑' },
-      { speaker: 'Fighter', color: '#facc15', text: 'I need to chase them down and take back what is mine!', portrait: '👊' },
-      { speaker: 'Narrator', color: '#94a3b8', text: 'The Fighter sprints after the retreating enemies...', portrait: '💨' },
-      { speaker: 'Fighter', color: '#facc15', text: 'HEY! Stop right there!', portrait: '👊' },
-      { speaker: 'Enemy', color: '#ef4444', text: 'He is gaining on us! RUN!', portrait: '💀' },
-      { speaker: 'Fighter', color: '#facc15', text: 'Gotcha!', portrait: '👊' },
-      { speaker: 'Narrator', color: '#94a3b8', text: 'The Fighter catches the enemy and takes back the house key!', portrait: '🔑' },
-      { speaker: 'Fighter', color: '#facc15', text: 'My house is safe again. But this is not over...', portrait: '👊' },
-      { speaker: 'Fighter', color: '#facc15', text: 'I will find who is behind all of this. And I will stop them.', portrait: '👊' },
-      { speaker: 'Narrator', color: '#a855f7', text: '📖 Fighter Campaign — DEMO COMPLETE! Thanks for playing!', portrait: '🏆' },
+      { speaker: 'Fighter', color: '#facc15', text: 'Wait... I see one of them running away!', portrait: '👊' },
+      { speaker: 'Narrator', color: '#22d3ee', text: 'A cyan-clad enemy dashes into the distance...', portrait: '💨' },
+      { speaker: 'Fighter', color: '#facc15', text: 'HEY! You are not going anywhere!', portrait: '👊' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The Fighter sprints after the enemy at full speed!', portrait: '🏃' },
+      { speaker: 'Enemy', color: '#22d3ee', text: 'How is he so fast?! I cant shake him!', portrait: '😰' },
+      { speaker: 'Fighter', color: '#facc15', text: 'Cant run forever...', portrait: '👊' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The Fighter closes in and delivers a powerful slam!', portrait: '💥' },
+      { speaker: 'Fighter', color: '#facc15', text: 'Thats what you get for taking my house!', portrait: '👊' },
+      { speaker: 'Enemy', color: '#22d3ee', text: 'Ugh... I surrender...', portrait: '😵' },
+      { speaker: 'Narrator', color: '#a855f7', text: '📖 Fighter Campaign — DEMO COMPLETE!', portrait: '🏆' },
     ];
 
     // Cutscene rendering
@@ -1235,13 +1234,33 @@
       document.getElementById('campaignScreen').classList.remove('hidden');
       var prog = document.getElementById('campFighterProgress');
       if (prog) prog.textContent = 'Level ' + campaignProgress + '/5' + (campaignProgress >= 5 ? ' ✅ Complete!' : '');
+      buildCampLevelButtons();
     });
     document.getElementById('closeCampaign').addEventListener('click', function() {
       document.getElementById('campaignScreen').classList.add('hidden');
       menuScreen.classList.remove('hidden');
     });
+    // Build Fighter level select buttons
+    function buildCampLevelButtons() {
+      var container = document.getElementById('campLevelSelect');
+      if (!container) return;
+      container.innerHTML = '';
+      for (var li = 0; li < campaignMaxLevels; li++) {
+        var btn = document.createElement('button');
+        btn.className = li < campaignProgress
+          ? 'py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all'
+          : 'py-2 rounded-lg bg-slate-600 text-slate-500 font-bold text-xs opacity-50 cursor-not-allowed';
+        btn.textContent = 'Lv ' + (li + 1);
+        if (li < campaignProgress) {
+          btn.addEventListener('click', (function(levelIdx) {
+            return function() { startCutscene(levelIdx); };
+          })(li));
+        }
+        container.appendChild(btn);
+      }
+    }
     document.getElementById('campFighter').addEventListener('click', function() {
-      if (campaignProgress <= campaignMaxLevels) startCutscene(campaignProgress - 1);
+      buildCampLevelButtons();
     });
 
     // Campaign hook: override fullReset for campaign levels
