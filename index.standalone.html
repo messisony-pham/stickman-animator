@@ -1105,13 +1105,22 @@
 
     // ==================== FACTORIES ====================
     // Easy mode helper
-    function easyHpMult() { return gameMode === 'easy' ? 0.5 : 1; }
     function easyDmgMult() { return gameMode === 'easy' ? 0.5 : 1; }
     function easyPointMult() { return gameMode === 'easy' ? 0.5 : 1; }
     function easyBossHp() { return gameMode === 'easy' ? 300 : BOSS_HP; }
+    function easyEnemyHp(hp, opts) {
+      if (gameMode !== 'easy') return hp;
+      if (opts && opts.isKamikaze) return 15; // kamikaze 30→15
+      if (opts && opts.isGunner) return 40;  // gunner 50→40
+      if (opts && opts.isCrossbow) return 20; // crossbow 40→20
+      return hp; // dummy uses DUMMY_BASE_HP from opts
+    }
+    // Easy dummy HP override
+    var EASY_DUMMY_HP = 50, EASY_TANK_HP = 100, EASY_SPEED_HP = 20, EASY_GUNNER_HP = 40;
 
     function createDummy(x, opts = {}) {
-      var baseHp = (opts.hp || DUMMY_BASE_HP) * easyHpMult();
+      var baseHp = opts.hp || DUMMY_BASE_HP;
+      if (gameMode === 'easy' && !opts.isKamikaze && !opts.isGunner && !opts.isCrossbow && !opts.isSummoner) baseHp = EASY_DUMMY_HP;
       return {
         x, y: opts.y || GROUND_Y, hp: baseHp, maxHp: baseHp,
         speed: opts.speed || DUMMY_SPD, attackCD: 30 + Math.floor(Math.random() * 30),
@@ -2442,8 +2451,8 @@
           createTextParticle(CW / 2, 60, '⚠ BOSS FIGHT! ⚠', '#a855f7', 24);
           createParticles(CW / 2, GROUND_Y, 30, '#a855f7');
           if (gameMode === 'hard') {
-            miniBosses.push({ x: boss.x - 60, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
-            miniBosses.push({ x: boss.x + 60, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: -1, type: 'tank', animTime: 0, vy: 0 });
+            miniBosses.push({ x: boss.x - 60, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
+            miniBosses.push({ x: boss.x + 60, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: -1, type: 'tank', animTime: 0, vy: 0 });
             createTextParticle(CW / 2, 45, '🛡 2 TANKS SUMMONED!', '#c084fc', 16);
           }
         } else if (bossSpawnedOnce && bossTimer >= BOSS_RESPAWN_INTERVAL) {
@@ -2452,8 +2461,8 @@
           createTextParticle(CW / 2, 60, '⚠ BOSS FIGHT! ⚠', '#a855f7', 24);
           createParticles(CW / 2, GROUND_Y, 30, '#a855f7');
           if (gameMode === 'hard') {
-            miniBosses.push({ x: boss.x - 60, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
-            miniBosses.push({ x: boss.x + 60, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: -1, type: 'tank', animTime: 0, vy: 0 });
+            miniBosses.push({ x: boss.x - 60, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
+            miniBosses.push({ x: boss.x + 60, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: -1, type: 'tank', animTime: 0, vy: 0 });
             createTextParticle(CW / 2, 45, '🛡 2 TANKS SUMMONED!', '#c084fc', 16);
           }
         }
@@ -2707,15 +2716,15 @@
         var tankX1 = Math.random() < 0.5 ? 80 : CW - 80;
         var tankX2 = tankX1 < CW / 2 ? CW - 80 : 80;
         var speedX1 = 150, speedX2 = CW / 2, speedX3 = CW - 150;
-        miniBosses.push({ x: tankX1, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < tankX1 ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
-        miniBosses.push({ x: tankX2, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < tankX2 ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
-        miniBosses.push({ x: speedX1, y: GROUND_Y, hp: SPEED_HP, maxHp: SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: stick.x < speedX1 ? -1 : 1, type: 'speed', animTime: 0, vy: 0 });
-        miniBosses.push({ x: speedX2, y: GROUND_Y, hp: SPEED_HP, maxHp: SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: stick.x < speedX2 ? -1 : 1, type: 'speed', animTime: 0, vy: 0 });
-        miniBosses.push({ x: speedX3, y: GROUND_Y, hp: SPEED_HP, maxHp: SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: stick.x < speedX3 ? -1 : 1, type: 'speed', animTime: 0, vy: 0 });
+        miniBosses.push({ x: tankX1, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < tankX1 ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
+        miniBosses.push({ x: tankX2, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < tankX2 ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
+        miniBosses.push({ x: speedX1, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, maxHp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: stick.x < speedX1 ? -1 : 1, type: 'speed', animTime: 0, vy: 0 });
+        miniBosses.push({ x: speedX2, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, maxHp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: stick.x < speedX2 ? -1 : 1, type: 'speed', animTime: 0, vy: 0 });
+        miniBosses.push({ x: speedX3, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, maxHp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: stick.x < speedX3 ? -1 : 1, type: 'speed', animTime: 0, vy: 0 });
         createTextParticle(CW / 2, 60, '🛡 2 TANKS + ⚡ 3 SPEED!', '#fb923c', 18);
       } else {
-        miniBosses.push({ x: stick.x > CW / 2 ? -80 : CW + 80, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
-        miniBosses.push({ x: stick.x > CW / 2 ? CW + 80 : -80, y: GROUND_Y, hp: SPEED_HP, maxHp: SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: -1, type: 'speed', animTime: 0, vy: 0 });
+        miniBosses.push({ x: stick.x > CW / 2 ? -80 : CW + 80, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
+        miniBosses.push({ x: stick.x > CW / 2 ? CW + 80 : -80, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, maxHp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: -1, type: 'speed', animTime: 0, vy: 0 });
         createTextParticle(CW / 2, 60, '🛡 TANK + ⚡ SPEED!', '#fb923c', 18);
       }
     }
@@ -3439,7 +3448,7 @@
         let opts = {};
         if (gameMode === 'easy') {
           // Easy mode: only basic dummies and gunners, no special enemies
-          if (r < 0.15 && totalKills > 5) opts = { isGunner: true, hp: GUNNER_HP, speed: GUNNER_SPD };
+          if (r < 0.15 && totalKills > 5) opts = { isGunner: true, hp: EASY_GUNNER_HP, speed: GUNNER_SPD };
         } else if (gameMode === 'hard') {
           if (r < 0.15 && totalKills > 5) opts = { isCrossbow: true, hp: CROSSBOW_HP, speed: CROSSBOW_SPD, landingTime: 720 };
           else if (r < 0.22 && totalKills > 5) opts = { isSummoner: true, hp: SUMMONER_HP, speed: SUMMONER_SPD };
@@ -3634,7 +3643,7 @@
             var gc = 2 + Math.floor(Math.random() * 2);
             for (var gi = 0; gi < gc; gi++) {
               var gx = Math.random() < 0.5 ? 80 + Math.random() * 100 : CW - 80 - Math.random() * 100;
-              miniBosses.push({ x: gx, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < gx ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
+              miniBosses.push({ x: gx, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < gx ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
             }
           }
           if (bossRushTimer <= 0) {
@@ -3651,8 +3660,8 @@
             bossRushSpawnTimer = 0;
             var tx1 = Math.random() < 0.5 ? 60 : CW - 60;
             var tx2 = tx1 < CW / 2 ? CW - 60 : 60;
-            miniBosses.push({ x: tx1, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < tx1 ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
-            miniBosses.push({ x: tx2, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < tx2 ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
+            miniBosses.push({ x: tx1, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < tx1 ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
+            miniBosses.push({ x: tx2, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: stick.x < tx2 ? -1 : 1, type: 'tank', animTime: 0, vy: 0 });
           }
           if (bossRushSpawnTimer % 600 === 0 || bossRushSpawnTimer === 1) {
             var ns = stick.x > CW / 2 ? -80 : CW + 80;
