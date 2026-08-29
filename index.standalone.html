@@ -435,6 +435,28 @@
     <div class="flex-1 flex items-center justify-center p-3 sm:p-5">
       <div class="relative inline-block">
         <canvas id="gameCanvas" class="rounded-xl border border-slate-600 shadow-2xl cursor-crosshair"></canvas>
+        <div id="sandboxPanel" class="absolute top-3 right-3 bg-slate-800/95 border border-fuchsia-500/50 rounded-xl p-2 text-[9px] backdrop-blur shadow-xl z-20 hidden w-40">
+          <div class="font-bold text-fuchsia-400 text-[10px] mb-1.5 text-center border-b border-slate-600 pb-1">🧪 SANDBOX SPAWNER</div>
+          <div class="text-slate-400 text-[8px] mb-1 font-bold uppercase">Enemies</div>
+          <div class="grid grid-cols-3 gap-1 mb-1.5">
+            <button onclick="window.sandboxSpawn('dummy')" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[9px] border border-slate-600">👊 Dummy</button>
+            <button onclick="window.sandboxSpawn('tank')" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[9px] border border-slate-600">🛡 Tank</button>
+            <button onclick="window.sandboxSpawn('speed')" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[9px] border border-slate-600">⚡ Speed</button>
+            <button onclick="window.sandboxSpawn('gunner')" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[9px] border border-slate-600">🔫 Gunner</button>
+            <button onclick="window.sandboxSpawn('kamikaze')" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[9px] border border-slate-600">💣 Kamikaze</button>
+            <button onclick="window.sandboxSpawn('grenader')" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[9px] border border-slate-600">💥 Grenader</button>
+            <button onclick="window.sandboxSpawn('crossbow')" class="py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[9px] border border-slate-600">🦅 Crossbow</button>
+            <button onclick="window.sandboxSpawn('boss')" class="py-1 rounded bg-purple-700 hover:bg-purple-600 text-purple-200 text-[9px] border border-purple-500">💀 Boss</button>
+            <button onclick="window.sandboxSpawn('titan')" class="py-1 rounded bg-amber-700 hover:bg-amber-600 text-amber-200 text-[9px] border border-amber-500">⛏ Titan</button>
+          </div>
+          <div class="text-slate-400 text-[8px] mb-1 font-bold uppercase">Allies (FREE)</div>
+          <div class="grid grid-cols-3 gap-1">
+            <button onclick="window.sandboxSpawnAlly('attacker')" class="py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-emerald-200 text-[9px] border border-emerald-500">⚔ Attacker</button>
+            <button onclick="window.sandboxSpawnAlly('healer')" class="py-1 rounded bg-green-700 hover:bg-green-600 text-green-200 text-[9px] border border-green-500">💚 Healer</button>
+            <button onclick="window.sandboxSpawnAlly('gunner')" class="py-1 rounded bg-teal-700 hover:bg-teal-600 text-teal-200 text-[9px] border border-teal-500">🔫 Gunner</button>
+          </div>
+          <button onclick="window.sandboxClearAll()" class="w-full mt-1.5 py-1 rounded bg-red-800/60 hover:bg-red-700/60 text-red-300 text-[9px] border border-red-600/50">🗑 Clear All</button>
+        </div>
         <div id="instructions" class="absolute top-3 right-3 bg-slate-800/95 border border-slate-600 rounded-xl p-3 w-56 text-[10px] backdrop-blur shadow-xl z-10">
           <div class="font-semibold mb-2 flex items-center justify-between text-amber-400">CONTROLS<button id="closeInstructions" class="text-slate-400 hover:text-white text-sm leading-none">&times;</button></div>
           <div id="controlsList" class="space-y-1 text-slate-300 font-mono"></div>
@@ -1539,6 +1561,10 @@
     document.getElementById('codeInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') redeemCode(); });
     document.getElementById('playBtn').addEventListener('click', () => {
       menuScreen.classList.add('hidden'); gameUI.classList.remove('hidden'); gameUI.classList.add('flex');
+      // Show/hide sandbox panel
+      var sbPanel = document.getElementById('sandboxPanel');
+      var instrPanel = document.getElementById('instructions');
+      if (gameMode === 'sandbox') { sbPanel.classList.remove('hidden'); instrPanel.classList.add('hidden'); } else { sbPanel.classList.add('hidden'); instrPanel.classList.remove('hidden'); }
       // Apply character-specific stats
       var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : gameMode === 'sandbox' ? ' 🧪SB' : '';
       if (selectedChar === 'soldier') {
@@ -1583,6 +1609,7 @@
     document.getElementById('menuBtn').addEventListener('click', () => {
       pauseScreen.classList.add('hidden'); gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
       var mc = document.getElementById('mobileControls'); if (mc) mc.classList.add('hidden');
+      document.getElementById('sandboxPanel').classList.add('hidden'); document.getElementById('instructions').classList.remove('hidden');
       menuScreen.classList.remove('hidden'); gameState = 'menu'; animFrameId = null;
       campaignMode = false; campaignLevel = 0;
       try { stopBossMusic(); } catch(e) {}
@@ -1672,6 +1699,37 @@
     }
     function createPickup(x, y) { return { x, y: y - 20, vy: -2, life: 600, bobPhase: Math.random() * Math.PI * 2 }; }
     function spawnInitialDummies() { if (gameMode === 'sandbox') { dummies = []; return; } dummies = gameMode === 'hard' ? [createDummy(500), createDummy(650), createDummy(800)] : gameMode === 'easy' ? [createDummy(550), createDummy(700)] : [createDummy(550), createDummy(700)]; }
+
+    // ==================== SANDBOX SPAWNERS ====================
+    window.sandboxSpawn = function(type) {
+      if (gameMode !== 'sandbox') return;
+      var x = stick.x > CW / 2 ? 150 + Math.random() * 200 : CW - 150 - Math.random() * 200;
+      switch(type) {
+        case 'dummy': dummies.push(createDummy(x, {})); createParticles(x, GROUND_Y, 8, '#4ade80'); createTextParticle(x, GROUND_Y - 60, '👊 Dummy!', '#4ade80', 12); break;
+        case 'tank': dummies.push(createDummy(x, { hp: 200, speed: 1.5 })); miniBosses.push({ x: x, y: GROUND_Y, hp: 200, maxHp: 200, speed: 1.5, attackCD: 60, hitFlash: 0, facing: stick.x < x ? -1 : 1, alive: true, type: 'tank', animTime: 0 }); createParticles(x, GROUND_Y, 8, '#c084fc'); createTextParticle(x, GROUND_Y - 60, '🛡 Tank!', '#c084fc', 12); break;
+        case 'speed': miniBosses.push({ x: x, y: GROUND_Y, hp: 40, maxHp: 40, speed: 5, attackCD: 40, hitFlash: 0, facing: stick.x < x ? -1 : 1, alive: true, type: 'speed', animTime: 0 }); createParticles(x, GROUND_Y, 8, '#fb923c'); createTextParticle(x, GROUND_Y - 60, '⚡ Speed!', '#fb923c', 12); break;
+        case 'gunner': dummies.push(createDummy(x, { hp: 50, isGunner: true })); createParticles(x, GROUND_Y, 8, '#f59e0b'); createTextParticle(x, GROUND_Y - 60, '🔫 Gunner!', '#f59e0b', 12); break;
+        case 'kamikaze': dummies.push(createDummy(Math.random() > 0.5 ? -30 : CW + 30, { hp: 30, speed: 4, isKamikaze: true })); createParticles(x, GROUND_Y, 8, '#ef4444'); createTextParticle(x, GROUND_Y - 60, '💣 Kamikaze!', '#ef4444', 12); break;
+        case 'grenader': dummies.push(createDummy(x, { isGrenader: true })); createParticles(x, GROUND_Y, 8, '#22c55e'); createTextParticle(x, GROUND_Y - 60, '💥 Grenader!', '#22c55e', 12); break;
+        case 'crossbow': dummies.push(createDummy(x, { hp: 40, isCrossbow: true, y: GROUND_Y - 100 })); createParticles(x, GROUND_Y - 100, 8, '#60a5fa'); createTextParticle(x, GROUND_Y - 140, '🦅 Crossbow!', '#60a5fa', 12); break;
+        case 'boss': boss = { x: x, y: GROUND_Y, hp: BOSS_HP, maxHp: BOSS_HP, facing: stick.x < x ? -1 : 1, state: 'chase', animTime: 0, attackCD: BOSS_ATK_CD, hitFlash: 0, alive: true, vy: 0, dashDist: 0, dashVx: 0, dashHit: false }; createParticles(x, GROUND_Y, 15, '#a855f7'); createTextParticle(x, GROUND_Y - 60, '💀 BOSS!', '#a855f7', 16); break;
+        case 'titan': boss = { x: x, y: GROUND_Y, hp: 500, maxHp: 500, facing: stick.x < x ? -1 : 1, state: 'chase', animTime: 0, attackCD: TITAN_ATK_CD, hitFlash: 0, alive: true, vy: 0, type: 'titan', slamHit: false, stompCD: 0 }; createParticles(x, GROUND_Y, 15, '#d97706'); createTextParticle(x, GROUND_Y - 60, '⛏ TITAN!', '#d97706', 16); break;
+      }
+    };
+    window.sandboxSpawnAlly = function(type) {
+      if (gameMode !== 'sandbox') return;
+      var x = stick.x + (Math.random() > 0.5 ? 1 : -1) * (80 + Math.random() * 60);
+      switch(type) {
+        case 'attacker': allies.push({ x: x, y: GROUND_Y, type: 'attacker', hp: ALLY_HP, maxHp: ALLY_HP, attackCD: ALLY_ATTACKER_CD, life: ALLY_LIFETIME, hitFlash: 0, alive: true }); createParticles(x, GROUND_Y, 8, '#4ade80'); createTextParticle(x, GROUND_Y - 60, '⚔ Attacker!', '#4ade80', 12); break;
+        case 'healer': allies.push({ x: x, y: GROUND_Y, type: 'healer', hp: 90, maxHp: 90, healCD: ALLY_HEALER_CD, life: ALLY_LIFETIME, hitFlash: 0, alive: true }); createParticles(x, GROUND_Y, 8, '#22c55e'); createTextParticle(x, GROUND_Y - 60, '💚 Healer!', '#22c55e', 12); break;
+        case 'gunner': allyGunners.push({ x: x, y: GROUND_Y - 80, flyY: GROUND_Y - 80, hp: ALLY_GUNNER_HP, maxHp: ALLY_GUNNER_HP, life: ALLY_GUNNER_LIFETIME, shootCD: 30, hitFlash: 0, alive: true, facing: 1 }); createParticles(x, GROUND_Y - 80, 8, '#14b8a6'); createTextParticle(x, GROUND_Y - 120, '🔫 Gunner!', '#14b8a6', 12); break;
+      }
+    };
+    window.sandboxClearAll = function() {
+      dummies = []; miniBosses = []; spikes = []; enemyGrenades = []; bullets = []; boss = null;
+      allies = []; allyGunners = []; playerBullets = []; grenades = []; projectiles = [];
+      createTextParticle(CW / 2, GROUND_Y - 80, '🗑 CLEARED!', '#ef4444', 18);
+    };
 
     // ==================== PARTICLES ====================
     function createParticles(px, py, count, color) {
@@ -2741,12 +2799,16 @@
       createTextParticle(d.x, GROUND_Y - 55, '-' + dmg, c, 14);
       createParticles(d.x, GROUND_Y - 30, 6, c);
       if (d.hp <= 0) {
-        d.alive = false; score += d.isKamikaze ? 15 : d.isGunner ? 15 : d.isSummoner ? 20 : d.isSummon ? 5 : d.isCrossbow ? 15 : d.isZombie ? 10 : 10;
-        totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
-        kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
+        d.alive = false; kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
         createParticles(d.x, GROUND_Y - 30, 20, d.isZombie ? '#22c55e' : '#4ade80');
-        createTextParticle(d.x, GROUND_Y - 75, (d.isNecroZombie ? '🧟 NECRO ZOMBIE' : d.isZombie ? '🧟 ZOMBIE' : '') + ' +10 🪙', '#fbbf24', 11);
-        if (!d.isKamikaze && !d.isSummon && !d.isZombie && Math.random() < 0.15) pickups.push(createPickup(d.x, GROUND_Y));
+        if (gameMode !== 'sandbox') {
+          score += d.isKamikaze ? 15 : d.isGunner ? 15 : d.isSummoner ? 20 : d.isSummon ? 5 : d.isCrossbow ? 15 : d.isZombie ? 10 : 10;
+          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
+          createTextParticle(d.x, GROUND_Y - 75, (d.isNecroZombie ? '🧟 NECRO ZOMBIE' : d.isZombie ? '🧟 ZOMBIE' : '') + ' +10 🪙', '#fbbf24', 11);
+          if (!d.isKamikaze && !d.isSummon && !d.isZombie && Math.random() < 0.15) pickups.push(createPickup(d.x, GROUND_Y));
+        } else {
+          createTextParticle(d.x, GROUND_Y - 75, '💀 KILLED', '#d946ef', 12);
+        }
         checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
       }
     }
@@ -2766,13 +2828,13 @@
       createParticles(boss.x, GROUND_Y - 30, 8, c);
       if (boss.hp <= 0) {
         boss.alive = false; kills++; totalKills++;
-        bossPoints += 1; savePoints();
+        if (gameMode !== 'sandbox') { bossPoints += 1; savePoints(); }
         scoreEl.textContent = score; killsEl.textContent = kills;
         addUltCharge(10);
         createExplosion(boss.x, GROUND_Y - 30, 60, isTitan ? '#d97706' : '#a855f7');
         if (isTitan) {
-          score += 200;
-          createTextParticle(boss.x, GROUND_Y - 90, '⛏ TITAN DOWN! +200', '#d97706', 22);
+          if (gameMode !== 'sandbox') { score += 200; }
+          createTextParticle(boss.x, GROUND_Y - 90, isTitan ? (gameMode === 'sandbox' ? '⛏ TITAN DOWN!' : '⛏ TITAN DOWN! +200') : (gameMode === 'sandbox' ? '🏆 BOSS DOWN!' : '🏆 BOSS DOWN! +100'), isTitan ? '#d97706' : '#facc15', 22);
           // Titan death reward: full heal + tank ally
           playerHP = PLAYER_MAX_HP_CURRENT;
           updateHPBar();
@@ -2785,8 +2847,8 @@
           // Clear all spikes
           spikes = [];
         } else {
-          score += 100;
-          createTextParticle(boss.x, GROUND_Y - 90, '🏆 BOSS DOWN! +100', '#facc15', 20);
+          if (gameMode !== 'sandbox') { score += 100; }
+          createTextParticle(boss.x, GROUND_Y - 90, gameMode === 'sandbox' ? '🏆 BOSS DOWN!' : '🏆 BOSS DOWN! +100', '#facc15', 20);
         }
         pickups.push(createPickup(boss.x - 20, GROUND_Y)); pickups.push(createPickup(boss.x + 20, GROUND_Y));
         boss = null; checkUltimateUnlock();
@@ -2801,20 +2863,19 @@
       if (mb.hp <= 0) {
         mb.alive = false;
         if (mb.type === 'necro') {
-          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
-          score += 50; kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
+          kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
+          if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += 50; }
           createParticles(mb.x, GROUND_Y - 30, 30, '#7c3aed');
-          createTextParticle(mb.x, GROUND_Y - 80, '💀 NECRO DOWN! +50', '#7c3aed', 18);
-          spawnZombie(mb.x, true);
-          createTextParticle(mb.x, GROUND_Y - 100, '🧟 RISES!', '#22c55e', 14);
+          createTextParticle(mb.x, GROUND_Y - 80, gameMode === 'sandbox' ? '💀 NECRO DOWN!' : '💀 NECRO DOWN! +50', '#7c3aed', 18);
+          if (gameMode !== 'sandbox') { spawnZombie(mb.x, true); createTextParticle(mb.x, GROUND_Y - 100, '🧟 RISES!', '#22c55e', 14); }
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
         } else {
           const pts = mb.type === 'tank' ? 40 : 20;
-          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
-          score += pts; kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
+          kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
+          if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
           createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : '#fb923c');
-          createTextParticle(mb.x, GROUND_Y - 80, (mb.type === 'tank' ? '🛡 TANK' : '⚡ SPEED') + ' DOWN! +' + pts, '#facc15', 16);
-          if (Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
+          createTextParticle(mb.x, GROUND_Y - 80, (mb.type === 'tank' ? '🛡 TANK' : '⚡ SPEED') + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
+          if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
         }
       }
