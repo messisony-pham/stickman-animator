@@ -123,6 +123,7 @@
         <button id="modeNormal" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-500 text-emerald-400 font-bold text-sm transition-all">🟢 NORMAL</button>
         <button id="modeHard" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all">🔴 HARD</button>
         <button id="modeBossRush" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all">🔥 BOSS RUSH</button>
+        <button id="modeSandbox" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all">🧪 SANDBOX</button>
       </div>
       <div class="flex gap-3 justify-center mb-3">
         <button id="settingsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-300 font-bold text-sm transition-all hover:border-slate-400 hover:text-white">⚙️ Settings</button>
@@ -898,11 +899,13 @@
       document.getElementById('modeNormal').className = m === 'normal' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-500 text-emerald-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all';
       document.getElementById('modeHard').className = m === 'hard' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-red-500 text-red-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all';
       document.getElementById('modeBossRush').className = m === 'bossrush' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-orange-500 text-orange-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all';
+      document.getElementById('modeSandbox').className = m === 'sandbox' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-fuchsia-500 text-fuchsia-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all';
     }
     document.getElementById('modeEasy').addEventListener('click', () => selectMode('easy'));
     document.getElementById('modeNormal').addEventListener('click', () => selectMode('normal'));
     document.getElementById('modeHard').addEventListener('click', () => selectMode('hard'));
     document.getElementById('modeBossRush').addEventListener('click', () => selectMode('bossrush'));
+    document.getElementById('modeSandbox').addEventListener('click', () => selectMode('sandbox'));
     // Background mode (persisted)
     var bgMode = localStorage.getItem('sm_bgMode') || 'plain';
     function selectBg(b) {
@@ -1537,7 +1540,7 @@
     document.getElementById('playBtn').addEventListener('click', () => {
       menuScreen.classList.add('hidden'); gameUI.classList.remove('hidden'); gameUI.classList.add('flex');
       // Apply character-specific stats
-      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : '';
+      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : gameMode === 'sandbox' ? ' 🧪SB' : '';
       if (selectedChar === 'soldier') {
         PLAYER_MAX_HP_CURRENT = 110;
         document.getElementById('charIcon').textContent = '🎖';
@@ -1668,7 +1671,7 @@
       };
     }
     function createPickup(x, y) { return { x, y: y - 20, vy: -2, life: 600, bobPhase: Math.random() * Math.PI * 2 }; }
-    function spawnInitialDummies() { dummies = gameMode === 'hard' ? [createDummy(500), createDummy(650), createDummy(800)] : gameMode === 'easy' ? [createDummy(550), createDummy(700)] : [createDummy(550), createDummy(700)]; }
+    function spawnInitialDummies() { if (gameMode === 'sandbox') { dummies = []; return; } dummies = gameMode === 'hard' ? [createDummy(500), createDummy(650), createDummy(800)] : gameMode === 'easy' ? [createDummy(550), createDummy(700)] : [createDummy(550), createDummy(700)]; }
 
     // ==================== PARTICLES ====================
     function createParticles(px, py, count, color) {
@@ -2699,6 +2702,7 @@
 
     // ==================== DAMAGE ====================
     function damagePlayer(dmg, color, bypassShield) {
+      if (gameMode === 'sandbox') { createTextParticle(stick.x, stick.y - 55, '🛡 SANDBOX!', '#d946ef', 12); return; }
       if (gracePeriod > 0) return;
       dmg = Math.floor(dmg * easyDmgMult());
       if (ninjaIsInvis) { createTextParticle(stick.x, stick.y - 55, '👻 PHASE!', '#94a3b8', 12); return; }
@@ -4159,7 +4163,7 @@
     function gameLoop() {
       if (gameState === 'menu' || gameState === 'paused' || gameState === 'cutscene') { animFrameId = requestAnimationFrame(gameLoop); return; }
       if (gameState !== 'playing') { if (gameState === 'gameover') drawGameOver(); animFrameId = null; return; }
-      time++; spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn();
+      time++; if (gameMode !== 'sandbox') { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
       if (gracePeriod > 0) gracePeriod--;
       if (gameMode === 'bossrush') {
         // Boss Rush: 3 waves + DEATH
@@ -4687,6 +4691,8 @@
         if (gameMode === 'hard') { necroTimer++; if (necroTimer >= NECRO_SPAWN_INTERVAL) { necroTimer = 0; spawnNecromancer(); } }
       }
       if (allySpawnTimer >= ALLY_SPAWN_INTERVAL) { allySpawnTimer = 0; spawnShopAllies(); }
+      // Sandbox: instant cooldowns + full heal every frame
+      if (gameMode === 'sandbox') { ultDashCD = 0; ultGrenadeCD = 0; ultAllyCD = 0; ultSlamCD = 0; parryCD = 0; superBlastCD = 0; mageLightningCD = 0; mageFrostCD = 0; mageTeleportCD = 0; mageMeteorCD = 0; ninjaSlashCD = 0; ninjaKunaiCD = 0; ninjaDashCD = 0; ninjaInvisCD = 0; ninjaCloneCD = 0; ninjaSharinCD = 0; ninjaUltCD = 0; shieldCD = 0; if (playerHP < PLAYER_MAX_HP_CURRENT) { playerHP = PLAYER_MAX_HP_CURRENT; updateHPBar(); } }
       if (ultDashCD > 0) ultDashCD--; if (ultGrenadeCD > 0) ultGrenadeCD--; if (ultAllyCD > 0) ultAllyCD--; if (ultSlamCD > 0) ultSlamCD--; if (parryCD > 0) parryCD--; if (superBlastCD > 0) superBlastCD--;
       if (mageLightningCD > 0) mageLightningCD--; if (mageFrostCD > 0) mageFrostCD--; if (mageTeleportCD > 0) mageTeleportCD--; if (mageMeteorCD > 0) mageMeteorCD--;
       if (mageIceShielded) { mageIceTimer--; if (mageIceTimer <= 0) { mageIceShielded = false; createTextParticle(stick.x, stick.y - 80, 'ICE SHIELD OFF', '#94a3b8', 12); } }
