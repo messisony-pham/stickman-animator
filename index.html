@@ -454,10 +454,18 @@
             <button onclick="window.sandboxSpawn('sentinel')" class="py-1 rounded bg-cyan-700 hover:bg-cyan-600 text-cyan-200 text-[9px] border border-cyan-500">👁 Sentinel</button>
           </div>
           <div class="text-slate-400 text-[8px] mb-1 font-bold uppercase">Allies (FREE)</div>
+          <div class="grid grid-cols-3 gap-1 mb-1">
+            <button onclick="window.sandboxSpawnAlly('attacker')" class="py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-emerald-200 text-[9px] border border-emerald-500">⚔ Melee</button>
+            <button onclick="window.sandboxSpawnAlly('healer')" class="py-1 rounded bg-green-700 hover:bg-green-600 text-green-200 text-[9px] border border-green-500">💚 Heal</button>
+            <button onclick="window.sandboxSpawnAlly('gunner')" class="py-1 rounded bg-teal-700 hover:bg-teal-600 text-teal-200 text-[9px] border border-teal-500">🔫 FlyGun</button>
+          </div>
           <div class="grid grid-cols-3 gap-1">
-            <button onclick="window.sandboxSpawnAlly('attacker')" class="py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-emerald-200 text-[9px] border border-emerald-500">⚔ Attacker</button>
-            <button onclick="window.sandboxSpawnAlly('healer')" class="py-1 rounded bg-green-700 hover:bg-green-600 text-green-200 text-[9px] border border-green-500">💚 Healer</button>
-            <button onclick="window.sandboxSpawnAlly('gunner')" class="py-1 rounded bg-teal-700 hover:bg-teal-600 text-teal-200 text-[9px] border border-teal-500">🔫 Gunner</button>
+            <button onclick="window.sandboxSpawnAlly('gunner_ally')" class="py-1 rounded bg-teal-700 hover:bg-teal-600 text-teal-200 text-[9px] border border-teal-500">🎯 Gunner</button>
+            <button onclick="window.sandboxSpawnAlly('crossbow_ally')" class="py-1 rounded bg-blue-700 hover:bg-blue-600 text-blue-200 text-[9px] border border-blue-500">🏹 Cross</button>
+            <button onclick="window.sandboxSpawnAlly('tank_ally')" class="py-1 rounded bg-purple-700 hover:bg-purple-600 text-purple-200 text-[9px] border border-purple-500">🛡 Tank</button>
+          </div>
+          <div class="grid grid-cols-3 gap-1">
+            <button onclick="window.sandboxSpawnAlly('titan_ally')" class="py-1 rounded bg-amber-700 hover:bg-amber-600 text-amber-200 text-[9px] border border-amber-500">⛏ Titan</button>
           </div>
           <button onclick="window.sandboxClearAll()" class="w-full mt-1.5 py-1 rounded bg-red-800/60 hover:bg-red-700/60 text-red-300 text-[9px] border border-red-600/50">🗑 Clear All</button>
         </div>
@@ -1730,7 +1738,11 @@
       switch(type) {
         case 'attacker': allies.push({ x: x, y: GROUND_Y, type: 'attacker', hp: ALLY_HP, maxHp: ALLY_HP, attackCD: ALLY_ATTACKER_CD, life: ALLY_LIFETIME, hitFlash: 0, alive: true }); createParticles(x, GROUND_Y, 8, '#4ade80'); createTextParticle(x, GROUND_Y - 60, '⚔ Attacker!', '#4ade80', 12); break;
         case 'healer': allies.push({ x: x, y: GROUND_Y, type: 'healer', hp: 90, maxHp: 90, healCD: ALLY_HEALER_CD, life: ALLY_LIFETIME, hitFlash: 0, alive: true }); createParticles(x, GROUND_Y, 8, '#22c55e'); createTextParticle(x, GROUND_Y - 60, '💚 Healer!', '#22c55e', 12); break;
-        case 'gunner': allyGunners.push({ x: x, y: GROUND_Y - 80, flyY: GROUND_Y - 80, hp: ALLY_GUNNER_HP, maxHp: ALLY_GUNNER_HP, life: ALLY_GUNNER_LIFETIME, shootCD: 30, hitFlash: 0, alive: true, facing: 1 }); createParticles(x, GROUND_Y - 80, 8, '#14b8a6'); createTextParticle(x, GROUND_Y - 120, '🔫 Gunner!', '#14b8a6', 12); break;
+        case 'gunner': allyGunners.push({ x: x, y: GROUND_Y - 80, flyY: GROUND_Y - 80, hp: ALLY_GUNNER_HP, maxHp: ALLY_GUNNER_HP, life: ALLY_GUNNER_LIFETIME, shootCD: 30, hitFlash: 0, alive: true, facing: 1 }); createParticles(x, GROUND_Y - 80, 8, '#14b8a6'); createTextParticle(x, GROUND_Y - 120, '🔫 Fly Gunner!', '#14b8a6', 12); break;
+        case 'gunner_ally': allies.push({ x: x, y: GROUND_Y, type: 'gunner_ally', hp: 80, maxHp: 80, attackCD: 60, life: Infinity, hitFlash: 0, alive: true, facing: 1 }); createParticles(x, GROUND_Y, 8, '#14b8a6'); createTextParticle(x, GROUND_Y - 60, '🎯 Gunner!', '#14b8a6', 12); break;
+        case 'crossbow_ally': allies.push({ x: x, y: GROUND_Y - 120, type: 'crossbow_ally', hp: 60, maxHp: 60, attackCD: 90, life: Infinity, hitFlash: 0, alive: true, facing: 1, flyY: GROUND_Y - 120 }); createParticles(x, GROUND_Y - 120, 8, '#3b82f6'); createTextParticle(x, GROUND_Y - 160, '🏹 Crossbow!', '#3b82f6', 12); break;
+        case 'tank_ally': allies.push({ x: x, y: GROUND_Y, type: 'tank_ally', hp: 200, maxHp: 200, attackCD: ALLY_ATTACKER_CD, life: Infinity, hitFlash: 0, alive: true, facing: -1, speed: 2.5 }); createParticles(x, GROUND_Y, 10, '#c084fc'); createTextParticle(x, GROUND_Y - 60, '🛡 Tank Ally!', '#c084fc', 14); break;
+        case 'titan_ally': allies.push({ x: x, y: GROUND_Y, type: 'titan_ally', hp: 750, maxHp: 750, attackCD: 80, life: Infinity, hitFlash: 0, alive: true, facing: -1, speed: 0.8, state: 'chase', animTime: 0, slamCD: 150, stompCD: 200 }); createParticles(x, GROUND_Y, 15, '#d97706'); createTextParticle(x, GROUND_Y - 60, '⛏ TITAN ALLY!', '#d97706', 16); break;
       }
     };
     window.sandboxClearAll = function() {
