@@ -2382,7 +2382,7 @@
       const sq = state === 'grenade' ? Math.min(animTime / 6, 1) * 8 : 0;
       const headY = y - 55 + ba + jb + sq, btY = headY + 22, bbY = btY + 38 - sq * 0.5;
 
-      ctx.beginPath(); ctx.arc(x, headY, 14, 0, Math.PI * 2); ctx.stroke();
+      if (selectedChar !== 'knight') { ctx.beginPath(); ctx.arc(x, headY, 14, 0, Math.PI * 2); ctx.stroke(); }
       // Character-specific headgear
       if (selectedChar === 'soldier') {
         ctx.fillStyle = '#4a5568'; ctx.beginPath(); ctx.arc(x, headY - 2, 15, Math.PI, 0); ctx.fill();
@@ -2491,43 +2491,18 @@
         // Chest detail
         ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.5;
         ctx.fillRect(x - 3, btY + 12, 6, 6);
-        ctx.globalAlpha = 1;
-      } else if (selectedChar === 'knight') {
-        // Knight helmet — silver/grey with visor
-        ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(x, headY - 2, 15, Math.PI, 0); ctx.fill();
-        ctx.fillStyle = '#64748b'; ctx.fillRect(x - 18, headY - 2, 36, 6);
-        // Visor slit
-        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(x - 8, headY + 1); ctx.lineTo(x + 8, headY + 1); ctx.stroke();
-        // Helmet top crest
-        ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(x, headY - 18); ctx.lineTo(x - 4, headY - 8); ctx.lineTo(x + 4, headY - 8); ctx.closePath(); ctx.fill();
-        // Shield on back arm
-        var shieldX = x - 22 * stick.facing;
-        ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.moveTo(shieldX, btY + 2); ctx.lineTo(shieldX - 10, btY + 15); ctx.lineTo(shieldX, btY + 28); ctx.lineTo(shieldX + 10, btY + 15); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 1.5; ctx.stroke();
-        // Shield emblem
-        ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(shieldX, btY + 15, 4, 0, Math.PI * 2); ctx.fill();
-        // Sword on active arm side
-        if (stick.state === 'shoot' || knightSpinActive) {
-          var swordAngle = knightSpinActive ? (time * 0.5) % (Math.PI * 2) : 0;
-          var swordX = x + 20 * stick.facing, swordY = btY + 5;
-          ctx.save();
-          ctx.translate(swordX, swordY);
-          if (knightSpinActive) ctx.rotate(swordAngle);
-          // Blade
-          ctx.fillStyle = '#e2e8f0';
-          ctx.fillRect(-2, -35, 4, 35);
-          // Edge glow
-          ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1;
-          ctx.strokeRect(-2, -35, 4, 35);
-          // Guard
-          ctx.fillStyle = '#fbbf24';
-          ctx.fillRect(-6, -2, 12, 4);
-          // Handle
-          ctx.fillStyle = '#92400e';
-          ctx.fillRect(-1.5, 2, 3, 8);
-          ctx.restore();
-        }
+        ctx.globalAlpha = 1;      } else if (selectedChar === 'knight') {
+        // Knight full helmet — solid silver with gold crest
+        ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(x, headY, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5; ctx.stroke();
+        // Helmet rim
+        ctx.fillStyle = '#64748b'; ctx.fillRect(x - 16, headY + 3, 32, 5);
+        // Visor slit (red glow)
+        ctx.fillStyle = '#ef4444'; ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 4;
+        ctx.fillRect(x - 7, headY - 1, 14, 3); ctx.shadowBlur = 0;
+        // Helmet top crest (gold crown)
+        ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(x, headY - 22); ctx.lineTo(x - 6, headY - 10); ctx.lineTo(x + 6, headY - 10); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(x, headY - 20); ctx.lineTo(x - 4, headY - 12); ctx.lineTo(x + 4, headY - 12); ctx.closePath(); ctx.fill();
         // Justice glow
         if (knightJusticeActive) {
           ctx.globalAlpha = 0.2 + Math.sin(time * 0.15) * 0.15;
@@ -2559,6 +2534,35 @@
       if (state === 'dash') { ctx.globalAlpha = 0.4; ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(x - i * 20 * facing, headY); ctx.lineTo(x - i * 20 * facing, bbY); ctx.stroke(); } ctx.globalAlpha = 1;      ctx.strokeStyle = playerColor; ctx.lineWidth = 4.5; }
       if (state === 'grenade' && animTime >= 4 && animTime <= 12) { const sa = 1 - (animTime - 4) / 8; const sr = (animTime - 4) * 18; ctx.strokeStyle = '#f97316'; ctx.lineWidth = 3; ctx.globalAlpha = sa * 0.7; ctx.beginPath(); ctx.arc(x, GROUND_Y + 15, sr, Math.PI, 0); ctx.stroke(); ctx.globalAlpha = 1;      ctx.strokeStyle = playerColor; ctx.lineWidth = 4.5; }
       if (isParrying && parryWindow > 0) { ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; ctx.globalAlpha = parryWindow / PARRY_WINDOW * 0.6; ctx.beginPath(); ctx.arc(x, stick.y - 30, 30, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+      // Knight: Shield + Sword (drawn AFTER arms so visible)
+      if (selectedChar === 'knight') {
+        // Shield on back arm — large kite shape
+        var shieldX = x - 24 * stick.facing;
+        ctx.fillStyle = '#3b82f6'; ctx.beginPath();
+        ctx.moveTo(shieldX, btY - 4); ctx.lineTo(shieldX - 12, btY + 12);
+        ctx.lineTo(shieldX, btY + 30); ctx.lineTo(shieldX + 12, btY + 12);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 2; ctx.stroke();
+        // Shield cross emblem
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(shieldX - 1.5, btY - 2, 3, 28);
+        ctx.fillRect(shieldX - 8, btY + 10, 16, 3);
+        // Sword on active arm — always visible
+        var swordAngle = knightSpinActive ? (time * 0.5) % (Math.PI * 2) : (state === 'shoot' ? -0.3 : 0.2);
+        var swordX = x + 22 * stick.facing, swordY = btY + 2;
+        ctx.save(); ctx.translate(swordX, swordY); ctx.rotate(swordAngle * stick.facing);
+        // Blade
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath(); ctx.moveTo(-1, -38); ctx.lineTo(1, -38); ctx.lineTo(2.5, -4); ctx.lineTo(-2.5, -4); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 0.8; ctx.stroke();
+        // Guard
+        ctx.fillStyle = '#fbbf24'; ctx.fillRect(-7, -4, 14, 4);
+        // Handle
+        ctx.fillStyle = '#92400e'; ctx.fillRect(-1.5, 0, 3, 10);
+        // Pommel
+        ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(0, 12, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
       // Bots: Laser Core beam
       if (selectedChar === 'bots' && botLaserActive) {
         // Outer glow
