@@ -384,6 +384,14 @@
       <button id="menuBtn" class="px-8 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors text-sm font-medium border border-slate-700 block mx-auto">🏠 MAIN MENU</button>
     </div>
   </div>
+  <div id="gameoverScreen" class="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-40 hidden">
+    <div class="text-center fade-in">
+      <h2 class="text-4xl font-bold mb-2 text-red-500">💀 GAME OVER</h2>
+      <p id="gameoverMsg" class="text-slate-400 text-sm mb-4"></p>
+      <button id="retryBtn" class="px-8 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 transition-colors text-sm font-medium border border-red-500 mb-3 block mx-auto">🔄 RETRY</button>
+      <button id="gameoverMenuBtn" class="px-8 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors text-sm font-medium border border-slate-700 block mx-auto">🏠 MAIN MENU</button>
+    </div>
+  </div>
 
   <!-- Mobile Controls Overlay -->
   <div id="mobileControls" class="fixed inset-0 z-35 hidden pointer-events-none" style="z-index:35;">
@@ -3180,7 +3188,7 @@
       createTextParticle(stick.x, stick.y - 55, '-' + dmg, color || '#f87171', 16);
       createParticles(stick.x, stick.y - 30, 5, color || '#f87171');
       canvasWrap.classList.add('shake'); setTimeout(() => canvasWrap.classList.remove('shake'), 200);
-      if (playerHP <= 0) { gameState = 'gameover'; createParticles(stick.x, stick.y - 30, 30, '#ef4444'); }
+      if (playerHP <= 0) { gameState = 'gameover'; createParticles(stick.x, stick.y - 30, 30, '#ef4444'); if (campaignMode) { var gos = document.getElementById('gameoverScreen'); document.getElementById('gameoverMsg').textContent = 'You were defeated in ' + CAMPAIGN_LEVELS[campaignLevel - 1].name; gos.classList.remove('hidden'); } }
     }
 
     function dealDamageToDummy(d, dmg, source) {
@@ -3263,8 +3271,8 @@
           const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : 20;
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
-          var killName = mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : '⚡ SPEED';
-          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : '#fb923c');
+          var killName = mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : '⚡ SPEED';
+          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, killName + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
           if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
@@ -3692,7 +3700,7 @@
           if (mb.attackCD <= 0 && dist < 90) {
             damagePlayer(TANK_ATK_DMG * 1.5, '#b45309');
             mb.attackCD = 60;
-            createTextParticle(dx, GROUND_Y - 80, '⛏ SMASH!', '#b45309', 16);
+            createTextParticle(mb.x, GROUND_Y - 80, '⛏ SMASH!', '#b45309', 16);
           }
         } else {
           // Tank / Speed / Boss
@@ -6111,6 +6119,18 @@
     ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
     ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : performSlam(); });
     ultBtn3.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performAllyGunner() : selectedChar === 'super' ? performSuperCrossbowAlly() : selectedChar === 'mage' ? performMageHeal() : selectedChar === 'ninja' ? performNinjaClones() : selectedChar === 'bots' ? performBotLaserCore() : performParry(); });
+    // Gameover screen buttons
+    document.getElementById('retryBtn').addEventListener('click', function() {
+      document.getElementById('gameoverScreen').classList.add('hidden');
+      if (campaignMode) { launchCampaignLevel(campaignLevel); }
+    });
+    document.getElementById('gameoverMenuBtn').addEventListener('click', function() {
+      document.getElementById('gameoverScreen').classList.add('hidden');
+      gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
+      var mc = document.getElementById('mobileControls'); if (mc) mc.classList.add('hidden');
+      menuScreen.classList.remove('hidden'); gameState = 'menu'; animFrameId = null;
+      campaignMode = false; updateMenuPoints(); updateCharLockUI();
+    });
 
     // ==================== DYNAMIC CONTROLS ====================
     function updateControlsList() {
