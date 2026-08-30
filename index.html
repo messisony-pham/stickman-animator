@@ -3077,6 +3077,37 @@
         ctx.fillText('💀 BOSS ' + mb.hp, dx, GROUND_Y - 95); ctx.textAlign = 'start';
         return;
       }
+      if (mb.type === 'titan') {
+        // Titan — big brown figure with rock crown
+        const bc = mb.hitFlash > 0 ? '#fbbf24' : '#b45309';
+        const hc = mb.hitFlash > 0 ? '#fde68a' : '#fbbf24';
+        ctx.globalAlpha = 0.12 + Math.sin(time * 0.05) * 0.06; ctx.fillStyle = '#d97706';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 30, 50, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = hc; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 58, 18, 0, Math.PI * 2); ctx.stroke();
+        // Rock crown
+        ctx.fillStyle = '#92400e';
+        ctx.beginPath(); ctx.moveTo(dx - 14, GROUND_Y - 75); ctx.lineTo(dx - 10, GROUND_Y - 92); ctx.lineTo(dx - 5, GROUND_Y - 80);
+        ctx.lineTo(dx, GROUND_Y - 95); ctx.lineTo(dx + 5, GROUND_Y - 80); ctx.lineTo(dx + 10, GROUND_Y - 92); ctx.lineTo(dx + 14, GROUND_Y - 75);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(dx, GROUND_Y - 95, 3, 0, Math.PI * 2); ctx.fill();
+        // Body
+        ctx.strokeStyle = bc; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 40); ctx.lineTo(dx, GROUND_Y + 5); ctx.stroke();
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 30); ctx.lineTo(dx - 22, GROUND_Y - 18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 30); ctx.lineTo(dx + 22, GROUND_Y - 18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y + 5); ctx.lineTo(dx - 16, GROUND_Y + 25); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y + 5); ctx.lineTo(dx + 16, GROUND_Y + 25); ctx.stroke();
+        // HP bar
+        const bw = 55, pct = mb.hp / mb.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - bw / 2 - 1, GROUND_Y - 103, bw + 2, 7);
+        ctx.fillStyle = pct > 0.5 ? '#b45309' : '#f87171';
+        ctx.fillRect(dx - bw / 2, GROUND_Y - 102, bw * Math.max(0, pct), 5);
+        ctx.fillStyle = '#b45309'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('⛏ TITAN ' + mb.hp, dx, GROUND_Y - 106); ctx.textAlign = 'start';
+        return;
+      }
       const isT = mb.type === 'tank';
       const bc = mb.hitFlash > 0 ? '#fbbf24' : isT ? '#c084fc' : '#fb923c';
       const hc = mb.hitFlash > 0 ? '#fde68a' : isT ? '#d8b4fe' : '#fdba74';
@@ -3653,6 +3684,15 @@
           if (mb.attackCD <= 0 && dist < DUMMY_ATK_RANGE) {
             damagePlayer(NECRO_DMG, '#7c3aed');
             mb.attackCD = NECRO_ATK_CD;
+          }
+        } else if (mb.type === 'titan') {
+          // Titan: slow, heavy, big range
+          if (dist > 70) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          mb.attackCD--;
+          if (mb.attackCD <= 0 && dist < 90) {
+            damagePlayer(TANK_ATK_DMG * 1.5, '#b45309');
+            mb.attackCD = 60;
+            createTextParticle(dx, GROUND_Y - 80, '⛏ SMASH!', '#b45309', 16);
           }
         } else {
           // Tank / Speed / Boss
