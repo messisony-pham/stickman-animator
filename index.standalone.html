@@ -2009,11 +2009,13 @@
       for (let i = 0; i < count; i++) particles.push({ x: px, y: py, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8 - 2, life: 20 + Math.random() * 15, color });
     }
     function createTextParticle(x, y, text, color, size) {
+      // Cap text particles to prevent rendering overload
+      if (particles.length > 100) return;
       particles.push({ x: x + (Math.random() - 0.5) * 20, y: y - 30 - Math.random() * 15, vx: (Math.random() - 0.5) * 1.5, vy: -2.5, life: 50, color, text, isText: true, size: size || 14 });
     }
     function createExplosion(x, y, radius, color) {
-      for (let i = 0; i < 25; i++) { const a = (Math.PI * 2 / 25) * i; const sp = 3 + Math.random() * 5; particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2, life: 25 + Math.random() * 15, color }); }
-      for (let i = 0; i < 10; i++) { const a = (Math.PI * 2 / 10) * i; particles.push({ x: x + Math.cos(a) * radius * 0.4, y: y + Math.sin(a) * radius * 0.4, vx: Math.cos(a) * 2, vy: Math.sin(a) * 2, life: 12, color: '#ffffff' }); }
+      for (let i = 0; i < 15; i++) { const a = (Math.PI * 2 / 15) * i; const sp = 3 + Math.random() * 5; particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2, life: 20 + Math.random() * 10, color }); }
+      for (let i = 0; i < 5; i++) { const a = (Math.PI * 2 / 5) * i; particles.push({ x: x + Math.cos(a) * radius * 0.4, y: y + Math.sin(a) * radius * 0.4, vx: Math.cos(a) * 2, vy: Math.sin(a) * 2, life: 10, color: '#ffffff' }); }
     }
 
     // ==================== PLAYER BULLETS (Shoot) ====================
@@ -2051,13 +2053,11 @@
         if (b.type === 'botblast') {
           // Directional red bolt
           ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
-          ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 6;
           var bLen = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || 1;
           ctx.beginPath();
           ctx.moveTo(b.x - (b.vx / bLen) * 6, b.y - (b.vy / bLen) * 6);
           ctx.lineTo(b.x + (b.vx / bLen) * 6, b.y + (b.vy / bLen) * 6);
           ctx.stroke();
-          ctx.shadowBlur = 0;
         } else {
           ctx.fillStyle = '#4ade80';
           ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill();
@@ -2614,7 +2614,6 @@
         ctx.globalAlpha = 1;
         // White angry eyes
         ctx.fillStyle = '#fff';
-        ctx.shadowColor = '#fff'; ctx.shadowBlur = 6;
         // Left eye - angry slant
         ctx.beginPath();
         ctx.moveTo(x - 9, headY + 3);
@@ -2627,7 +2626,6 @@
         ctx.lineTo(x + 3, headY);
         ctx.lineTo(x + 9, headY - 2);
         ctx.closePath(); ctx.fill();
-        ctx.shadowBlur = 0;
       } else if (selectedChar === 'bots') {
         // Robot body — rectangular torso
         ctx.fillStyle = '#64748b';
@@ -2684,8 +2682,8 @@
         // Helmet rim
         ctx.fillStyle = '#64748b'; ctx.fillRect(x - 16, headY + 3, 32, 5);
         // Visor slit (red glow)
-        ctx.fillStyle = '#ef4444'; ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 4;
-        ctx.fillRect(x - 7, headY - 1, 14, 3); ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(x - 7, headY - 1, 14, 3);
         // Helmet top crest (gold crown)
         ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(x, headY - 22); ctx.lineTo(x - 6, headY - 10); ctx.lineTo(x + 6, headY - 10); ctx.closePath(); ctx.fill();
         ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(x, headY - 20); ctx.lineTo(x - 4, headY - 12); ctx.lineTo(x + 4, headY - 12); ctx.closePath(); ctx.fill();
@@ -2759,28 +2757,25 @@
       if (selectedChar === 'bots' && botLaserActive) {
         // Outer glow
         ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 16;
-        ctx.globalAlpha = 0.15 + Math.sin(time * 0.5) * 0.1;
-        ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 20;
-        var laserEndX = stick.facing > 0 ? CW : 0;
-        ctx.beginPath();
-        ctx.moveTo(x + stick.facing * 20, stick.y - 30);
+        ctx.globalAlpha = 0.15 + Math.sin(time * 0.5) * 0.1;        var laserEndX = stick.facing > 0 ? CW : 0;
+        // Outer glow (no shadow — use wider line instead)
+        ctx.strokeStyle = 'rgba(239,68,68,0.15)'; ctx.lineWidth = 20;
+        ctx.beginPath(); ctx.moveTo(x + stick.facing * 20, stick.y - 30);
         ctx.lineTo(laserEndX, stick.y - 30);
         ctx.stroke();
         // Mid beam
         ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 8;
         ctx.globalAlpha = 0.5 + Math.sin(time * 0.5) * 0.3;
-        ctx.beginPath();
-        ctx.moveTo(x + stick.facing * 20, stick.y - 30);
+        ctx.beginPath(); ctx.moveTo(x + stick.facing * 20, stick.y - 30);
         ctx.lineTo(laserEndX, stick.y - 30);
         ctx.stroke();
         // Inner bright core
         ctx.strokeStyle = '#fca5a5'; ctx.lineWidth = 3;
         ctx.globalAlpha = 0.9;
-        ctx.beginPath();
-        ctx.moveTo(x + stick.facing * 20, stick.y - 30);
+        ctx.beginPath(); ctx.moveTo(x + stick.facing * 20, stick.y - 30);
         ctx.lineTo(laserEndX, stick.y - 30);
         ctx.stroke();
-        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1;
       }
     }
 
@@ -4609,7 +4604,7 @@
 
     // ==================== GAME LOOP ====================
     function gameLoop() {
-      if (gameState === 'menu' || gameState === 'paused' || gameState === 'cutscene') { animFrameId = requestAnimationFrame(gameLoop); return; }
+      if (gameState === 'menu' || gameState === 'paused' || gameState === 'cutscene') { animFrameId = null; return; }
       if (gameState !== 'playing') { if (gameState === 'gameover') drawGameOver(); animFrameId = null; return; }
       time++; if (gameMode !== 'sandbox' && !campaignMode) { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
       if (gracePeriod > 0) gracePeriod--;
@@ -5164,7 +5159,7 @@
       let pi = 0;
       for (let i = 0; i < particles.length; i++) { const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life--; if (p.life > 0) particles[pi++] = p; }
       particles.length = pi;
-      if (particles.length > 180) particles.length = 180;
+      if (particles.length > 120) particles.length = 120;
 
       // === DRAW ===
       ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, CW, CH);
@@ -5192,7 +5187,7 @@
       if (activeBg === 'rain') {
         // Rain overlay
         ctx.strokeStyle = 'rgba(147,197,253,0.4)'; ctx.lineWidth = 1;
-        for (var ri = 0; ri < 60; ri++) {
+        for (var ri = 0; ri < 30; ri++) {
           var rx = (ri * 37 + time * 2) % (CW + 40) - 20;
           var ry = (ri * 53 + time * 8) % (GROUND_Y + 20);
           ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 3, ry + 12); ctx.stroke();
