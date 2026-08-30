@@ -1156,7 +1156,7 @@
 
     // ==================== CAMPAIGN SYSTEM ====================
     var campaignProgress = parseInt(localStorage.getItem('sm_campaignFighter') || '1');
-    var campaignMode = false, campaignLevel = 1, campaignMaxLevels = 5;
+    var campaignMode = false, campaignLevel = 1, campaignMaxLevels = 10;
     var campaignTimer = 0, campaignSpawnTimer = 0, campaignSpecialTimers = {};
     var cutsceneData = [], cutsceneIndex = 0, cutsceneTyping = false, cutsceneCharIdx = 0, cutsceneTimer = 0;
     var cutsceneCanvas, cutsceneCtx;
@@ -1207,9 +1207,63 @@
           { speaker: 'Fighter', color: '#facc15', text: 'This is it. My house. My home. I will NOT let them take it!', portrait: '👊' },
         ],
         duration: 1800, spawnInterval: 300, spawnCount: 2, specialSpawns: [{ type: 'speed', interval: 420 }, { type: 'tank', interval: 420 }]
+      },
+      // ===== TRANSITION: Acid turns Fighter into Super =====
+      // Level 6: Speed only, 50s
+      {
+        name: 'Level 6: Chemical Fury',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'Meanwhile, the enemies regroup with a sinister plan...', portrait: '💀' },
+          { speaker: 'Enemy', color: '#ef4444', text: 'Pour the chemical on him NOW!', portrait: '💀' },
+          { speaker: 'Narrator', color: '#22c55e', text: 'A green acid splashes onto the Fighter!', portrait: '🧪' },
+          { speaker: 'Fighter', color: '#facc15', text: 'AAAGH! It burns! What is this?!', portrait: '👊' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'The chemical transforms his body... granting him immense power!', portrait: '✨' },
+          { speaker: 'Super', color: '#ef4444', text: 'I can feel it... I am different now. STRONGER.', portrait: '⚡' },
+          { speaker: 'Super', color: '#ef4444', text: 'They will pay for this!', portrait: '⚡' },
+        ],
+        duration: 3000, spawnInterval: 300, spawnCount: 0, specialSpawns: [{ type: 'speed', interval: 300 }]
+      },
+      {
+        name: 'Level 7: Heavy Armor',
+        cutscene: [
+          { speaker: 'Super', color: '#ef4444', text: 'The speed ones are down... but here come the heavy ones.', portrait: '⚡' },
+          { speaker: 'Super', color: '#ef4444', text: 'Tanks? Bring it on!', portrait: '⚡' },
+        ],
+        duration: 3000, spawnInterval: 300, spawnCount: 0, specialSpawns: [{ type: 'tank', interval: 300 }]
+      },
+      {
+        name: 'Level 8: Boss Encounter',
+        cutscene: [
+          { speaker: 'Super', color: '#ef4444', text: 'These tanks are relentless... but wait...', portrait: '⚡' },
+          { speaker: 'Super', color: '#ef4444', text: 'I sense something much more powerful approaching!', portrait: '⚡' },
+        ],
+        duration: 3000, spawnInterval: 300, spawnCount: 0, specialSpawns: [{ type: 'speed', interval: 300 }, { type: 'tank', interval: 300 }],
+        bossAtTimer: 3000, bossHP: 500
+      },
+      {
+        name: 'Level 9: Titan Rising',
+        cutscene: [
+          { speaker: 'Super', color: '#ef4444', text: 'The boss is defeated... but something巨大的 appears!', portrait: '⚡' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'A TITAN rises from the ground with TWO bosses by its side!', portrait: '⛏' },
+          { speaker: 'Super', color: '#ef4444', text: 'Three of them?! This is going to be the fight of my life!', portrait: '⚡' },
+        ],
+        duration: 0, spawnInterval: 0, spawnCount: 0, specialSpawns: [],
+        spawnTitan: true, spawnBossCount: 2, bossHP: 500
+      },
+      {
+        name: 'Level 10: The Sentinel',
+        cutscene: [
+          { speaker: 'Super', color: '#ef4444', text: 'The titan falls... but one enemy remains.', portrait: '⚡' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'A SENTINEL teleports in — ancient, powerful, unstoppable!', portrait: '👁' },
+          { speaker: 'Sentinel', color: '#06b6d4', text: 'You have come far, mortal. But this ends NOW.', portrait: '👁' },
+          { speaker: 'Super', color: '#ef4444', text: 'I didnt survive acid, tanks, and titans to lose here!', portrait: '⚡' },
+          { speaker: 'Super', color: '#ef4444', text: 'LETS. GO.', portrait: '⚡' },
+        ],
+        duration: 0, spawnInterval: 0, spawnCount: 0, specialSpawns: [],
+        spawnSentinel: true, sentinelHP: 2000
       }
     ];
-    // Post level 5 cutscene
+    // Post level 5 transition cutscene (acid → Super)
     var POST_LEVEL5_CUTSCENE = [
       { speaker: 'Fighter', color: '#facc15', text: 'I did it... they are retreating!', portrait: '👊' },
       { speaker: 'Fighter', color: '#facc15', text: 'Wait... I see one of them running away!', portrait: '👊' },
@@ -1221,7 +1275,15 @@
       { speaker: 'Narrator', color: '#94a3b8', text: 'The Fighter closes in and delivers a powerful slam!', portrait: '💥' },
       { speaker: 'Fighter', color: '#facc15', text: 'Thats what you get for taking my house!', portrait: '👊' },
       { speaker: 'Enemy', color: '#22d3ee', text: 'Ugh... I surrender...', portrait: '😵' },
-      { speaker: 'Narrator', color: '#a855f7', text: '📖 Fighter Campaign — DEMO COMPLETE!', portrait: '🏆' },
+    ];
+    // Post level 10: YOU WIN
+    var POST_WIN_CUTSCENE = [
+      { speaker: 'Narrator', color: '#facc15', text: 'The Sentinel collapses... its energy fading away...', portrait: '✨' },
+      { speaker: 'Super', color: '#ef4444', text: 'Its over... I actually did it!', portrait: '⚡' },
+      { speaker: 'Narrator', color: '#a855f7', text: 'The enemies retreat for good. The house is safe. The world is safe.', portrait: '🌟' },
+      { speaker: 'Narrator', color: '#facc15', text: '🏆 CONGRATULATIONS! YOU WIN!', portrait: '🏆' },
+      { speaker: 'Super', color: '#ef4444', text: 'From Fighter to Super... what a journey!', portrait: '⚡' },
+      { speaker: 'Narrator', color: '#a855f7', text: '📖 Fighter Campaign — COMPLETE! Thank you for playing!', portrait: '🎉' },
     ];
 
     // Cutscene rendering
@@ -1345,6 +1407,24 @@
           }
           cctx.globalAlpha = 1;
         }
+      } else if (cutsceneData === POST_WIN_CUTSCENE) {
+        // Victory celebration — golden glow
+        cctx.fillStyle = '#1a0f00'; cctx.fillRect(0, 0, cw, ch);
+        var grad3 = cctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, 300);
+        grad3.addColorStop(0, 'rgba(250,204,21,0.15)'); grad3.addColorStop(1, 'rgba(26,15,0,0)');
+        cctx.fillStyle = grad3; cctx.fillRect(0, 0, cw, ch);
+        // Celebration particles
+        for (var vip = 0; vip < 20; vip++) {
+          var vipa = (vip / 20) * Math.PI * 2 + t * 0.001;
+          var vipr = 80 + Math.sin(t * 0.002 + vip) * 40;
+          cctx.fillStyle = vip % 3 === 0 ? '#facc15' : vip % 3 === 1 ? '#a855f7' : '#22d3ee';
+          cctx.globalAlpha = 0.4 + Math.sin(t * 0.005 + vip) * 0.3;
+          cctx.beginPath(); cctx.arc(cw / 2 + Math.cos(vipa) * vipr, ch / 2 + Math.sin(vipa) * vipr, 4, 0, Math.PI * 2); cctx.fill();
+        }
+        cctx.globalAlpha = 1;
+        // Trophy
+        cctx.fillStyle = '#facc15'; cctx.font = '64px serif'; cctx.textAlign = 'center';
+        cctx.fillText('🏆', cw / 2, ch / 2 + 20); cctx.textAlign = 'start';
       } else {
         // Normal campaign cutscene — stars background
         cctx.fillStyle = '#0f172a'; cctx.fillRect(0, 0, cw, ch);
@@ -1382,8 +1462,14 @@
       if (idx >= cutsceneData.length) {
         // End cutscene
         document.getElementById('cutsceneScreen').classList.add('hidden');
-        // If this was the post-level-5 cutscene, go back to menu
+        // After post-level-5 transition: continue to Lv 6
         if (cutsceneData === POST_LEVEL5_CUTSCENE) {
+          campaignLevel = 6;
+          launchCampaignLevel(6);
+          return;
+        }
+        // After post-win cutscene: go back to menu
+        if (cutsceneData === POST_WIN_CUTSCENE) {
           gameState = 'menu'; animFrameId = null;
           gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
           menuScreen.classList.remove('hidden');
@@ -1452,13 +1538,21 @@
       var lv = CAMPAIGN_LEVELS[level - 1];
       if (!lv) return;
       campaignMode = true;
-      selectedChar = 'fighter';
+      campaignLevel = level;
+      // Lv 6+ play as Super
+      if (level >= 6) {
+        selectedChar = 'super';
+        PLAYER_MAX_HP_CURRENT = SUPER_HP;
+        document.getElementById('charIcon').textContent = '⚡';
+      } else {
+        selectedChar = 'fighter';
+        PLAYER_MAX_HP_CURRENT = 100;
+        document.getElementById('charIcon').textContent = '👊';
+      }
       gameMode = 'easy';
       menuScreen.classList.add('hidden');
       gameUI.classList.remove('hidden');
       gameUI.classList.add('flex');
-      PLAYER_MAX_HP_CURRENT = 100;
-      document.getElementById('charIcon').textContent = '👊';
       document.getElementById('charName').textContent = '📖 ' + lv.name;
       ultBarWrap.classList.remove('hidden');
       updateControlsList();
@@ -1544,6 +1638,7 @@
     // Campaign: check win condition (override kill handling)
     function campaignWinLevel() {
       var isFinalLevel = campaignLevel >= campaignMaxLevels;
+      var isLevel5 = campaignLevel === 5;
       // Advance progress
       if (campaignLevel >= campaignProgress && campaignLevel < campaignMaxLevels) {
         campaignProgress = campaignLevel + 1;
@@ -1554,13 +1649,27 @@
       }
       var reward = campaignLevel * 200;
       totalPoints += reward; savePoints();
-      // After level 5, go straight to chase cutscene (skip gameover screen)
-      if (isFinalLevel && typeof POST_LEVEL5_CUTSCENE !== 'undefined') {
+      // After level 5: transition cutscene (acid → Super), then continue to Lv 6
+      if (isLevel5 && typeof POST_LEVEL5_CUTSCENE !== 'undefined') {
         gameState = 'cutscene';
-        campaignMode = false;
-        scoreEl.textContent = '✅ VICTORY!'; killsEl.textContent = '';
+        scoreEl.textContent = '✅ LEVEL 5 COMPLETE!'; killsEl.textContent = '';
         setTimeout(function() {
           cutsceneData = POST_LEVEL5_CUTSCENE;
+          cutsceneIndex = 0; cutsceneTyping = false; cutsceneCharIdx = 0; cutsceneTimer = 0;
+          cutsceneCanvas = document.getElementById('cutsceneCanvas');
+          cutsceneCtx = cutsceneCanvas.getContext('2d');
+          document.getElementById('cutsceneScreen').classList.remove('hidden');
+          showCutsceneLine(0);
+        }, 1000);
+        return;
+      }
+      // After level 10: YOU WIN cutscene
+      if (isFinalLevel && typeof POST_WIN_CUTSCENE !== 'undefined') {
+        gameState = 'cutscene';
+        campaignMode = false;
+        scoreEl.textContent = '🏆 YOU WIN!'; killsEl.textContent = '';
+        setTimeout(function() {
+          cutsceneData = POST_WIN_CUTSCENE;
           cutsceneIndex = 0; cutsceneTyping = false; cutsceneCharIdx = 0; cutsceneTimer = 0;
           cutsceneCanvas = document.getElementById('cutsceneCanvas');
           cutsceneCtx = cutsceneCanvas.getContext('2d');
@@ -1579,25 +1688,48 @@
     function checkCampaignWin() {
       if (!campaignMode) return;
       var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
-      if (!lv || !lv.duration) return;
-      // Timer-based: win when campaignTimer >= duration
-      if (campaignTimer >= lv.duration) {
+      if (!lv) return;
+      // Timer-based win (Lv 1-8)
+      if (lv.duration && campaignTimer >= lv.duration) {
+        // Lv 8: boss must be beaten
+        if (lv.bossAtTimer && boss && boss.alive) return;
         campaignWinLevel();
+        return;
+      }
+      // Boss-only levels (Lv 9): win when all bosses/titan/sentinel dead
+      if (lv.spawnTitan) {
+        var titanAlive = miniBosses.some(function(m) { return m.alive && m.type === 'titan'; });
+        var bossAlive = boss && boss.alive;
+        var sentAlive = sentinel && sentinel.alive;
+        if (!titanAlive && !bossAlive && !sentAlive && (campaignTimer > 60)) {
+          campaignWinLevel();
+        }
+        return;
+      }
+      // Sentinel-only level (Lv 10)
+      if (lv.spawnSentinel) {
+        var sentAlive2 = sentinel && sentinel.alive;
+        if (!sentAlive2 && (campaignTimer > 60)) {
+          campaignWinLevel();
+        }
+        return;
       }
     }
     function updateCampaignSpawns() {
       if (!campaignMode) return;
       var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
-      if (!lv || !lv.spawnInterval) return;
+      if (!lv) return;
       campaignTimer++;
       // Normal dummy spawns
-      campaignSpawnTimer++;
-      if (campaignSpawnTimer >= lv.spawnInterval) {
-        campaignSpawnTimer = 0;
-        var count = lv.spawnCount || 2;
-        for (var ci = 0; ci < count; ci++) {
-          var sx = stick.x + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 200);
-          dummies.push(createDummy(Math.max(60, Math.min(CW - 60, sx))));
+      if (lv.spawnInterval && lv.spawnCount > 0) {
+        campaignSpawnTimer++;
+        if (campaignSpawnTimer >= lv.spawnInterval) {
+          campaignSpawnTimer = 0;
+          var count = lv.spawnCount || 0;
+          for (var ci = 0; ci < count; ci++) {
+            var sx = stick.x + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 200);
+            dummies.push(createDummy(Math.max(60, Math.min(CW - 60, sx))));
+          }
         }
       }
       // Special spawns (repeat every interval)
@@ -1620,6 +1752,36 @@
             }
           }
         }
+      }
+      // Boss at timer (Lv 8)
+      if (lv.bossAtTimer && !boss && campaignTimer === lv.bossAtTimer) {
+        var bh = lv.bossHP || 500;
+        boss = { x: CW / 2, y: GROUND_Y, hp: bh, maxHp: bh, facing: -1, hitFlash: 0, alive: true, attackCD: 0, phase: 0, animTime: 0, summonCD: 0 };
+        createTextParticle(CW / 2, 60, '💀 BOSS APPEARS!', '#ef4444', 28);
+        createParticles(CW / 2, GROUND_Y, 30, '#ef4444');
+      }
+      // Spawn titan + bosses (Lv 9)
+      if (lv.spawnTitan && !campaignSpecialTimers['titan_spawned']) {
+        campaignSpecialTimers['titan_spawned'] = 1;
+        // Spawn titan
+        var titanHp = 500;
+        miniBosses.push({ x: CW / 2 - 100, y: GROUND_Y, hp: titanHp, maxHp: titanHp, speed: 1.2, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'titan', animTime: 0, vy: 0 });
+        createTextParticle(CW / 2, 60, '⛏ TITAN RISES!', '#c084fc', 28);
+        // Spawn 2 bosses
+        var bh2 = lv.bossHP || 500;
+        boss = { x: CW / 2 + 100, y: GROUND_Y, hp: bh2, maxHp: bh2, facing: -1, hitFlash: 0, alive: true, attackCD: 0, phase: 0, animTime: 0, summonCD: 0 };
+        // Spawn sentinel as regular enemy
+        var sentHp = 750;
+        sentinel = { x: CW / 2, y: GROUND_Y, hp: sentHp, maxHp: sentHp, facing: -1, hitFlash: 0, alive: true, attackCD: 60, dodgeTimer: 0, teleportCD: 180, animTime: 0, state: 'chase', dodgeCount: 3, dashDist: 0, dashVx: 0, dashHit: false, vy: 0 };
+        createTextParticle(CW / 2, 90, '👁 SENTINEL JOINS!', '#06b6d4', 22);
+      }
+      // Spawn sentinel only (Lv 10)
+      if (lv.spawnSentinel && !campaignSpecialTimers['sent_spawned']) {
+        campaignSpecialTimers['sent_spawned'] = 1;
+        var shp = lv.sentinelHP || 2000;
+        sentinel = { x: CW / 2, y: GROUND_Y, hp: shp, maxHp: shp, facing: -1, hitFlash: 0, alive: true, attackCD: 60, dodgeTimer: 0, teleportCD: 180, animTime: 0, state: 'chase', dodgeCount: 3, dashDist: 0, dashVx: 0, dashHit: false, vy: 0 };
+        createTextParticle(CW / 2, 60, '👁 SENTINEL — 2000 HP!', '#06b6d4', 28);
+        createParticles(CW / 2, GROUND_Y, 30, '#06b6d4');
       }
     }
 
