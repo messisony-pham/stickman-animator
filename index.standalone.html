@@ -116,6 +116,21 @@
           </div>
           <div class="text-[9px] text-red-500/60 mt-1">HP: 500 • NO LV HP UP</div>
         </div>
+        <div id="charKnight" class="char-card bg-slate-800 border border-slate-600 rounded-xl p-4 w-44 relative" onclick="buyChar('knight')">
+          <div id="knightLock" class="absolute inset-0 bg-slate-900/80 rounded-xl flex flex-col items-center justify-center z-10 cursor-pointer hover:bg-slate-800/80 transition-colors"><span class="text-3xl">🔒</span><span class="text-red-400 text-xs font-bold mt-1">800 🪙 + 5 🏆</span><button class="mt-1 px-3 py-0.5 bg-red-500 hover:bg-red-400 text-slate-900 text-[10px] font-bold rounded pointer-events-none">BUY</button></div>
+          <div class="text-3xl mb-2">⚔️</div>
+          <div class="font-bold text-amber-400 mb-1">KNIGHT</div>
+          <div class="text-[10px] text-slate-400 space-y-0.5">
+            <p>⚔ L-Click: <span class="text-emerald-400">Slash 8</span></p>
+            <p>🛡 R-Click: <span class="text-cyan-400">Parry (Long)</span></p>
+            <p>🗡 1: <span class="text-cyan-400">Lunge 12</span></p>
+            <p>🌀 2: <span class="text-orange-400">Spin 3/hit</span></p>
+            <p>🐴 F: <span class="text-cyan-400">Charge</span></p>
+            <p>⚖ E: <span class="text-yellow-400">Justice +20HP x1.5</span></p>
+            <p>🔨 3: <span class="text-violet-400">Justice Slam 45%</span></p>
+          </div>
+          <div class="text-[9px] text-red-500/60 mt-1">HP: 125 • 30% Shield 🛡</div>
+        </div>
       </div>
 
       <div class="flex gap-3 justify-center mb-4">
@@ -409,6 +424,19 @@
           </div>
           <span class="text-violet-400 font-bold text-xs" id="levelText">LV 1</span>
           <div class="flex items-center gap-1">
+            <div class="w-16 sm:w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden border border-slate-600" title="EXP">
+              <div id="expBar" class="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+            <span id="expText" class="text-[9px] text-cyan-400 tabular-nums">0%</span>
+          </div>
+          <div id="shieldBarWrap" class="hidden items-center gap-1">
+            <span class="text-[9px] text-blue-300">🛡</span>
+            <div class="w-14 h-1.5 bg-slate-700 rounded-full overflow-hidden border border-slate-600">
+              <div id="shieldBar" class="h-full bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full transition-all duration-300" style="width:100%"></div>
+            </div>
+            <span id="shieldText" class="text-[9px] text-blue-300 tabular-nums w-5"></span>
+          </div>
+          <div class="flex items-center gap-1">
             <button id="ultBtn1" class="hidden px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold hover:bg-slate-600 transition-colors" title="Dash - 1"><span class="text-cyan-400">1</span>D</button>
             <button id="ultBtn2" class="hidden px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold hover:bg-slate-600 transition-colors" title="Grenade - 2"><span class="text-orange-400">2</span>G</button>
             <button id="ultBtn3" class="hidden px-1.5 py-0.5 rounded bg-slate-700 border border-slate-600 text-[10px] font-bold hover:bg-slate-600 transition-colors" title="Ally Gunner - F"><span class="text-green-400">F</span>A</button>
@@ -501,6 +529,7 @@
     let boughtMage = localStorage.getItem('sm_boughtMage') === 'true';
     let boughtNinja = localStorage.getItem('sm_boughtNinja') === 'true';
     let boughtBots = localStorage.getItem('sm_boughtBots') === 'true';
+    let boughtKnight = localStorage.getItem('sm_boughtKnight') === 'true';
     function isCharBought(c) {
       if (c === 'fighter') return true;
       if (c === 'soldier') return boughtSoldier;
@@ -508,6 +537,7 @@
       if (c === 'mage') return boughtMage;
       if (c === 'ninja') return boughtNinja;
       if (c === 'bots') return boughtBots;
+      if (c === 'knight') return boughtKnight;
       return false;
     }
     function trackCharUse(c) {
@@ -519,6 +549,7 @@
         if (c === 'super') { boughtSuper = false; localStorage.removeItem('sm_boughtSuper'); }
         if (c === 'mage') { boughtMage = false; localStorage.removeItem('sm_boughtMage'); }
         if (c === 'bots') { boughtBots = false; localStorage.removeItem('sm_boughtBots'); }
+        if (c === 'knight') { boughtKnight = false; localStorage.removeItem('sm_boughtKnight'); }
         charUses[c] = 0; localStorage.setItem('sm_' + c + 'Uses', 0);
         updateCharLockUI(); updateMenuPoints();
       }
@@ -539,6 +570,9 @@
       } else if (c === 'bots' && totalPoints >= 500 && bossPoints >= 3) {
         totalPoints -= 650; bossPoints -= 3; savePoints(); boughtBots = true; localStorage.setItem('sm_boughtBots', 'true');
         charUses.bots = 0; localStorage.setItem('sm_botsUses', 0);
+      } else if (c === 'knight' && totalPoints >= 800 && bossPoints >= 5) {
+        totalPoints -= 800; bossPoints -= 5; savePoints(); boughtKnight = true; localStorage.setItem('sm_boughtKnight', 'true');
+        charUses.knight = 0; localStorage.setItem('sm_knightUses', 0);
       } else { return; }
       updateCharLockUI(); updateMenuPoints(); selectChar(c);
     };
@@ -558,6 +592,9 @@
       const bt = document.getElementById('charBots');
       const btLock = document.getElementById('botsLock');
       if (btLock) btLock.classList.toggle('hidden', isCharBought('bots'));
+      var kt = document.getElementById('charKnight');
+      var ktLock = document.getElementById('knightLock');
+      if (ktLock) ktLock.classList.toggle('hidden', isCharBought('knight'));
       s.style.opacity = isCharBought('soldier') ? '1' : '1';
       sup.style.opacity = isCharBought('super') ? '1' : '1';
       mg.style.opacity = isCharBought('mage') ? '1' : '1';
@@ -572,6 +609,7 @@
       document.getElementById('charMage').classList.toggle('selected', c === 'mage');
       document.getElementById('charNinja').classList.toggle('selected', c === 'ninja');
       document.getElementById('charBots').classList.toggle('selected', c === 'bots');
+      document.getElementById('charKnight').classList.toggle('selected', c === 'knight');
     };
 
     // Soldier abilities
@@ -613,6 +651,16 @@
     const BOT_LASER_DMG = 10, BOT_LASER_INTERVAL = 36, BOT_LASER_DUR = 480; // 0.6s interval, 8s duration
     const BOT_NUCLEAR_DMG = 50, BOT_NUCLEAR_RADIUS = 200, BOT_NUCLEAR_CD = 600;
     const BOT_NUCLEAR_STUN = 300, BOT_NUCLEAR_SPEED_BUFF = 0.2, BOT_NUCLEAR_SPEED_DUR = 300;
+
+    // Knight
+    const KNIGHT_HP = 125, KNIGHT_SLASH_DMG = 8, KNIGHT_SLASH_CD = 10, KNIGHT_SLASH_RANGE = 65;
+    const KNIGHT_PARRY_CD = 120, KNIGHT_PARRY_WINDOW = 25;
+    const KNIGHT_LUNGE_DMG = 12, KNIGHT_LUNGE_CD = 300, KNIGHT_LUNGE_DIST = 150, KNIGHT_LUNGE_SPD = 22;
+    const KNIGHT_SPIN_DMG = 3, KNIGHT_SPIN_CD = 360, KNIGHT_SPIN_INTERVAL = 21, KNIGHT_SPIN_DUR = 180;
+    const KNIGHT_CHARGE_DMG = 20, KNIGHT_CHARGE_CD = 420, KNIGHT_CHARGE_DIST = 250, KNIGHT_CHARGE_SPD = 16;
+    const KNIGHT_JUSTICE_HEAL = 20, KNIGHT_JUSTICE_DMG_MULT = 1.5, KNIGHT_JUSTICE_CD = 600, KNIGHT_JUSTICE_DUR = 480;
+    const KNIGHT_JSLAM_DMG_PCT = 0.45, KNIGHT_JSLAM_RADIUS = 160, KNIGHT_JSLAM_CD = 900, KNIGHT_JSLAM_DMG_MULT = 2.0, KNIGHT_JSLAM_DMG_MULT_DUR = 600;
+    const KNIGHT_SHIELD_PCT = 0.30, KNIGHT_SHIELD_NORMAL_DMG = 7, KNIGHT_SHIELD_BOSS_DMG = 12;
 
     // Normal dummy
     const DUMMY_BASE_HP = 75, DUMMY_SPD = 0.4, DUMMY_CHASE_RANGE = 200;
@@ -780,6 +828,16 @@
     let botNuclearCD = 0;
     let botNuclearSpeedTimer = 0;
     let botStunTimer = 0; // stun enemy timer
+    // Knight state
+    let knightSlashCD = 0, knightLungeCD = 0, knightSpinCD = 0, knightChargeCD = 0, knightParryCD = 0;
+    let knightJusticeCD = 0, knightJusticeTimer = 0, knightJusticeActive = false, knightJusticeDmgMult = 1;
+    let knightJSlamCD = 0;
+    let knightSpinActive = false, knightSpinTimer = 0, knightSpinTickTimer = 0;
+    let knightChargeActive = false, knightChargeDist = 0;
+    let knightLungeActive = false, knightLungeDist = 0;
+    let knightShieldHP = 0, knightShieldMax = 0;
+    // EXP bar state
+    let expKills = 0, expNextLevel = 5;
     let isCharging = false, chargeDist = 0, chargeDmgDealt = false;
     let isKickDashing = false, kickDashDist = 0;
     let isDashing = false, dashDist = 0;
@@ -912,6 +970,11 @@
     const ultBar = document.getElementById('ultBar');
     const ultBarText = document.getElementById('ultBarText');
     const levelTextEl = document.getElementById('levelText');
+    const expBarEl = document.getElementById('expBar');
+    const expTextEl = document.getElementById('expText');
+    const shieldBarWrapEl = document.getElementById('shieldBarWrap');
+    const shieldBarEl = document.getElementById('shieldBar');
+    const shieldTextEl = document.getElementById('shieldText');
     const menuScreen = document.getElementById('menuScreen');
     const pauseScreen = document.getElementById('pauseScreen');
     const gameUI = document.getElementById('gameUI');
@@ -1603,6 +1666,10 @@
         PLAYER_MAX_HP_CURRENT = BOT_HP;
         document.getElementById('charIcon').textContent = '🤖';
         document.getElementById('charName').textContent = 'Bots' + modeLabel;
+      } else if (selectedChar === 'knight') {
+        PLAYER_MAX_HP_CURRENT = KNIGHT_HP;
+        document.getElementById('charIcon').textContent = '⚔️';
+        document.getElementById('charName').textContent = 'Knight' + modeLabel;
       } else {
         PLAYER_MAX_HP_CURRENT = MAGE_HP;
         document.getElementById('charIcon').textContent = '🧙';
@@ -2426,6 +2493,50 @@
         ctx.fillRect(x - 3, btY + 12, 6, 6);
         ctx.globalAlpha = 1;
       }
+      } else if (selectedChar === 'knight') {
+        // Knight helmet — silver/grey with visor
+        ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(x, headY - 2, 15, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#64748b'; ctx.fillRect(x - 18, headY - 2, 36, 6);
+        // Visor slit
+        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x - 8, headY + 1); ctx.lineTo(x + 8, headY + 1); ctx.stroke();
+        // Helmet top crest
+        ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(x, headY - 18); ctx.lineTo(x - 4, headY - 8); ctx.lineTo(x + 4, headY - 8); ctx.closePath(); ctx.fill();
+        // Shield on back arm
+        var shieldX = x - 22 * stick.facing;
+        ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.moveTo(shieldX, btY + 2); ctx.lineTo(shieldX - 10, btY + 15); ctx.lineTo(shieldX, btY + 28); ctx.lineTo(shieldX + 10, btY + 15); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 1.5; ctx.stroke();
+        // Shield emblem
+        ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(shieldX, btY + 15, 4, 0, Math.PI * 2); ctx.fill();
+        // Sword on active arm side
+        if (stick.state === 'shoot' || knightSpinActive) {
+          var swordAngle = knightSpinActive ? (time * 0.5) % (Math.PI * 2) : 0;
+          var swordX = x + 20 * stick.facing, swordY = btY + 5;
+          ctx.save();
+          ctx.translate(swordX, swordY);
+          if (knightSpinActive) ctx.rotate(swordAngle);
+          // Blade
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(-2, -35, 4, 35);
+          // Edge glow
+          ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1;
+          ctx.strokeRect(-2, -35, 4, 35);
+          // Guard
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(-6, -2, 12, 4);
+          // Handle
+          ctx.fillStyle = '#92400e';
+          ctx.fillRect(-1.5, 2, 3, 8);
+          ctx.restore();
+        }
+        // Justice glow
+        if (knightJusticeActive) {
+          ctx.globalAlpha = 0.2 + Math.sin(time * 0.15) * 0.15;
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath(); ctx.arc(x, y - 30, 45, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
       if (selectedChar !== 'bots') {
         ctx.beginPath(); ctx.moveTo(x, btY); ctx.lineTo(x, bbY); ctx.stroke();
       }
@@ -2805,6 +2916,14 @@
         miniBosses.forEach(mb => { if (mb.alive && Math.abs(stick.x - mb.x) < 120) dealDamageToMiniBoss(mb, cDmg, 'parry'); });
         if (boss && boss.alive && Math.abs(stick.x - boss.x) < 120) dealDamageToBoss(cDmg, 'parry');
         return;
+      }
+      // Knight shield system
+      if (selectedChar === 'knight' && knightShieldHP > 0) {
+        var shieldAbsorb = bypassShield ? KNIGHT_SHIELD_BOSS_DMG : KNIGHT_SHIELD_NORMAL_DMG;
+        knightShieldHP = Math.max(0, knightShieldHP - shieldAbsorb);
+        updateShieldBar();
+        createTextParticle(stick.x, stick.y - 65, '🛡 SHIELD -' + shieldAbsorb, '#3b82f6', 12);
+        createParticles(stick.x, stick.y - 30, 4, '#3b82f6');
       }
       playerHP = Math.max(0, playerHP - dmg); stick.hitFlash = 8; updateHPBar();
       createTextParticle(stick.x, stick.y - 55, '-' + dmg, color || '#f87171', 16);
@@ -3983,6 +4102,22 @@
 
     // ==================== LEVEL / ULT ====================
     function updateHPBar() { hpBar.style.width = (playerHP / PLAYER_MAX_HP_CURRENT * 100) + '%'; hpText.textContent = playerHP; const pct = playerHP / PLAYER_MAX_HP_CURRENT; hpBar.className = 'h-full rounded-full transition-all duration-300 ' + (pct > 0.5 ? 'bg-gradient-to-r from-emerald-400 to-green-300' : pct > 0.25 ? 'bg-gradient-to-r from-amber-400 to-yellow-300' : 'bg-gradient-to-r from-rose-500 to-red-400'); }
+    function updateEXPBar() {
+      const killsInLevel = totalKills % LEVEL_UP_KILLS;
+      const expPct = playerLevel >= MAX_LEVEL ? 100 : Math.floor((killsInLevel / LEVEL_UP_KILLS) * 100);
+      expBarEl.style.width = expPct + '%';
+      expTextEl.textContent = playerLevel >= MAX_LEVEL ? 'MAX' : expPct + '%';
+    }
+    function updateShieldBar() {
+      if (selectedChar === 'knight' && knightShieldMax > 0) {
+        shieldBarWrapEl.classList.remove('hidden'); shieldBarWrapEl.classList.add('flex');
+        var pct = Math.floor((knightShieldHP / knightShieldMax) * 100);
+        shieldBarEl.style.width = pct + '%';
+        shieldTextEl.textContent = knightShieldHP;
+      } else {
+        shieldBarWrapEl.classList.add('hidden'); shieldBarWrapEl.classList.remove('flex');
+      }
+    }
     function addUltCharge(amount) {
       if (ultActive) return;
       ultCharge = Math.min(100, ultCharge + amount);
@@ -4052,8 +4187,9 @@
       ultProgress.textContent = Math.min(totalKills, ULT_KILL_THRESHOLD);
       // Ult charge: 10% per normal kill, 20% per boss
       addUltCharge(10);
+      updateEXPBar();
       const tl = Math.min(Math.floor(totalKills / LEVEL_UP_KILLS) + 1, MAX_LEVEL);
-      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
+      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
     }
 
     // ==================== SPAWNING ====================
@@ -4774,7 +4910,7 @@
       }
       if (allySpawnTimer >= ALLY_SPAWN_INTERVAL) { allySpawnTimer = 0; spawnShopAllies(); }
       // Sandbox: instant cooldowns + full heal every frame
-      if (gameMode === 'sandbox') { ultDashCD = 0; ultGrenadeCD = 0; ultAllyCD = 0; ultSlamCD = 0; parryCD = 0; superBlastCD = 0; mageLightningCD = 0; mageFrostCD = 0; mageTeleportCD = 0; mageMeteorCD = 0; ninjaSlashCD = 0; ninjaKunaiCD = 0; ninjaDashCD = 0; ninjaInvisCD = 0; ninjaCloneCD = 0; ninjaSharinCD = 0; ninjaUltCD = 0; shieldCD = 0; if (playerHP < PLAYER_MAX_HP_CURRENT) { playerHP = PLAYER_MAX_HP_CURRENT; updateHPBar(); } }
+      if (gameMode === 'sandbox') { ultDashCD = 0; ultGrenadeCD = 0; ultAllyCD = 0; ultSlamCD = 0; parryCD = 0; superBlastCD = 0; mageLightningCD = 0; mageFrostCD = 0; mageTeleportCD = 0; mageMeteorCD = 0; ninjaSlashCD = 0; ninjaKunaiCD = 0; ninjaDashCD = 0; ninjaInvisCD = 0; ninjaCloneCD = 0; ninjaSharinCD = 0; ninjaUltCD = 0; shieldCD = 0; knightSlashCD = 0; knightLungeCD = 0; knightSpinCD = 0; knightChargeCD = 0; knightParryCD = 0; knightJusticeCD = 0; knightJSlamCD = 0; if (playerHP < PLAYER_MAX_HP_CURRENT) { playerHP = PLAYER_MAX_HP_CURRENT; updateHPBar(); } if (selectedChar === 'knight' && knightShieldHP < knightShieldMax) { knightShieldHP = knightShieldMax; updateShieldBar(); } }
       if (ultDashCD > 0) ultDashCD--; if (ultGrenadeCD > 0) ultGrenadeCD--; if (ultAllyCD > 0) ultAllyCD--; if (ultSlamCD > 0) ultSlamCD--; if (parryCD > 0) parryCD--; if (superBlastCD > 0) superBlastCD--;
       if (mageLightningCD > 0) mageLightningCD--; if (mageFrostCD > 0) mageFrostCD--; if (mageTeleportCD > 0) mageTeleportCD--; if (mageMeteorCD > 0) mageMeteorCD--;
       if (mageIceShielded) { mageIceTimer--; if (mageIceTimer <= 0) { mageIceShielded = false; createTextParticle(stick.x, stick.y - 80, 'ICE SHIELD OFF', '#94a3b8', 12); } }
@@ -4783,7 +4919,7 @@
       if (isShielded) { shieldTimer--; if (shieldTimer <= 0) { isShielded = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD DOWN', '#94a3b8', 14); } }
       if (shieldCD > 0) shieldCD--;
       updateUltUI(); updateUltimate();
-      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt(); updateBotsState(); updateBotStriders(); updateCampaignSpawns();
+      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders(); updateKnightAbilities(); updateCampaignSpawns();
       if (ninjaSlashCD > 0) ninjaSlashCD--;
       if (ninjaKunaiCD > 0) ninjaKunaiCD--;
       if (ninjaDashCD > 0) ninjaDashCD--;
@@ -5401,6 +5537,165 @@
       canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 500);
       for (var i = 0; i < 30; i++) particles.push({ x: stick.x, y: stick.y - 30, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 30+Math.random()*20, color: '#ef4444' });
     }
+    // ==================== KNIGHT ABILITIES ====================
+    function knightSlashDmg() {
+      var d = KNIGHT_SLASH_DMG * (knightJusticeActive ? knightJusticeDmgMult : 1);
+      return d;
+    }
+    function performKnightSlash() {
+      if (knightSlashCD > 0 || gameState !== 'playing' || isDashing) return;
+      knightSlashCD = KNIGHT_SLASH_CD;
+      stick.state = 'shoot'; stick.animTime = 0;
+      createParticles(stick.x + 30 * stick.facing, stick.y - 35, 8, '#facc15');
+      var dmg = Math.floor(knightSlashDmg());
+      dummies.forEach(function(d) { if (d.alive && Math.abs(stick.x - d.x) < KNIGHT_SLASH_RANGE) dealDamageToDummy(d, dmg, 'slash'); });
+      miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(stick.x - mb.x) < KNIGHT_SLASH_RANGE) dealDamageToMiniBoss(mb, dmg, 'slash'); });
+      if (boss && boss.alive && Math.abs(stick.x - boss.x) < KNIGHT_SLASH_RANGE) dealDamageToBoss(dmg, 'slash');
+      if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < KNIGHT_SLASH_RANGE) { bossRushDeath.hp -= dmg; bossRushDeath.hitFlash = 6; createParticles(bossRushDeath.x, bossRushDeath.y - 40, 8, '#facc15'); createTextParticle(bossRushDeath.x, bossRushDeath.y - 60, '-' + dmg, '#facc15', 14); }
+      if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(stick.x - bossRushUltra.x) < KNIGHT_SLASH_RANGE) { dealUltraBossDamage(dmg); }
+      if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(stick.x - bossRushSentinel1.x) < KNIGHT_SLASH_RANGE) dealColossalSentinelDamage(bossRushSentinel1, dmg, 'slash');
+      if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(stick.x - bossRushSentinel2.x) < KNIGHT_SLASH_RANGE) dealColossalSentinelDamage(bossRushSentinel2, dmg, 'slash');
+      if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(stick.x - bossRushColossal.x) < KNIGHT_SLASH_RANGE) dealColossalDamage(dmg, 'slash');
+    }
+    function performKnightParry() {
+      if (knightParryCD > 0) return;
+      isParrying = true; parryWindow = KNIGHT_PARRY_WINDOW; parryCD = KNIGHT_PARRY_CD; knightParryCD = KNIGHT_PARRY_CD;
+      createParticles(stick.x, stick.y - 30, 12, '#fbbf24');
+    }
+    function performKnightLunge() {
+      if (knightLungeCD > 0 || isDashing || knightChargeActive) return;
+      knightLungeCD = KNIGHT_LUNGE_CD;
+      knightLungeActive = true; knightLungeDist = 0;
+      stick.facing = mouseX > stick.x ? 1 : -1;
+      stick.state = 'dash'; stick.animTime = 0;
+      createTextParticle(stick.x, stick.y - 80, '🗡 LUNGE!', '#fbbf24', 16);
+      createParticles(stick.x, stick.y - 30, 8, '#fbbf24');
+    }
+    function performKnightSpin() {
+      if (knightSpinCD > 0 || knightSpinActive) return;
+      knightSpinCD = KNIGHT_SPIN_CD;
+      knightSpinActive = true; knightSpinTimer = KNIGHT_SPIN_DUR; knightSpinTickTimer = 0;
+      createTextParticle(stick.x, stick.y - 80, '🌀 SPIN!', '#f97316', 16);
+    }
+    function performKnightCharge() {
+      if (knightChargeCD > 0 || isDashing || knightLungeActive) return;
+      knightChargeCD = KNIGHT_CHARGE_CD;
+      knightChargeActive = true; knightChargeDist = 0;
+      stick.facing = mouseX > stick.x ? 1 : -1;
+      stick.state = 'dash'; stick.animTime = 0;
+      createTextParticle(stick.x, stick.y - 80, '🐴 CHARGE!', '#a78bfa', 16);
+      createParticles(stick.x, stick.y - 30, 10, '#a78bfa');
+    }
+    function performKnightJustice() {
+      if (knightJusticeCD > 0) return;
+      knightJusticeCD = KNIGHT_JUSTICE_CD;
+      knightJusticeActive = true; knightJusticeTimer = KNIGHT_JUSTICE_DUR; knightJusticeDmgMult = KNIGHT_JUSTICE_DMG_MULT;
+      playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + KNIGHT_JUSTICE_HEAL);
+      updateHPBar();
+      createTextParticle(stick.x, stick.y - 80, '⚖ JUSTICE! +' + KNIGHT_JUSTICE_HEAL + 'HP', '#fbbf24', 18);
+      createParticles(stick.x, stick.y - 30, 15, '#fbbf24');
+    }
+    function performKnightJusticeSlam() {
+      if (knightJSlamCD > 0) return;
+      knightJSlamCD = KNIGHT_JSLAM_CD;
+      stick.state = 'shoot'; stick.animTime = 0;
+      // Damage enemies based on % of their HP
+      createTextParticle(CW / 2, 60, '🔨 JUSTICE SLAM!', '#a855f7', 28);
+      createExplosion(stick.x, GROUND_Y - 30, 160, '#a855f7');
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 400);
+      dummies.forEach(function(d) {
+        if (d.alive && Math.abs(stick.x - d.x) < KNIGHT_JSLAM_RADIUS) {
+          var slamDmg = Math.max(15, Math.floor(d.hp * KNIGHT_JSLAM_DMG_PCT));
+          dealDamageToDummy(d, slamDmg, 'slam');
+        }
+      });
+      miniBosses.forEach(function(mb) {
+        if (mb.alive && Math.abs(stick.x - mb.x) < KNIGHT_JSLAM_RADIUS) {
+          var slamDmg = Math.max(15, Math.floor(mb.hp * KNIGHT_JSLAM_DMG_PCT));
+          dealDamageToMiniBoss(mb, slamDmg, 'slam');
+        }
+      });
+      if (boss && boss.alive && Math.abs(stick.x - boss.x) < KNIGHT_JSLAM_RADIUS) {
+        var slamDmg = Math.max(15, Math.floor(boss.hp * KNIGHT_JSLAM_DMG_PCT));
+        dealDamageToBoss(slamDmg, 'slam');
+      }
+      // Heal to full
+      playerHP = PLAYER_MAX_HP_CURRENT;
+      updateHPBar();
+      // x2 dmg buff for 10s
+      knightJusticeActive = true; knightJusticeTimer = KNIGHT_JSLAM_DMG_MULT_DUR; knightJusticeDmgMult = KNIGHT_JSLAM_DMG_MULT;
+      createTextParticle(stick.x, stick.y - 100, 'x2 DMG 10s! FULL HEAL!', '#fbbf24', 16);
+      for (var i = 0; i < 30; i++) particles.push({ x: stick.x, y: stick.y - 30, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 30+Math.random()*20, color: '#a855f7' });
+    }
+    function updateKnightAbilities() {
+      if (knightSlashCD > 0) knightSlashCD--;
+      if (knightLungeCD > 0) knightLungeCD--;
+      if (knightSpinCD > 0) knightSpinCD--;
+      if (knightChargeCD > 0) knightChargeCD--;
+      if (knightJusticeCD > 0) knightJusticeCD--;
+      if (knightJSlamCD > 0) knightJSlamCD--;
+      if (knightParryCD !== undefined && knightParryCD > 0) knightParryCD--;
+      // Lunge movement
+      if (knightLungeActive) {
+        knightLungeDist += KNIGHT_LUNGE_SPD;
+        stick.x += KNIGHT_LUNGE_SPD * stick.facing;
+        stick.x = Math.max(20, Math.min(CW - 20, stick.x));
+        // Damage nearby enemies during lunge
+        var ld = Math.floor(KNIGHT_LUNGE_DMG * (knightJusticeActive ? knightJusticeDmgMult : 1));
+        dummies.forEach(function(d) { if (d.alive && Math.abs(stick.x - d.x) < 50) dealDamageToDummy(d, ld, 'lunge'); });
+        miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(stick.x - mb.x) < 50) dealDamageToMiniBoss(mb, ld, 'lunge'); });
+        if (boss && boss.alive && Math.abs(stick.x - boss.x) < 50) dealDamageToBoss(ld, 'lunge');
+        if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 50) { bossRushDeath.hp -= ld; bossRushDeath.hitFlash = 6; createTextParticle(bossRushDeath.x, bossRushDeath.y - 60, '-' + ld, '#fbbf24', 14); }
+        if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(stick.x - bossRushUltra.x) < 50) dealUltraBossDamage(ld);
+        if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(stick.x - bossRushSentinel1.x) < 50) dealColossalSentinelDamage(bossRushSentinel1, ld, 'lunge');
+        if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(stick.x - bossRushSentinel2.x) < 50) dealColossalSentinelDamage(bossRushSentinel2, ld, 'lunge');
+        if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(stick.x - bossRushColossal.x) < 50) dealColossalDamage(ld, 'lunge');
+        if (knightLungeDist >= KNIGHT_LUNGE_DIST) { knightLungeActive = false; stick.state = 'idle'; }
+      }
+      // Charge movement
+      if (knightChargeActive) {
+        knightChargeDist += KNIGHT_CHARGE_SPD;
+        stick.x += KNIGHT_CHARGE_SPD * stick.facing;
+        stick.x = Math.max(20, Math.min(CW - 20, stick.x));
+        var cd = Math.floor(KNIGHT_CHARGE_DMG * (knightJusticeActive ? knightJusticeDmgMult : 1));
+        dummies.forEach(function(d) { if (d.alive && Math.abs(stick.x - d.x) < 60) dealDamageToDummy(d, cd, 'charge'); });
+        miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(stick.x - mb.x) < 60) dealDamageToMiniBoss(mb, cd, 'charge'); });
+        if (boss && boss.alive && Math.abs(stick.x - boss.x) < 60) dealDamageToBoss(cd, 'charge');
+        if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 60) { bossRushDeath.hp -= cd; bossRushDeath.hitFlash = 6; createTextParticle(bossRushDeath.x, bossRushDeath.y - 60, '-' + cd, '#a78bfa', 14); }
+        if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(stick.x - bossRushUltra.x) < 60) dealUltraBossDamage(cd);
+        if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(stick.x - bossRushSentinel1.x) < 60) dealColossalSentinelDamage(bossRushSentinel1, cd, 'charge');
+        if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(stick.x - bossRushSentinel2.x) < 60) dealColossalSentinelDamage(bossRushSentinel2, cd, 'charge');
+        if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(stick.x - bossRushColossal.x) < 60) dealColossalDamage(cd, 'charge');
+        // Trail particles
+        if (time % 2 < 1) particles.push({ x: stick.x, y: GROUND_Y - 20, vx: -stick.facing * 2, vy: -1, life: 15, color: '#a78bfa' });
+        if (knightChargeDist >= KNIGHT_CHARGE_DIST) { knightChargeActive = false; stick.state = 'idle'; }
+      }
+      // Spin damage
+      if (knightSpinActive) {
+        knightSpinTimer--;
+        knightSpinTickTimer++;
+        if (knightSpinTickTimer >= KNIGHT_SPIN_INTERVAL) {
+          knightSpinTickTimer = 0;
+          var sd = Math.floor(KNIGHT_SPIN_DMG * (knightJusticeActive ? knightJusticeDmgMult : 1));
+          dummies.forEach(function(d) { if (d.alive && Math.abs(stick.x - d.x) < 80) dealDamageToDummy(d, sd, 'spin'); });
+          miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(stick.x - mb.x) < 80) dealDamageToMiniBoss(mb, sd, 'spin'); });
+          if (boss && boss.alive && Math.abs(stick.x - boss.x) < 80) dealDamageToBoss(sd, 'spin');
+          if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 80) { bossRushDeath.hp -= sd; bossRushDeath.hitFlash = 4; createTextParticle(bossRushDeath.x, bossRushDeath.y - 50, '-' + sd, '#f97316', 12); }
+          if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(stick.x - bossRushUltra.x) < 80) dealUltraBossDamage(sd);
+          if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(stick.x - bossRushSentinel1.x) < 80) dealColossalSentinelDamage(bossRushSentinel1, sd, 'spin');
+          if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(stick.x - bossRushSentinel2.x) < 80) dealColossalSentinelDamage(bossRushSentinel2, sd, 'spin');
+          if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(stick.x - bossRushColossal.x) < 80) dealColossalDamage(sd, 'spin');
+          createParticles(stick.x + (Math.random()-0.5)*40, stick.y - 30, 4, '#f97316');
+        }
+        if (knightSpinTimer <= 0) { knightSpinActive = false; }
+      }
+      // Justice timer
+      if (knightJusticeActive) {
+        knightJusticeTimer--;
+        if (knightJusticeTimer <= 0) { knightJusticeActive = false; knightJusticeDmgMult = 1; }
+      }
+      updateShieldBar();
+    }
     const GAME_KEYS = new Set(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','a','A','d','D','w','W','s','S','q','Q','e','E','f','F','1','2','3','Escape']);
     window.addEventListener('keydown', (e) => {
       // Don't capture keys when typing in input fields
@@ -5448,6 +5743,12 @@
         if (e.key === '2') performBotStrider();
         if (e.key === '3') performBotNuclear();
         if (e.key.toLowerCase() === 'f') performBotLaserCore();
+      } else if (selectedChar === 'knight') {
+        if (e.key === '1') performKnightLunge();
+        if (e.key === '2') performKnightSpin();
+        if (e.key === '3') performKnightJusticeSlam();
+        if (e.key.toLowerCase() === 'f') performKnightCharge();
+        if (e.key.toLowerCase() === 'e') performKnightJustice();
       }
     });
     window.addEventListener('keyup', (e) => keys.delete(e.key));
@@ -5470,6 +5771,8 @@
         if (e.button === 2) performNinjaKunai(); else performNinjaSlash();
       } else if (selectedChar === 'bots') {
         if (e.button === 2) performBotParry(); else performBotBlast();
+      } else if (selectedChar === 'knight') {
+        if (e.button === 2) performKnightParry(); else performKnightSlash();
       }
     });
     canvas.addEventListener('mousemove', (e) => {
@@ -5484,7 +5787,7 @@
       mouseX = (t.clientX - rect.left) * (CW / rect.width);
       mouseY = (t.clientY - rect.top) * (CH / rect.height);
       if (mouseX > stick.x) stick.facing = 1; else stick.facing = -1;
-      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else performPunch();
+      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else performPunch();
     }, { passive: false });
 
     // ==================== RESET ====================
@@ -5507,6 +5810,12 @@
       botLaserActive = false; botLaserTimer = 0; botLaserTickTimer = 0;
       botStriderCD = 0;      botNuclearCD = 0; botNuclearSpeedTimer = 0; MOVE_SPEED_BONUS = 0; botStunTimer = 0;
       botStriders = [];
+      knightSlashCD = 0; knightLungeCD = 0; knightSpinCD = 0; knightChargeCD = 0; knightParryCD = 0;
+      knightJusticeCD = 0; knightJusticeTimer = 0; knightJusticeActive = false; knightJusticeDmgMult = 1;
+      knightJSlamCD = 0; knightSpinActive = false; knightSpinTimer = 0; knightSpinTickTimer = 0;
+      knightChargeActive = false; knightChargeDist = 0; knightLungeActive = false; knightLungeDist = 0;
+      knightShieldHP = 0; knightShieldMax = 0;
+      expKills = 0; expNextLevel = 5;
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
@@ -5521,13 +5830,15 @@
       var hasSummonAlly = false;
       for (var k in shopUpgrades) { if (k.indexOf('summon') === 0 && shopUpgrades[k] > 0) { hasSummonAlly = true; break; } }
       if (hasSummonAlly) { allySpawnTimer = ALLY_SPAWN_INTERVAL; }
-      PLAYER_MAX_HP_CURRENT = selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : 100;
+      PLAYER_MAX_HP_CURRENT = selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : 100;
       PLAYER_MAX_HP_CURRENT += getShopUpgradeEffect('maxHp');
+      // Knight shield init
+      if (selectedChar === 'knight') { knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { knightShieldHP = 0; knightShieldMax = 0; }
       regenTimer = 0; shopRegenTimer = 0; isParrying = false; parryWindow = 0; parryCD = 0;
       scoreEl.textContent = '0'; killsEl.textContent = '0';
       ultBtn1.classList.add('hidden'); ultBtn2.classList.add('hidden'); ultBtn3.classList.add('hidden');        ultBarWrap.classList.remove('hidden');
       ultProgress.textContent = '0'; levelTextEl.textContent = 'LV 1'; levelTextEl.className = 'font-bold text-xs text-violet-400';
-      updateHPBar(); spawnInitialDummies();
+      updateHPBar(); updateEXPBar(); updateShieldBar(); spawnInitialDummies();
     }
 
     document.getElementById('resetBtn').addEventListener('click', () => { fullReset(); gameState = 'playing'; resumeGameLoop(); });
@@ -5588,6 +5899,14 @@
         rows.push(['2', '3 STRIDERS', 'text-orange-400']);
         rows.push(['F', 'LASER CORE 8s', 'text-rose-400']);
         rows.push(['3', 'NUCLEAR +STUN', 'text-yellow-400']);
+      } else if (selectedChar === 'knight') {
+        rows.push(['L-CLICK', 'SLASH 8', 'text-emerald-400']);
+        rows.push(['R-CLICK', 'PARRY LONG', 'text-cyan-400']);
+        rows.push(['1', 'LUNGE 12', 'text-cyan-400']);
+        rows.push(['2', 'SPIN 3/hit', 'text-orange-400']);
+        rows.push(['F', 'CHARGE', 'text-cyan-400']);
+        rows.push(['E', 'JUSTICE +20HP', 'text-yellow-400']);
+        rows.push(['3', 'JUSTICE SLAM 45%', 'text-violet-400']);
       }
       rows.push(['ESC', 'PAUSE', 'text-slate-500']);
       rows.push(['TAB', 'SHOP', 'text-amber-400']);
