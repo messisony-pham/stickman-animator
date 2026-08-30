@@ -3398,6 +3398,7 @@
     }
 
     function checkBossSpawn() {
+      if (campaignMode) return; // campaign handles its own spawns
       if (boss && boss.alive) return;
       // Titan spawns every 60s
       if (titanTimer >= TITAN_SPAWN_INTERVAL && !boss && gameMode !== 'easy') {
@@ -4422,6 +4423,7 @@
 
     // ==================== SPAWNING ====================
     function spawnWave() {
+      if (campaignMode) return; // campaign handles its own spawns
       if (boss && boss.alive) return;
       var aliveDummies = dummies.filter(function(d) { return d.alive; }).length;
       var aliveMiniBosses = miniBosses.filter(function(m) { return m.alive; }).length;
@@ -4609,7 +4611,7 @@
     function gameLoop() {
       if (gameState === 'menu' || gameState === 'paused' || gameState === 'cutscene') { animFrameId = requestAnimationFrame(gameLoop); return; }
       if (gameState !== 'playing') { if (gameState === 'gameover') drawGameOver(); animFrameId = null; return; }
-      time++; if (gameMode !== 'sandbox') { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
+      time++; if (gameMode !== 'sandbox' && !campaignMode) { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
       if (gracePeriod > 0) gracePeriod--;
       if (gameMode === 'bossrush') {
         // Boss Rush: 3 waves + DEATH
@@ -5129,7 +5131,7 @@
         // Update HP bar
         hpBar.style.width = Math.max(0, (playerHP / PLAYER_MAX_HP_CURRENT) * 100) + '%';
         hpText.textContent = Math.max(0, Math.round(playerHP));
-      } else {
+      } else if (!campaignMode) {
         if (spawnTimer >= SPAWN_INTERVAL) { spawnTimer = 0; spawnWave(); }
         if (kamikazeTimer >= KAMIKAZE_INTERVAL) { kamikazeTimer = 0; spawnKamikazes(); }
         if (grenaderTimer >= GRENADER_INTERVAL && gameMode !== 'easy') { grenaderTimer = 0; spawnGrenaderWave(); }
