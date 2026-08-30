@@ -14,9 +14,11 @@
     @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
     .fade-in { animation: fadeIn 0.3s ease; }
     @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
-    .char-card { transition: all 0.2s ease; cursor: pointer; }
+    .char-card { transition: all 0.2s ease; cursor: pointer; flex-shrink: 0; }
     .char-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
     .char-card.selected { outline: 3px solid #facc15; outline-offset: 2px; }
+    #charCarousel { scroll-behavior: smooth; scroll-snap-type: x mandatory; }
+    #charCarousel .char-card { scroll-snap-align: center; }
   </style>
 </head>
 <body class="min-h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
@@ -31,8 +33,9 @@
       <p class="text-slate-400 text-sm mb-2">Choose your character</p>
       <div id="menuPoints" class="text-xs text-slate-500 mb-4 flex gap-4 justify-center"><span>🪙 <span id="menuTotalPoints" class="text-amber-400 font-bold">0</span> pts</span><span>🏆 <span id="menuBossPoints" class="text-purple-400 font-bold">0</span> boss pts</span></div>
 
-      <!-- Character Select -->
-      <div class="flex justify-center gap-4 mb-8">
+      <!-- Character Select Carousel -->
+      <div class="relative mb-8">
+        <div id="charCarousel" class="flex justify-center gap-4 overflow-hidden px-10">
         <div id="charSoldier" class="char-card bg-slate-800 border border-slate-600 rounded-xl p-4 w-44 relative" onclick="buyChar('soldier')">
           <div id="soldierLock" class="absolute inset-0 bg-slate-900/80 rounded-xl flex flex-col items-center justify-center z-10 cursor-pointer hover:bg-slate-800/80 transition-colors"><span class="text-3xl">🔒</span><span class="text-amber-400 text-xs font-bold mt-1">100 🪙</span><button class="mt-1 px-3 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-900 text-[10px] font-bold rounded pointer-events-none">BUY</button></div>
           <div class="text-3xl mb-2">🎖️</div>
@@ -130,6 +133,14 @@
             <p>🔨 3: <span class="text-violet-400">Justice Slam 45%</span></p>
           </div>
           <div class="text-[9px] text-red-500/60 mt-1">HP: 125 • 30% Shield 🛡</div>
+        </div>
+        </div>
+        <button id="charPrev" class="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold text-lg flex items-center justify-center z-20 transition-colors">‹</button>
+        <button id="charNext" class="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold text-lg flex items-center justify-center z-20 transition-colors">›</button>
+        <div class="flex justify-center gap-1.5 mt-2">
+          <span class="charDot w-2 h-2 rounded-full bg-amber-400 transition-all"></span>
+          <span class="charDot w-2 h-2 rounded-full bg-slate-600 transition-all"></span>
+          <span class="charDot w-2 h-2 rounded-full bg-slate-600 transition-all"></span>
         </div>
       </div>
 
@@ -1111,6 +1122,22 @@
     document.getElementById('mobBtnE').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') mobAbilityE(); });
     document.getElementById('mobBtnPause').addEventListener('touchstart', function(e) { e.preventDefault(); togglePause(); });
     document.getElementById('mobBtnShop').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') openShop(); });
+    // Character carousel
+    (function() {
+      var carousel = document.getElementById('charCarousel');
+      var cardW = 184; // w-44 = 176 + gap
+      var visibleCards = 3;
+      var scrollAmount = cardW * visibleCards;
+      function updateDots() {
+        var scrollLeft = carousel.scrollLeft;
+        var page = Math.round(scrollLeft / scrollAmount);
+        var dots = document.querySelectorAll('.charDot');
+        dots.forEach(function(d, i) { d.className = 'charDot w-2 h-2 rounded-full transition-all ' + (i === page ? 'bg-amber-400' : 'bg-slate-600'); });
+      }
+      document.getElementById('charPrev').addEventListener('click', function() { carousel.scrollLeft -= scrollAmount; setTimeout(updateDots, 300); });
+      document.getElementById('charNext').addEventListener('click', function() { carousel.scrollLeft += scrollAmount; setTimeout(updateDots, 300); });
+      carousel.addEventListener('scroll', updateDots);
+    })();
     // Settings screen open/close
     document.getElementById('settingsBtn').addEventListener('click', function() {
       menuScreen.classList.add('hidden');
