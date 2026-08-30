@@ -1542,7 +1542,7 @@
       // Lv 6+ play as Super
       if (level >= 6) {
         selectedChar = 'super';
-        PLAYER_MAX_HP_CURRENT = SUPER_HP;
+        PLAYER_MAX_HP_CURRENT = level >= 9 ? 350 : SUPER_HP;
         document.getElementById('charIcon').textContent = '⚡';
       } else {
         selectedChar = 'fighter';
@@ -1763,10 +1763,10 @@
       if (lv.spawnTitan && !campaignSpecialTimers['bosses_spawned']) {
         campaignSpecialTimers['bosses_spawned'] = 1;
         // Spawn titan
-        var titanHp = 500;
-        miniBosses.push({ x: CW / 2 - 120, y: GROUND_Y, hp: titanHp, maxHp: titanHp, speed: 1.2, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'titan', animTime: 0, vy: 0 });
-        // Spawn 2 bosses as miniBosses
-        var bh2 = lv.bossHP || 500;
+        var titanHp = 750;
+        miniBosses.push({ x: CW / 2 - 120, y: GROUND_Y, hp: titanHp, maxHp: titanHp, speed: 0.8, attackCD: 60, hitFlash: 0, alive: true, facing: 1, type: 'titan', animTime: 0, vy: 0, state: 'chase' });
+        // Spawn 2 bosses as miniBosses (600HP each)
+        var bh2 = 600;
         miniBosses.push({ x: CW / 2, y: GROUND_Y, hp: bh2, maxHp: bh2, speed: 1.5, attackCD: 30, hitFlash: 0, alive: true, facing: -1, type: 'boss', animTime: 0, vy: 0 });
         miniBosses.push({ x: CW / 2 + 120, y: GROUND_Y, hp: bh2, maxHp: bh2, speed: 1.5, attackCD: 30, hitFlash: 0, alive: true, facing: 1, type: 'boss', animTime: 0, vy: 0 });
         createTextParticle(CW / 2, 60, '⛏💀💀 TITAN + 2 BOSSES!', '#ef4444', 24);
