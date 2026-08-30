@@ -518,7 +518,7 @@
     const GRAVITY = 0.6, GROUND_Y = 380, MOVE_SPEED = 5, JUMP_FORCE = -14;
     let selectedChar = 'fighter';
     let gameMode = 'normal';
-    let playerColor = '#f0fdf4';
+    let playerColor = '#d1d5db';
     window.setPlayerColor = function(c) { playerColor = c; localStorage.setItem('sm_playerColor', c); };
     if (localStorage.getItem('sm_playerColor')) playerColor = localStorage.getItem('sm_playerColor');
 
@@ -2373,7 +2373,7 @@
     function drawStickman() {
       const { x, y, facing, state, animTime, hitFlash } = stick;
       ctx.strokeStyle = isShielded ? '#38bdf8' : isRaging ? '#ef4444' : hitFlash > 0 ? '#fbbf24' : playerColor;
-      ctx.lineWidth = 4.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.lineWidth = 5.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       const isA = state === 'shoot' || state === 'kick' || state === 'dash' || state === 'grenade';
       const ap = isA ? Math.min(animTime / 8, 1) : 0;
       const wc = state === 'walk' ? Math.sin(time * 0.25) : 0;
@@ -2529,10 +2529,10 @@
         ctx.beginPath(); ctx.moveTo(x, armY); ctx.lineTo(x - 22 * facing + (state === 'kick' ? kr * 0.3 : 0), armY + (state === 'kick' ? 22 : 24) + wc * 6); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x, armY); ctx.lineTo(x + 22 * facing + kr * 0.7, armY + (state === 'kick' ? -12 : 24) - wc * 6); ctx.stroke();
       }
-      if (state === 'kick' && ap > 0.3) { ctx.strokeStyle = '#fb7185'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + 10 * facing, bbY + 15); ctx.lineTo(x + 40 * facing + kr * 0.6, bbY + 25); ctx.stroke();      ctx.strokeStyle = playerColor; ctx.lineWidth = 4.5; }
-      if (state === 'shoot' && ap > 0.1 && ap < 0.5) { ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2; const mdx = mouseX - x, mdy = mouseY - armY; const md = Math.sqrt(mdx*mdx+mdy*mdy)||1; ctx.beginPath(); ctx.moveTo(x + (mdx/md)*30, armY + (mdy/md)*30); ctx.lineTo(x + (mdx/md)*50, armY + (mdy/md)*50); ctx.stroke();      ctx.strokeStyle = playerColor; ctx.lineWidth = 4.5; }
-      if (state === 'dash') { ctx.globalAlpha = 0.4; ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(x - i * 20 * facing, headY); ctx.lineTo(x - i * 20 * facing, bbY); ctx.stroke(); } ctx.globalAlpha = 1;      ctx.strokeStyle = playerColor; ctx.lineWidth = 4.5; }
-      if (state === 'grenade' && animTime >= 4 && animTime <= 12) { const sa = 1 - (animTime - 4) / 8; const sr = (animTime - 4) * 18; ctx.strokeStyle = '#f97316'; ctx.lineWidth = 3; ctx.globalAlpha = sa * 0.7; ctx.beginPath(); ctx.arc(x, GROUND_Y + 15, sr, Math.PI, 0); ctx.stroke(); ctx.globalAlpha = 1;      ctx.strokeStyle = playerColor; ctx.lineWidth = 4.5; }
+      if (state === 'kick' && ap > 0.3) { ctx.strokeStyle = '#fb7185'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x + 10 * facing, bbY + 15); ctx.lineTo(x + 40 * facing + kr * 0.6, bbY + 25); ctx.stroke();      ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; }
+      if (state === 'shoot' && ap > 0.1 && ap < 0.5) { ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2; const mdx = mouseX - x, mdy = mouseY - armY; const md = Math.sqrt(mdx*mdx+mdy*mdy)||1; ctx.beginPath(); ctx.moveTo(x + (mdx/md)*30, armY + (mdy/md)*30); ctx.lineTo(x + (mdx/md)*50, armY + (mdy/md)*50); ctx.stroke();      ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; }
+      if (state === 'dash') { ctx.globalAlpha = 0.4; ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(x - i * 20 * facing, headY); ctx.lineTo(x - i * 20 * facing, bbY); ctx.stroke(); } ctx.globalAlpha = 1;      ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; }
+      if (state === 'grenade' && animTime >= 4 && animTime <= 12) { const sa = 1 - (animTime - 4) / 8; const sr = (animTime - 4) * 18; ctx.strokeStyle = '#f97316'; ctx.lineWidth = 3; ctx.globalAlpha = sa * 0.7; ctx.beginPath(); ctx.arc(x, GROUND_Y + 15, sr, Math.PI, 0); ctx.stroke(); ctx.globalAlpha = 1;      ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; }
       if (isParrying && parryWindow > 0) { ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; ctx.globalAlpha = parryWindow / PARRY_WINDOW * 0.6; ctx.beginPath(); ctx.arc(x, stick.y - 30, 30, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
       // Knight: Shield + Sword (drawn AFTER arms so visible)
       if (selectedChar === 'knight') {
