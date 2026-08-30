@@ -1241,14 +1241,14 @@
         bossAtTimer: 3000, bossHP: 500
       },
       {
-        name: 'Level 9: Triple Threat',
+        name: 'Level 9: Titan + Boss Duo',
         cutscene: [
-          { speaker: 'Super', color: '#ef4444', text: 'The boss is defeated... but wait... THREE of them?!', portrait: '⚡' },
-          { speaker: 'Narrator', color: '#94a3b8', text: 'Three bosses appear at once! No more spawns — defeat them all!', portrait: '💀' },
-          { speaker: 'Super', color: '#ef4444', text: 'Bring it on! I can take all three!', portrait: '⚡' },
+          { speaker: 'Super', color: '#ef4444', text: 'The boss is defeated... but something HUGE appears!', portrait: '⚡' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'A TITAN rises from the ground with TWO bosses!', portrait: '⛏' },
+          { speaker: 'Super', color: '#ef4444', text: 'Three of them?! No more spawns — I have to beat them ALL!', portrait: '⚡' },
         ],
         duration: 0, spawnInterval: 0, spawnCount: 0, specialSpawns: [],
-        spawnBossCount: 3, bossHP: 500
+        spawnTitan: true, spawnBossCount: 2, bossHP: 500
       },
       {
         name: 'Level 10: The Sentinel',
@@ -1696,11 +1696,11 @@
         campaignWinLevel();
         return;
       }
-      // Multi-boss levels (Lv 9): win when all bosses dead
-      if (lv.spawnBossCount) {
-        var bossAlive = boss && boss.alive;
-        var extraBossAlive = miniBosses.some(function(m) { return m.alive && m.type === 'boss'; });
-        if (!bossAlive && !extraBossAlive && (campaignTimer > 60)) {
+      // Titan + boss levels (Lv 9): win when titan and all bosses dead
+      if (lv.spawnTitan) {
+        var titanAlive = miniBosses.some(function(m) { return m.alive && m.type === 'titan'; });
+        var bossesAlive = miniBosses.some(function(m) { return m.alive && m.type === 'boss'; });
+        if (!titanAlive && !bossesAlive && (campaignTimer > 60)) {
           campaignWinLevel();
         }
         return;
@@ -1759,18 +1759,17 @@
         createTextParticle(CW / 2, 60, '💀 BOSS APPEARS!', '#ef4444', 28);
         createParticles(CW / 2, GROUND_Y, 30, '#ef4444');
       }
-      // Spawn multiple bosses (Lv 9: 3 bosses)
-      if (lv.spawnBossCount && !campaignSpecialTimers['bosses_spawned']) {
+      // Spawn titan + 2 bosses (Lv 9)
+      if (lv.spawnTitan && !campaignSpecialTimers['bosses_spawned']) {
         campaignSpecialTimers['bosses_spawned'] = 1;
+        // Spawn titan
+        var titanHp = 500;
+        miniBosses.push({ x: CW / 2 - 120, y: GROUND_Y, hp: titanHp, maxHp: titanHp, speed: 1.2, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'titan', animTime: 0, vy: 0 });
+        // Spawn 2 bosses as miniBosses
         var bh2 = lv.bossHP || 500;
-        // First boss is the main boss
-        boss = { x: CW / 2, y: GROUND_Y, hp: bh2, maxHp: bh2, facing: -1, hitFlash: 0, alive: true, attackCD: 0, phase: 0, animTime: 0, summonCD: 0 };
-        // Extra bosses as miniBosses with boss type
-        for (var bi = 1; bi < lv.spawnBossCount; bi++) {
-          var bx = CW / 2 + (bi % 2 === 0 ? -1 : 1) * (150 + bi * 80);
-          miniBosses.push({ x: bx, y: GROUND_Y, hp: bh2, maxHp: bh2, speed: 1.5, attackCD: 30, hitFlash: 0, alive: true, facing: bi % 2 === 0 ? 1 : -1, type: 'boss', animTime: 0, vy: 0 });
-        }
-        createTextParticle(CW / 2, 60, '💀💀💀 ' + lv.spawnBossCount + ' BOSSES!', '#ef4444', 28);
+        miniBosses.push({ x: CW / 2, y: GROUND_Y, hp: bh2, maxHp: bh2, speed: 1.5, attackCD: 30, hitFlash: 0, alive: true, facing: -1, type: 'boss', animTime: 0, vy: 0 });
+        miniBosses.push({ x: CW / 2 + 120, y: GROUND_Y, hp: bh2, maxHp: bh2, speed: 1.5, attackCD: 30, hitFlash: 0, alive: true, facing: 1, type: 'boss', animTime: 0, vy: 0 });
+        createTextParticle(CW / 2, 60, '⛏💀💀 TITAN + 2 BOSSES!', '#ef4444', 24);
         createParticles(CW / 2, GROUND_Y, 40, '#ef4444');
       }
       // Spawn sentinel only (Lv 10)
@@ -3054,10 +3053,10 @@
         return;
       }
       if (mb.type === 'boss') {
-        // Extra boss — purple/red dark figure with crown
-        const bc = mb.hitFlash > 0 ? '#fbbf24' : '#ef4444';
-        const hc = mb.hitFlash > 0 ? '#fde68a' : '#7c3aed';
-        ctx.globalAlpha = 0.15; ctx.fillStyle = '#ef4444';
+        // Extra boss — matches main boss purple theme
+        const bc = mb.hitFlash > 0 ? '#fbbf24' : '#a855f7';
+        const hc = mb.hitFlash > 0 ? '#fde68a' : '#c084fc';
+        ctx.globalAlpha = 0.12 + Math.sin(time * 0.05) * 0.06; ctx.fillStyle = '#a855f7';
         ctx.beginPath(); ctx.arc(dx, GROUND_Y - 30, 35, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
         ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = hc; ctx.lineWidth = 5;
         ctx.beginPath(); ctx.arc(dx, GROUND_Y - 55, 16, 0, Math.PI * 2); ctx.stroke();
@@ -3077,9 +3076,9 @@
         // HP bar
         const bw = 50, pct = mb.hp / mb.maxHp;
         ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - bw / 2 - 1, GROUND_Y - 92, bw + 2, 7);
-        ctx.fillStyle = pct > 0.5 ? '#ef4444' : '#f87171';
+        ctx.fillStyle = pct > 0.5 ? '#a855f7' : '#f87171';
         ctx.fillRect(dx - bw / 2, GROUND_Y - 91, bw * Math.max(0, pct), 5);
-        ctx.fillStyle = '#ef4444'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#a855f7'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
         ctx.fillText('💀 BOSS ' + mb.hp, dx, GROUND_Y - 95); ctx.textAlign = 'start';
         return;
       }
@@ -3239,7 +3238,7 @@
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
           var killName = mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : '⚡ SPEED';
-          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#ef4444' : '#fb923c');
+          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, killName + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
           if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
@@ -3666,7 +3665,7 @@
           if (mb.attackCD <= 0 && dist < DUMMY_ATK_RANGE) {
             var atkDmg = mb.type === 'tank' ? TANK_ATK_DMG : mb.type === 'boss' ? DUMMY_DMG * 2 : SPEED_ATK_DMG;
             var atkCd = mb.type === 'tank' ? TANK_ATK_CD : mb.type === 'boss' ? 50 : SPEED_ATK_CD;
-            damagePlayer(atkDmg, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#ef4444' : '#fb923c');
+            damagePlayer(atkDmg, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : '#fb923c');
             mb.attackCD = atkCd;
           }
         }
