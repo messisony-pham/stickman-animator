@@ -1170,6 +1170,7 @@
     var soldierProgress = parseInt(localStorage.getItem('sm_campaignSoldier') || '1');
     var activeCampaignType = 'fighter';
     var campaignMode = false, campaignLevel = 1, campaignMaxLevels = 10;
+    var victoryMode = false;
     var campaignTimer = 0, campaignSpawnTimer = 0, campaignSpecialTimers = {};
     var cutsceneData = [], cutsceneIndex = 0, cutsceneTyping = false, cutsceneCharIdx = 0, cutsceneTimer = 0;
     var cutsceneCanvas, cutsceneCtx;
@@ -1866,6 +1867,7 @@
         }
         var reward = campaignLevel * 200;
         totalPoints += reward; savePoints();
+        victoryMode = true; gameState = 'gameover'; campaignMode = false;
         scoreEl.textContent = '\u2705 SOLDIER LEVEL COMPLETE!'; killsEl.textContent = '';
         // Show gameover screen with retry/menu buttons
         var gos = document.getElementById('gameoverScreen');
@@ -1915,7 +1917,7 @@
         return;
       }
       // For levels 1-4, show normal victory
-      gameState = 'gameover'; campaignMode = false;
+      victoryMode = true; gameState = 'gameover'; campaignMode = false;
       scoreEl.textContent = '✅ VICTORY!'; killsEl.textContent = '';
       createTextParticle(CW / 2, CH / 2 - 40, '🎉 LEVEL COMPLETE!', '#facc15', 28);
       createTextParticle(CW / 2, CH / 2, '+' + reward + ' pts', '#fbbf24', 18);
@@ -2070,7 +2072,7 @@
       document.getElementById('gameoverScreen').classList.add('hidden');
       document.getElementById('cutsceneScreen').classList.add('hidden');
       document.getElementById('cutsceneUI').style.display = '';
-      campaignMode = false; activeCampaignType = 'fighter';
+      campaignMode = false; activeCampaignType = 'fighter'; victoryMode = false;
       // Show/hide sandbox panel
       var sbPanel = document.getElementById('sandboxPanel');
       var instrPanel = document.getElementById('instructions');
@@ -5999,12 +6001,12 @@
       ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, CW, CH);
       ctx.fillStyle = '#334155'; ctx.fillRect(0, GROUND_Y + 15, CW, CH - GROUND_Y);
       ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, CW, CH);
-      ctx.fillStyle = '#f87171'; ctx.font = 'bold 48px monospace'; ctx.textAlign = 'center';
-      ctx.fillText('GAME OVER', CW / 2, CH / 2 - 30);
+      ctx.fillStyle = victoryMode ? '#facc15' : '#f87171'; ctx.font = 'bold 48px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(victoryMode ? 'YOU WIN!' : 'GAME OVER', CW / 2, CH / 2 - 30);
       ctx.fillStyle = '#94a3b8'; ctx.font = '18px monospace';
       ctx.fillText('Score: ' + score + '  |  Kills: ' + kills + '  |  LV: ' + playerLevel, CW / 2, CH / 2 + 10);
       ctx.fillStyle = '#64748b'; ctx.font = '14px monospace';
-      ctx.fillText('Press RESET or ESC to return', CW / 2, CH / 2 + 40);
+      ctx.fillText(victoryMode ? 'Press Menu to continue' : 'Press RESET or ESC to return', CW / 2, CH / 2 + 40);
       ctx.textAlign = 'start';
     }
 
@@ -6381,6 +6383,7 @@
 
     // ==================== RESET ====================
     function fullReset() {
+      victoryMode = false;
       document.getElementById('cutsceneUI').style.display = '';
       stick.x = 150; stick.y = GROUND_Y; stick.vx = 0; stick.vy = 0;
       stick.facing = 1; stick.state = 'idle'; stick.animTime = 0; stick.hitFlash = 0;
