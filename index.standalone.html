@@ -2067,6 +2067,9 @@
     document.getElementById('codeInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') redeemCode(); });
     document.getElementById('playBtn').addEventListener('click', () => {
       menuScreen.classList.add('hidden'); gameUI.classList.remove('hidden'); gameUI.classList.add('flex');
+      document.getElementById('gameoverScreen').classList.add('hidden');
+      document.getElementById('cutsceneScreen').classList.add('hidden');
+      document.getElementById('cutsceneUI').style.display = '';
       // Show/hide sandbox panel
       var sbPanel = document.getElementById('sandboxPanel');
       var instrPanel = document.getElementById('instructions');
