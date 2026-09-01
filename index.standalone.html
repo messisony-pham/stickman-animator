@@ -1435,21 +1435,24 @@
           var cx = cw / 2, cy = ch / 2 - 20;
           // Dim all, highlight speaker
           if (portraitType === 'fighter') {
-            // Fighter circle — yellow
-            cctx.fillStyle = '#1a1500'; cctx.beginPath(); cctx.arc(cx, cy, 90, 0, Math.PI * 2); cctx.fill();
-            cctx.strokeStyle = '#facc15'; cctx.lineWidth = 3; cctx.stroke();
+            // Fighter circle — player's chosen color
+            var fCol = playerColor || '#d1d5db';
+            cctx.fillStyle = '#0f0f1a'; cctx.beginPath(); cctx.arc(cx, cy, 90, 0, Math.PI * 2); cctx.fill();
+            cctx.strokeStyle = fCol; cctx.lineWidth = 3; cctx.stroke();
             // Fighter stickman inside
-            cctx.strokeStyle = '#facc15'; cctx.lineWidth = 4;
+            cctx.strokeStyle = fCol; cctx.lineWidth = 4;
             cctx.beginPath(); cctx.arc(cx, cy - 40, 18, 0, Math.PI * 2); cctx.stroke();
             cctx.beginPath(); cctx.moveTo(cx, cy - 22); cctx.lineTo(cx, cy + 20); cctx.stroke();
             cctx.beginPath(); cctx.moveTo(cx - 25, cy); cctx.lineTo(cx + 25, cy); cctx.stroke();
             cctx.beginPath(); cctx.moveTo(cx, cy + 20); cctx.lineTo(cx - 18, cy + 50); cctx.stroke();
             cctx.beginPath(); cctx.moveTo(cx, cy + 20); cctx.lineTo(cx + 18, cy + 50); cctx.stroke();
             // Glove
-            cctx.fillStyle = '#facc15'; cctx.beginPath(); cctx.arc(cx + 28, cy - 2, 6, 0, Math.PI * 2); cctx.fill();
+            cctx.fillStyle = fCol; cctx.beginPath(); cctx.arc(cx + 28, cy - 2, 6, 0, Math.PI * 2); cctx.fill();
             // Name above
-            cctx.fillStyle = '#facc15'; cctx.font = 'bold 14px monospace'; cctx.textAlign = 'center';
+            cctx.fillStyle = fCol; cctx.font = 'bold 14px monospace'; cctx.textAlign = 'center';
             cctx.fillText('FIGHTER', cx, cy - 75);
+            // Update cutscene dialogue color too
+            line.color = fCol; line.speakerColor = fCol;
           } else if (portraitType === 'sentinel') {
             // Sentinel circle — cyan
             cctx.fillStyle = '#001a1f'; cctx.beginPath(); cctx.arc(cx, cy, 90, 0, Math.PI * 2); cctx.fill();
