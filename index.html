@@ -1541,6 +1541,7 @@
     }
 
     function startCutscene(levelIdx) {
+      activeCampaignType = 'fighter';
       campaignLevel = levelIdx + 1;
       var level = CAMPAIGN_LEVELS[levelIdx];
       cutsceneData = level.cutscene;
@@ -1865,11 +1866,11 @@
         }
         var reward = campaignLevel * 200;
         totalPoints += reward; savePoints();
-        gameState = 'gameover'; campaignMode = false;
         scoreEl.textContent = '\u2705 SOLDIER LEVEL COMPLETE!'; killsEl.textContent = '';
-        createTextParticle(CW / 2, CH / 2 - 40, '\uD83C\uDFC6 LEVEL COMPLETE!', '#facc15', 28);
-        createTextParticle(CW / 2, CH / 2, '+' + reward + ' pts', '#fbbf24', 18);
-        createParticles(CW / 2, CH / 2 - 20, 40, '#4ade80');
+        // Show gameover screen with retry/menu buttons
+        var gos = document.getElementById('gameoverScreen');
+        document.getElementById('gameoverMsg').textContent = CAMPAIGN_LEVELS[campaignLevel - 1] ? '' : 'Soldier Level ' + campaignLevel + ' Complete! +' + reward + ' pts';
+        gos.classList.remove('hidden');
         return;
       }
       var isFinalLevel = campaignLevel >= campaignMaxLevels;
@@ -6441,7 +6442,7 @@
       gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
       var mc = document.getElementById('mobileControls'); if (mc) mc.classList.add('hidden');
       menuScreen.classList.remove('hidden'); gameState = 'menu'; animFrameId = null;
-      campaignMode = false; updateMenuPoints(); updateCharLockUI();
+      campaignMode = false; activeCampaignType = 'fighter'; updateMenuPoints(); updateCharLockUI();
     });
 
     // ==================== DYNAMIC CONTROLS ====================
