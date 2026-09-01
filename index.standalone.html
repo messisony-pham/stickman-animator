@@ -6175,6 +6175,7 @@
 
     // ==================== RESET ====================
     function fullReset() {
+      document.getElementById('cutsceneUI').style.display = '';
       stick.x = 150; stick.y = GROUND_Y; stick.vx = 0; stick.vy = 0;
       stick.facing = 1; stick.state = 'idle'; stick.animTime = 0; stick.hitFlash = 0;
       particles = []; pickups = []; dummies = []; boss = null; miniBosses = []; allyGunners = []; allies = []; bullets = []; playerBullets = []; grenades = []; spikes = []; superBlastOrbs = []; titanTimer = 0; bossTimer = 0; bossSpawnedOnce = false; sentinel = null; sentinelTimer = 0;
@@ -6224,7 +6225,7 @@
       updateHPBar(); updateEXPBar(); updateShieldBar(); spawnInitialDummies();
     }
 
-    document.getElementById('resetBtn').addEventListener('click', () => { fullReset(); gameState = 'playing'; resumeGameLoop(); });
+    document.getElementById('resetBtn').addEventListener('click', () => { document.getElementById('cutsceneUI').style.display = ''; fullReset(); gameState = 'playing'; resumeGameLoop(); });
     document.getElementById('closeInstructions').addEventListener('click', () => { showInstructions = false; instructionsEl.style.display = 'none'; });
     ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
     ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : performSlam(); });
