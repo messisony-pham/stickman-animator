@@ -1985,7 +1985,7 @@
               miniBosses.push({ x: spx, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
               createTextParticle(CW / 2, 60, '🛡 TANK ENEMY!', '#fb923c', 20);
             } else if (sp.type === 'gunner') {
-              dummies.push(createGunner(Math.max(60, Math.min(CW - 60, spx))));
+              dummies.push(createDummy(Math.max(60, Math.min(CW - 60, spx)), {hp: 50, isGunner: true}));
               createTextParticle(CW / 2, 60, '🔴 GUNNER!', '#ef4444', 18);
             } else if (sp.type === 'big_gunner') {
               miniBosses.push({ x: spx, y: GROUND_Y, hp: BIG_GUNNER_HP, maxHp: BIG_GUNNER_HP, speed: BIG_GUNNER_SPD, attackCD: BIG_GUNNER_CD, hitFlash: 0, alive: true, facing: 1, type: 'big_gunner', animTime: 0, vy: 0, bulletCount: 0 });
