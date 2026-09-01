@@ -1286,12 +1286,15 @@
     ];
     // Post level 10: YOU WIN
     var POST_WIN_CUTSCENE = [
-      { speaker: 'Narrator', color: '#facc15', text: 'The Sentinel collapses... its energy fading away...', portrait: '✨' },
-      { speaker: 'Super', color: '#ef4444', text: 'Its over... I actually did it!', portrait: '⚡' },
-      { speaker: 'Narrator', color: '#a855f7', text: 'The enemies retreat for good. The house is safe. The world is safe.', portrait: '🌟' },
-      { speaker: 'Narrator', color: '#facc15', text: '🏆 CONGRATULATIONS! YOU WIN!', portrait: '🏆' },
-      { speaker: 'Super', color: '#ef4444', text: 'From Fighter to Super... what a journey!', portrait: '⚡' },
-      { speaker: 'Narrator', color: '#a855f7', text: '📖 Fighter Campaign — COMPLETE! Thank you for playing!', portrait: '🎉' },
+      { speaker: 'Fighter', color: '#facc15', text: 'Why are you doing this?', portrait: 'fighter', speakerColor: '#facc15' },
+      { speaker: 'Adsen', color: '#06b6d4', text: 'You are always better than me...', portrait: 'sentinel', speakerColor: '#06b6d4' },
+      { speaker: 'Adsen', color: '#06b6d4', text: 'You beat me in every way...', portrait: 'sentinel', speakerColor: '#06b6d4' },
+      { speaker: 'Adsen', color: '#06b6d4', text: 'And now I see your house is nicer...', portrait: 'sentinel', speakerColor: '#06b6d4' },
+      { speaker: 'Fighter', color: '#facc15', text: 'Wait... you are my classmate!', portrait: 'fighter', speakerColor: '#facc15' },
+      { speaker: 'Adsen', color: '#06b6d4', text: 'Im... truly sorry.', portrait: 'sentinel', speakerColor: '#06b6d4' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'And so Adsen was taken to jail...', portrait: 'narrator', speakerColor: '#94a3b8' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'While our Fighter enjoyed a nice peaceful day.', portrait: 'narrator', speakerColor: '#94a3b8' },
+      { speaker: 'Narrator', color: '#facc15', text: 'THE END... or NOT?', portrait: 'trophy', speakerColor: '#facc15' },
     ];
 
     // Cutscene rendering
@@ -1416,23 +1419,70 @@
           cctx.globalAlpha = 1;
         }
       } else if (cutsceneData === POST_WIN_CUTSCENE) {
-        // Victory celebration — golden glow
-        cctx.fillStyle = '#1a0f00'; cctx.fillRect(0, 0, cw, ch);
-        var grad3 = cctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, 300);
-        grad3.addColorStop(0, 'rgba(250,204,21,0.15)'); grad3.addColorStop(1, 'rgba(26,15,0,0)');
-        cctx.fillStyle = grad3; cctx.fillRect(0, 0, cw, ch);
-        // Celebration particles
-        for (var vip = 0; vip < 20; vip++) {
-          var vipa = (vip / 20) * Math.PI * 2 + t * 0.001;
-          var vipr = 80 + Math.sin(t * 0.002 + vip) * 40;
-          cctx.fillStyle = vip % 3 === 0 ? '#facc15' : vip % 3 === 1 ? '#a855f7' : '#22d3ee';
-          cctx.globalAlpha = 0.4 + Math.sin(t * 0.005 + vip) * 0.3;
-          cctx.beginPath(); cctx.arc(cw / 2 + Math.cos(vipa) * vipr, ch / 2 + Math.sin(vipa) * vipr, 4, 0, Math.PI * 2); cctx.fill();
+        // Post-win emotional cutscene — dark scene with character circles
+        cctx.fillStyle = '#0a0a1a'; cctx.fillRect(0, 0, cw, ch);
+        // Dim stars
+        for (var si3 = 0; si3 < 40; si3++) {
+          var stx = (si3 * 83 + 11) % cw, sty = (si3 * 47 + 9) % (ch - 60);
+          cctx.globalAlpha = 0.2 + Math.sin(t * 0.001 + si3) * 0.15;
+          cctx.fillStyle = '#94a3b8'; cctx.fillRect(stx, sty, 1.5, 1.5);
         }
         cctx.globalAlpha = 1;
-        // Trophy
-        cctx.fillStyle = '#facc15'; cctx.font = '64px serif'; cctx.textAlign = 'center';
-        cctx.fillText('🏆', cw / 2, ch / 2 + 20); cctx.textAlign = 'start';
+        // Draw speaking character circle
+        var line = cutsceneData[cutsceneIndex];
+        if (line) {
+          var portraitType = line.portrait;
+          var cx = cw / 2, cy = ch / 2 - 20;
+          // Dim all, highlight speaker
+          if (portraitType === 'fighter') {
+            // Fighter circle — yellow
+            cctx.fillStyle = '#1a1500'; cctx.beginPath(); cctx.arc(cx, cy, 90, 0, Math.PI * 2); cctx.fill();
+            cctx.strokeStyle = '#facc15'; cctx.lineWidth = 3; cctx.stroke();
+            // Fighter stickman inside
+            cctx.strokeStyle = '#facc15'; cctx.lineWidth = 4;
+            cctx.beginPath(); cctx.arc(cx, cy - 40, 18, 0, Math.PI * 2); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(cx, cy - 22); cctx.lineTo(cx, cy + 20); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(cx - 25, cy); cctx.lineTo(cx + 25, cy); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(cx, cy + 20); cctx.lineTo(cx - 18, cy + 50); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(cx, cy + 20); cctx.lineTo(cx + 18, cy + 50); cctx.stroke();
+            // Glove
+            cctx.fillStyle = '#facc15'; cctx.beginPath(); cctx.arc(cx + 28, cy - 2, 6, 0, Math.PI * 2); cctx.fill();
+            // Name above
+            cctx.fillStyle = '#facc15'; cctx.font = 'bold 14px monospace'; cctx.textAlign = 'center';
+            cctx.fillText('FIGHTER', cx, cy - 75);
+          } else if (portraitType === 'sentinel') {
+            // Sentinel circle — cyan
+            cctx.fillStyle = '#001a1f'; cctx.beginPath(); cctx.arc(cx, cy, 90, 0, Math.PI * 2); cctx.fill();
+            cctx.strokeStyle = '#06b6d4'; cctx.lineWidth = 3; cctx.stroke();
+            // Sentinel stickman inside
+            cctx.strokeStyle = '#06b6d4'; cctx.lineWidth = 4;
+            cctx.beginPath(); cctx.arc(cx, cy - 40, 18, 0, Math.PI * 2); cctx.stroke();
+            // Eye glow
+            cctx.fillStyle = '#ef4444'; cctx.beginPath(); cctx.arc(cx, cy - 42, 4, 0, Math.PI * 2); cctx.fill();
+            cctx.beginPath(); cctx.moveTo(cx, cy - 22); cctx.lineTo(cx, cy + 20); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(cx - 25, cy); cctx.lineTo(cx + 25, cy); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(cx, cy + 20); cctx.lineTo(cx - 18, cy + 50); cctx.stroke();
+            cctx.beginPath(); cctx.moveTo(cx, cy + 20); cctx.lineTo(cx + 18, cy + 50); cctx.stroke();
+            // Name above
+            cctx.fillStyle = '#06b6d4'; cctx.font = 'bold 14px monospace'; cctx.textAlign = 'center';
+            cctx.fillText('ADSEN', cx, cy - 75);
+          } else if (portraitType === 'narrator') {
+            // Narrator — big text circle
+            cctx.fillStyle = '#0f0f1a'; cctx.beginPath(); cctx.arc(cx, cy, 90, 0, Math.PI * 2); cctx.fill();
+            cctx.strokeStyle = '#94a3b8'; cctx.lineWidth = 2; cctx.stroke();
+            cctx.fillStyle = '#94a3b8'; cctx.font = '36px serif'; cctx.textAlign = 'center';
+            cctx.fillText('📖', cx, cy + 10);
+            cctx.fillStyle = '#94a3b8'; cctx.font = 'bold 14px monospace';
+            cctx.fillText('NARRATOR', cx, cy - 75);
+          } else if (portraitType === 'trophy') {
+            // THE END — golden
+            cctx.fillStyle = '#1a1500'; cctx.beginPath(); cctx.arc(cx, cy, 90, 0, Math.PI * 2); cctx.fill();
+            cctx.strokeStyle = '#facc15'; cctx.lineWidth = 3; cctx.stroke();
+            cctx.fillStyle = '#facc15'; cctx.font = '48px serif'; cctx.textAlign = 'center';
+            cctx.fillText('🏆', cx, cy + 15);
+          }
+          cctx.textAlign = 'start';
+        }
       } else {
         // Normal campaign cutscene — stars background
         cctx.fillStyle = '#0f172a'; cctx.fillRect(0, 0, cw, ch);
@@ -1470,6 +1520,7 @@
       if (idx >= cutsceneData.length) {
         // End cutscene
         document.getElementById('cutsceneScreen').classList.add('hidden');
+        document.getElementById('cutsceneUI').style.display = '';
         // After post-level-5 transition: continue to Lv 6
         if (cutsceneData === POST_LEVEL5_CUTSCENE) {
           campaignLevel = 6;
@@ -1491,11 +1542,18 @@
       cutsceneTyping = true;
       cutsceneCharIdx = 0;
       var line = cutsceneData[idx];
-      document.getElementById('cutsceneName').textContent = line.speaker;
-      document.getElementById('cutsceneName').style.color = line.color;
-      document.getElementById('cutscenePortrait').textContent = line.portrait;
-      document.getElementById('cutscenePortrait').style.borderColor = line.color;
-      document.getElementById('cutsceneText').textContent = '';
+      var isPostWin = cutsceneData === POST_WIN_CUTSCENE;
+      var cutUI = document.getElementById('cutsceneUI');
+      if (isPostWin) {
+        cutUI.style.display = 'none';
+      } else {
+        cutUI.style.display = '';
+        document.getElementById('cutsceneName').textContent = line.speaker;
+        document.getElementById('cutsceneName').style.color = line.color;
+        document.getElementById('cutscenePortrait').textContent = line.portrait;
+        document.getElementById('cutscenePortrait').style.borderColor = line.color;
+        document.getElementById('cutsceneText').textContent = '';
+      }
       document.getElementById('cutsceneHint').textContent = 'Click or press Space to continue...';
     }
 
@@ -1519,13 +1577,53 @@
     function cutsceneAnimLoop() {
       if (document.getElementById('cutsceneScreen').classList.contains('hidden')) { cutsceneAnimId = null; return; }
       drawCutsceneBg();
+      // Draw dialogue text on canvas for POST_WIN_CUTSCENE
+      if (cutsceneData === POST_WIN_CUTSCENE && cutsceneCtx) {
+        var cctx = cutsceneCtx, cw = 900, ch = 500;
+        var line = cutsceneData[cutsceneIndex];
+        if (line) {
+          var displayText = cutsceneTyping ? line.text.substring(0, cutsceneCharIdx) : line.text;
+          // Speech bubble below the circle
+          var bx = cw / 2, by = ch - 100;
+          cctx.fillStyle = 'rgba(15,15,30,0.85)';
+          cctx.strokeStyle = line.color || '#94a3b8'; cctx.lineWidth = 2;
+          var tw = cctx.measureText(displayText).width;
+          var bw = Math.max(tw + 30, 120), bh = 36;
+          // Rounded rect
+          cctx.beginPath();
+          cctx.moveTo(bx - bw / 2 + 8, by - bh / 2);
+          cctx.lineTo(bx + bw / 2 - 8, by - bh / 2);
+          cctx.quadraticCurveTo(bx + bw / 2, by - bh / 2, bx + bw / 2, by - bh / 2 + 8);
+          cctx.lineTo(bx + bw / 2, by + bh / 2 - 8);
+          cctx.quadraticCurveTo(bx + bw / 2, by + bh / 2, bx + bw / 2 - 8, by + bh / 2);
+          cctx.lineTo(bx - bw / 2 + 8, by + bh / 2);
+          cctx.quadraticCurveTo(bx - bw / 2, by + bh / 2, bx - bw / 2, by + bh / 2 - 8);
+          cctx.lineTo(bx - bw / 2, by - bh / 2 + 8);
+          cctx.quadraticCurveTo(bx - bw / 2, by - bh / 2, bx - bw / 2 + 8, by - bh / 2);
+          cctx.closePath();
+          cctx.fill(); cctx.stroke();
+          // Pointer triangle
+          cctx.beginPath();
+          cctx.moveTo(bx - 8, by + bh / 2);
+          cctx.lineTo(bx, by + bh / 2 + 10);
+          cctx.lineTo(bx + 8, by + bh / 2);
+          cctx.closePath(); cctx.fill();
+          // Text
+          cctx.fillStyle = line.color || '#fff';
+          cctx.font = 'bold 14px monospace'; cctx.textAlign = 'center';
+          cctx.fillText(displayText, bx, by + 5);
+          cctx.textAlign = 'start';
+        }
+      }
       if (cutsceneTyping) {
         cutsceneTimer++;
         if (cutsceneTimer % 2 === 0) {
           cutsceneCharIdx++;
           var full = cutsceneData[cutsceneIndex].text;
           if (cutsceneCharIdx <= full.length) {
-            document.getElementById('cutsceneText').textContent = full.substring(0, cutsceneCharIdx);
+            if (cutsceneData !== POST_WIN_CUTSCENE) {
+              document.getElementById('cutsceneText').textContent = full.substring(0, cutsceneCharIdx);
+            }
           } else {
             cutsceneTyping = false;
           }
