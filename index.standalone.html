@@ -3707,7 +3707,7 @@
           if (dist > 50) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
           mb.attackCD--;
           if (mb.attackCD <= 0 && dist < DUMMY_ATK_RANGE) {
-            var atkDmg = mb.type === 'tank' ? TANK_ATK_DMG : mb.type === 'boss' ? DUMMY_DMG * 2 : SPEED_ATK_DMG;
+            var atkDmg = mb.type === 'tank' ? TANK_ATK_DMG : mb.type === 'boss' ? BOSS_ATK_DMG * 2 : SPEED_ATK_DMG;
             var atkCd = mb.type === 'tank' ? TANK_ATK_CD : mb.type === 'boss' ? 50 : SPEED_ATK_CD;
             damagePlayer(atkDmg, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : '#fb923c');
             mb.attackCD = atkCd;
