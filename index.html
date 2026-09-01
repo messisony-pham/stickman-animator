@@ -236,15 +236,16 @@
           </div>
           <div id="campLevelSelect" class="grid grid-cols-5 gap-1.5 hidden"></div>
         </div>
-        <div class="bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 opacity-50">
-          <div class="flex items-center gap-3">
+        <div id="campSoldier" class="bg-slate-700 border border-slate-600 rounded-xl p-4 transition-all cursor-pointer hover:border-slate-400">
+          <div class="flex items-center gap-3 mb-2">
             <div class="text-3xl">🎖️</div>
             <div class="flex-1">
-              <div class="font-bold text-slate-500">Soldier's War</div>
-              <div class="text-[10px] text-slate-600">Coming soon...</div>
+              <div class="font-bold text-green-400">Soldier's War</div>
+              <div class="text-[10px] text-slate-400">3 levels • Join the army!</div>
+              <div id="campSoldierProgress" class="text-[10px] text-amber-400 mt-1">Level 1/3</div>
             </div>
-            <div class="text-slate-600">🔒</div>
           </div>
+          <div id="soldierLevelSelect" class="grid grid-cols-5 gap-1.5 hidden"></div>
         </div>
         <div class="bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 opacity-50">
           <div class="flex items-center gap-3">
@@ -716,6 +717,8 @@
     // Mini bosses
     const TANK_HP = 200, TANK_SPD = 0.5, TANK_ATK_DMG = 10, TANK_ATK_CD = 100;
     const SPEED_HP = 40, SPEED_SPD = 2.5, SPEED_ATK_DMG = 5, SPEED_ATK_CD = 30;
+    const BIG_GUNNER_HP = 125, BIG_GUNNER_SPD = 0.6, BIG_GUNNER_DMG = 8, BIG_GUNNER_CD = 60, BIG_GUNNER_BULLETS = 3;
+    const SNIPER_HP = 50, SNIPER_SPD = 0.3, SNIPER_DMG = 45, SNIPER_CD = 300, SNIPER_RANGE = 500;
     const MINI_BOSS_INTERVAL = 1500;
     // Necromancer
     const NECRO_HP = 300, NECRO_SPD = 0.8, NECRO_DMG = 10, NECRO_ATK_CD = 60, NECRO_SUMMON_CD = 420;
@@ -1164,6 +1167,8 @@
 
     // ==================== CAMPAIGN SYSTEM ====================
     var campaignProgress = parseInt(localStorage.getItem('sm_campaignFighter') || '1');
+    var soldierProgress = parseInt(localStorage.getItem('sm_campaignSoldier') || '1');
+    var activeCampaignType = 'fighter';
     var campaignMode = false, campaignLevel = 1, campaignMaxLevels = 10;
     var campaignTimer = 0, campaignSpawnTimer = 0, campaignSpecialTimers = {};
     var cutsceneData = [], cutsceneIndex = 0, cutsceneTyping = false, cutsceneCharIdx = 0, cutsceneTimer = 0;
@@ -1295,6 +1300,37 @@
       { speaker: 'Narrator', color: '#94a3b8', text: 'And so Adsen was taken to jail...', portrait: 'narrator', speakerColor: '#94a3b8' },
       { speaker: 'Narrator', color: '#94a3b8', text: 'While our Fighter enjoyed a nice peaceful day.', portrait: 'narrator', speakerColor: '#94a3b8' },
       { speaker: 'Narrator', color: '#facc15', text: 'THE END... or NOT?', portrait: 'trophy', speakerColor: '#facc15' },
+    ];
+
+    // ===== SOLDIER'S WAR CAMPAIGN =====
+    var SOLDIER_CAMPAIGN_LEVELS = [
+      {
+        name: 'Level 1: Joining the Army',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'In another universe...', portrait: 'narrator' },
+          { speaker: 'Soldier', color: '#4ade80', text: 'I will join the army for... MY COUNTRY!', portrait: 'soldier' },
+        ],
+        duration: 2400, spawnInterval: 420, spawnCount: 1, specialSpawns: [{ type: 'gunner', interval: 420 }]
+      },
+      {
+        name: 'Level 2: Heavier Resistance',
+        cutscene: [
+          { speaker: 'Soldier', color: '#4ade80', text: 'They are sending stronger forces...', portrait: 'soldier' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'Speed and Tank enemies deploy!', portrait: 'narrator' },
+        ],
+        duration: 2400, spawnInterval: 420, spawnCount: 1,
+        specialSpawns: [{ type: 'gunner', interval: 420 }, { type: 'speed', interval: 1200 }, { type: 'tank', interval: 1200 }]
+      },
+      {
+        name: 'Level 3: New Threats',
+        cutscene: [
+          { speaker: 'Soldier', color: '#4ade80', text: 'What... are those?! New weapons!', portrait: 'soldier' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'Big Gunners and Snipers appear!', portrait: 'narrator' },
+        ],
+        duration: 999999, spawnInterval: 420, spawnCount: 1,
+        specialSpawns: [{ type: 'big_gunner', interval: 420 }, { type: 'sniper', interval: 420 }, { type: 'gunner', interval: 600 }],
+        spawnKamikazeAt: 1800, bossDefeatToWin: true
+      }
     ];
 
     // Cutscene rendering
@@ -1538,7 +1574,11 @@
           updateMenuPoints(); updateCharLockUI();
           return;
         }
-        launchCampaignLevel(campaignLevel);
+        if (activeCampaignType === 'soldier') {
+          launchSoldierLevel(campaignLevel);
+        } else {
+          launchCampaignLevel(campaignLevel);
+        }
         return;
       }
       cutsceneIndex = idx;
@@ -1675,6 +1715,27 @@
       }
       resumeGameLoop();
     }
+    function launchSoldierLevel(level) {
+      var lv = SOLDIER_CAMPAIGN_LEVELS[level - 1];
+      if (!lv) return;
+      campaignMode = true;
+      activeCampaignType = 'soldier';
+      campaignLevel = level;
+      selectedChar = 'soldier';
+      PLAYER_MAX_HP_CURRENT = SOLDIER_HP || 110;
+      document.getElementById('charIcon').textContent = '\uD83C\uDF96\uFE0F';
+      gameMode = 'easy';
+      menuScreen.classList.add('hidden');
+      gameUI.classList.remove('hidden');
+      gameUI.classList.add('flex');
+      document.getElementById('charName').textContent = '\uD83D\uDCDC ' + lv.name;
+      ultBarWrap.classList.remove('hidden');
+      updateControlsList();
+      incrementMatch();
+      gameState = 'playing';
+      fullReset();
+      resumeGameLoop();
+    }
 
     // Campaign screen open/close
     document.getElementById('campaignBtn').addEventListener('click', function() {
@@ -1710,6 +1771,47 @@
       var grid = document.getElementById('campLevelSelect');
       if (grid.classList.contains('hidden')) {
         buildCampLevelButtons();
+        grid.classList.remove('hidden');
+      } else {
+        grid.classList.add('hidden');
+      }
+    });
+    // Soldier's War campaign
+    var soldierMaxLevels = SOLDIER_CAMPAIGN_LEVELS.length;
+    function buildSoldierLevelButtons() {
+      var container = document.getElementById('soldierLevelSelect');
+      if (!container) return;
+      container.innerHTML = '';
+      for (var li = 0; li < soldierMaxLevels; li++) {
+        var btn = document.createElement('button');
+        btn.className = li < soldierProgress
+          ? 'py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-bold text-xs transition-all'
+          : 'py-2 rounded-lg bg-slate-600 text-slate-500 font-bold text-xs opacity-50 cursor-not-allowed';
+        btn.textContent = 'Lv ' + (li + 1);
+        if (li < soldierProgress) {
+          btn.addEventListener('click', (function(levelIdx) {
+            return function() { startSoldierCutscene(levelIdx); };
+          })(li));
+        }
+        container.appendChild(btn);
+      }
+    }
+    function startSoldierCutscene(levelIdx) {
+      activeCampaignType = 'soldier';
+      campaignLevel = levelIdx + 1;
+      var level = SOLDIER_CAMPAIGN_LEVELS[levelIdx];
+      cutsceneData = level.cutscene;
+      cutsceneIndex = 0; cutsceneTyping = false; cutsceneCharIdx = 0; cutsceneTimer = 0;
+      cutsceneCanvas = document.getElementById('cutsceneCanvas');
+      cutsceneCtx = cutsceneCanvas.getContext('2d');
+      document.getElementById('campaignScreen').classList.add('hidden');
+      document.getElementById('cutsceneScreen').classList.remove('hidden');
+      showCutsceneLine(0);
+    }
+    document.getElementById('campSoldier').addEventListener('click', function() {
+      var grid = document.getElementById('soldierLevelSelect');
+      if (grid.classList.contains('hidden')) {
+        buildSoldierLevelButtons();
         grid.classList.remove('hidden');
       } else {
         grid.classList.add('hidden');
@@ -1751,6 +1853,25 @@
 
     // Campaign: check win condition (override kill handling)
     function campaignWinLevel() {
+      // Soldier campaign win
+      if (activeCampaignType === 'soldier') {
+        var soldierFinal = campaignLevel >= soldierMaxLevels;
+        if (campaignLevel >= soldierProgress && !soldierFinal) {
+          soldierProgress = campaignLevel + 1;
+          localStorage.setItem('sm_campaignSoldier', soldierProgress);
+        } else if (soldierFinal) {
+          soldierProgress = soldierMaxLevels;
+          localStorage.setItem('sm_campaignSoldier', soldierProgress);
+        }
+        var reward = campaignLevel * 200;
+        totalPoints += reward; savePoints();
+        gameState = 'gameover'; campaignMode = false;
+        scoreEl.textContent = '\u2705 SOLDIER LEVEL COMPLETE!'; killsEl.textContent = '';
+        createTextParticle(CW / 2, CH / 2 - 40, '\uD83C\uDFC6 LEVEL COMPLETE!', '#facc15', 28);
+        createTextParticle(CW / 2, CH / 2, '+' + reward + ' pts', '#fbbf24', 18);
+        createParticles(CW / 2, CH / 2 - 20, 40, '#4ade80');
+        return;
+      }
       var isFinalLevel = campaignLevel >= campaignMaxLevels;
       var isLevel5 = campaignLevel === 5;
       // Advance progress
@@ -1801,7 +1922,7 @@
     }
     function checkCampaignWin() {
       if (!campaignMode) return;
-      var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
+      var lv = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS[campaignLevel - 1] : CAMPAIGN_LEVELS[campaignLevel - 1];
       if (!lv) return;
       // Timer-based win (Lv 1-8)
       if (lv.duration && campaignTimer >= lv.duration) {
@@ -1830,7 +1951,7 @@
     }
     function updateCampaignSpawns() {
       if (!campaignMode) return;
-      var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
+      var lv = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS[campaignLevel - 1] : CAMPAIGN_LEVELS[campaignLevel - 1];
       if (!lv) return;
       campaignTimer++;
       // Normal dummy spawns
@@ -1862,6 +1983,15 @@
             } else if (sp.type === 'tank') {
               miniBosses.push({ x: spx, y: GROUND_Y, hp: TANK_HP, maxHp: TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
               createTextParticle(CW / 2, 60, '🛡 TANK ENEMY!', '#fb923c', 20);
+            } else if (sp.type === 'gunner') {
+              dummies.push(createGunner(Math.max(60, Math.min(CW - 60, spx))));
+              createTextParticle(CW / 2, 60, '🔴 GUNNER!', '#ef4444', 18);
+            } else if (sp.type === 'big_gunner') {
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: BIG_GUNNER_HP, maxHp: BIG_GUNNER_HP, speed: BIG_GUNNER_SPD, attackCD: BIG_GUNNER_CD, hitFlash: 0, alive: true, facing: 1, type: 'big_gunner', animTime: 0, vy: 0, bulletCount: 0 });
+              createTextParticle(CW / 2, 60, '🔴 BIG GUNNER!', '#dc2626', 20);
+            } else if (sp.type === 'sniper') {
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: SNIPER_HP, maxHp: SNIPER_HP, speed: SNIPER_SPD, attackCD: SNIPER_CD, hitFlash: 0, alive: true, facing: 1, type: 'sniper', animTime: 0, vy: 0 });
+              createTextParticle(CW / 2, 60, '🎯 SNIPER!', '#eab308', 20);
             }
           }
         }
@@ -3224,6 +3354,50 @@
         ctx.fillText('⛏ TITAN ' + mb.hp, dx, GROUND_Y - 106); ctx.textAlign = 'start';
         return;
       }
+      if (mb.type === 'big_gunner') {
+        const bgc = mb.hitFlash > 0 ? '#fbbf24' : '#dc2626';
+        const bgh = mb.hitFlash > 0 ? '#fde68a' : '#f87171';
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = bgh; ctx.lineWidth = 5.5;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 58, 16, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = bgc; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 42); ctx.lineTo(dx, GROUND_Y + 5); ctx.stroke();
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 32); ctx.lineTo(dx - 22, GROUND_Y - 20); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 32); ctx.lineTo(dx + 22, GROUND_Y - 20); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y + 5); ctx.lineTo(dx - 16, GROUND_Y + 25); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y + 5); ctx.lineTo(dx + 16, GROUND_Y + 25); ctx.stroke();
+        ctx.fillStyle = '#94a3b8'; ctx.fillRect(dx + 18 * mb.facing - 2, GROUND_Y - 34, 14 * mb.facing, 4);
+        const bw = 50, pct = mb.hp / mb.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - bw / 2 - 1, GROUND_Y - 90, bw + 2, 7);
+        ctx.fillStyle = pct > 0.5 ? '#dc2626' : '#f87171';
+        ctx.fillRect(dx - bw / 2, GROUND_Y - 89, bw * Math.max(0, pct), 5);
+        ctx.fillStyle = '#dc2626'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('BIG GUN ' + mb.hp, dx, GROUND_Y - 93); ctx.textAlign = 'start';
+        return;
+      }
+      if (mb.type === 'sniper') {
+        const snc = mb.hitFlash > 0 ? '#fbbf24' : '#854d0e';
+        const snh = mb.hitFlash > 0 ? '#fde68a' : '#eab308';
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = snh; ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 58, 11, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(dx + 4 * mb.facing, GROUND_Y - 60, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = snc; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 47); ctx.lineTo(dx, GROUND_Y + 5); ctx.stroke();
+        ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 38); ctx.lineTo(dx - 16, GROUND_Y - 28); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 38); ctx.lineTo(dx + 16, GROUND_Y - 28); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y + 5); ctx.lineTo(dx - 12, GROUND_Y + 22); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y + 5); ctx.lineTo(dx + 12, GROUND_Y + 22); ctx.stroke();
+        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(dx + 8 * mb.facing, GROUND_Y - 40); ctx.lineTo(dx + 28 * mb.facing, GROUND_Y - 42); ctx.stroke();
+        const bw2 = 40, pct2 = mb.hp / mb.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - bw2 / 2 - 1, GROUND_Y - 80, bw2 + 2, 7);
+        ctx.fillStyle = pct2 > 0.5 ? '#eab308' : '#f87171';
+        ctx.fillRect(dx - bw2 / 2, GROUND_Y - 79, bw2 * Math.max(0, pct2), 5);
+        ctx.fillStyle = '#eab308'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('SNIPER ' + mb.hp, dx, GROUND_Y - 83); ctx.textAlign = 'start';
+        return;
+      }
       const isT = mb.type === 'tank';
       const bc = mb.hitFlash > 0 ? '#fbbf24' : isT ? '#c084fc' : '#fb923c';
       const hc = mb.hitFlash > 0 ? '#fde68a' : isT ? '#d8b4fe' : '#fdba74';
@@ -3379,8 +3553,8 @@
           const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : 20;
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
-          var killName = mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : '⚡ SPEED';
-          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : '#fb923c');
+          var killName = mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : '⚡ SPEED';
+          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, killName + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
           if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
@@ -3810,6 +3984,32 @@
             damagePlayer(TANK_ATK_DMG * 1.5, '#b45309');
             mb.attackCD = 60;
             createTextParticle(mb.x, GROUND_Y - 80, '⛏ SMASH!', '#b45309', 16);
+          }
+        } else if (mb.type === 'big_gunner') {
+          // Big Gunner: slow, shotgun spread
+          if (dist > 120) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          mb.attackCD--;
+          if (mb.attackCD <= 0 && dist < 300) {
+            mb.attackCD = BIG_GUNNER_CD;
+            for (var bgi = 0; bgi < BIG_GUNNER_BULLETS; bgi++) {
+              var bga = Math.atan2(stick.y - 35 - (GROUND_Y - 40), stick.x - mb.x) + (bgi - 1) * 0.3;
+              var bgs = 5;
+              bullets.push({ x: mb.x, y: GROUND_Y - 40, vx: Math.cos(bga) * bgs, vy: Math.sin(bga) * bgs, dmg: BIG_GUNNER_DMG, life: 120, alive: true });
+            }
+            createTextParticle(mb.x, GROUND_Y - 80, '💥 SHOTGUN!', '#dc2626', 16);
+            createParticles(mb.x, GROUND_Y - 40, 8, '#dc2626');
+          }
+        } else if (mb.type === 'sniper') {
+          // Sniper: keep distance, high damage single shot
+          if (dist < 200) mb.x -= Math.sign(stick.x - mb.x) * mb.speed * 2;
+          else if (dist > 350) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          mb.attackCD--;
+          if (mb.attackCD <= 0 && dist < SNIPER_RANGE) {
+            mb.attackCD = SNIPER_CD;
+            var sa = Math.atan2(stick.y - 35 - (GROUND_Y - 40), stick.x - mb.x);
+            bullets.push({ x: mb.x, y: GROUND_Y - 40, vx: Math.cos(sa) * 8, vy: Math.sin(sa) * 8, dmg: SNIPER_DMG, life: 80, alive: true, isSniper: true });
+            createTextParticle(mb.x, GROUND_Y - 80, '🎯 SNIPED!', '#eab308', 16);
+            createParticles(mb.x, GROUND_Y - 40, 6, '#eab308');
           }
         } else {
           // Tank / Speed / Boss
