@@ -3622,9 +3622,9 @@
           createTextParticle(stick.x, stick.y - 80, '❤️ FULL HEAL + 2🏆!', '#4ade80', 18);
           createParticles(stick.x, stick.y - 30, 20, '#4ade80');
         }
+        checkCampaignWin();
       }
     }
-    function updateSentinel() {
       if (!sentinel || !sentinel.alive || gracePeriod > 0) return;
       const dx = stick.x - sentinel.x, dist = Math.abs(dx);
       sentinel.facing = dx > 0 ? 1 : -1;
