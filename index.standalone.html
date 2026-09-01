@@ -182,7 +182,12 @@
           <button id="bgSetRain" class="bgSettingBtn flex-1 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🌧 Rain</button>
           <button id="bgSetHouse" class="bgSettingBtn flex-1 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🏠 House</button>
           <button id="bgSetVolcano" class="bgSettingBtn flex-1 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🌋 Volcano</button>
+          <button id="bgSetFlamePit" class="bgSettingBtn flex-1 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🔥 Flame Pit</button>
+          <button id="bgSetDarkGrave" class="bgSettingBtn flex-1 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🪦 Dark Grave</button>
+          <button id="bgSetBloodBath" class="bgSettingBtn flex-1 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🩸 Blood Bath</button>
+          <button id="bgSetCheese" class="bgSettingBtn bgSetLocked flex-1 py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🧀 Cheese 🔒</button>
         </div>
+        <p id="bgCheeseHint" class="text-[9px] text-slate-500 mt-1 text-center hidden">🧀 Unlock Cheese background with code: CHEESEHOLY</p>
       </div>
       <div class="mb-4">
         <p class="text-slate-300 text-sm font-bold mb-2">Player Color</p>
@@ -1034,7 +1039,7 @@
         btn.classList.remove('ring-2', 'ring-amber-400');
         btn.classList.add('border-slate-600');
       });
-      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', volcano: 'bgSetVolcano' };
+      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', cheese: 'bgSetCheese' };
       var el = document.getElementById(map[b]);
       if (el) { el.classList.add('ring-2', 'ring-amber-400'); el.classList.remove('border-slate-600'); }
     }
@@ -1164,6 +1169,10 @@
     document.getElementById('bgSetRain').addEventListener('click', function() { selectBg('rain'); });
     document.getElementById('bgSetHouse').addEventListener('click', function() { selectBg('house'); });
     document.getElementById('bgSetVolcano').addEventListener('click', function() { selectBg('volcano'); });
+    document.getElementById('bgSetFlamePit').addEventListener('click', function() { selectBg('flame_pit'); });
+    document.getElementById('bgSetDarkGrave').addEventListener('click', function() { selectBg('dark_grave'); });
+    document.getElementById('bgSetBloodBath').addEventListener('click', function() { selectBg('blood_bath'); });
+    document.getElementById('bgSetCheese').addEventListener('click', function() { if (bgSetLockedLocked('cheese')) return; selectBg('cheese'); });
 
     // ==================== CAMPAIGN SYSTEM ====================
     var campaignProgress = parseInt(localStorage.getItem('sm_campaignFighter') || '1');
@@ -2031,6 +2040,20 @@
 
     // Code redemption
     var usedCodes = JSON.parse(localStorage.getItem('sm_usedCodes') || '[]');
+    // Unlocked backgrounds via codes
+    var unlockedBgs = JSON.parse(localStorage.getItem('sm_unlockedBgs') || '[]');
+    function bgSetLockedLocked(bg) { return unlockedBgs.indexOf(bg) === -1; }
+    function updateBgLockUI() {
+      var cheeseBtn = document.getElementById('bgSetCheese');
+      var hint = document.getElementById('bgCheeseHint');
+      if (unlockedBgs.indexOf('cheese') !== -1) {
+        if (cheeseBtn) { cheeseBtn.classList.remove('bgSetLocked'); cheeseBtn.innerHTML = '🧀 Cheese'; cheeseBtn.classList.add('border-amber-400'); }
+        if (hint) hint.classList.add('hidden');
+      } else {
+        if (hint) hint.classList.remove('hidden');
+      }
+    }
+    updateBgLockUI();
     var CODE_REWARDS = {
       'TRUEFIGHTER': { points: 50, bossPts: 0 },
       'CHEESE': { points: 75, bossPts: 0 },
@@ -2038,6 +2061,7 @@
       '212S3RET': { points: 200, bossPts: 0 },
       'L0R3': { points: 0, bossPts: 0, ally: 'healer' },
       'S0NYPR09929': { points: 20000, bossPts: 50 },
+      'CHEESEHOLY': { points: 0, bossPts: 0, bg: 'cheese' },
     };
     function redeemCode() {
       var input = document.getElementById('codeInput');
@@ -2050,12 +2074,19 @@
       if (!reward) { status.textContent = '❌ Invalid code!'; status.style.color = '#f87171'; return; }
       usedCodes.push(code); localStorage.setItem('sm_usedCodes', JSON.stringify(usedCodes));
       totalPoints += reward.points; bossPoints += reward.bossPts; savePoints();
-      // Special ally reward (L0R3 gives free healer)
+      // Special rewards
       var msg = '';
       if (reward.ally === 'healer') {
         shopUpgrades.summonHealer = SHOP_MAX_LEVELS.summonHealer;
         saveUpgrades();
         msg = '✅ Free Healer Ally unlocked!';
+      } else if (reward.bg) {
+        if (unlockedBgs.indexOf(reward.bg) === -1) {
+          unlockedBgs.push(reward.bg);
+          localStorage.setItem('sm_unlockedBgs', JSON.stringify(unlockedBgs));
+          updateBgLockUI();
+        }
+        msg = '✅ 🧀 Cheese Background unlocked!';
       } else {
         if (reward.points > 0) msg += '+' + reward.points + ' pts';
         if (reward.bossPts > 0) msg += (msg ? ' ' : '') + '+' + reward.bossPts + ' 🏆';
@@ -5680,6 +5711,194 @@
         // Ground lava pools
         ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.3;
         ctx.fillRect(0, GROUND_Y + 12, CW, 5);
+        ctx.globalAlpha = 1;
+      }
+      // === FLAME PIT ===
+      if (activeBg === 'flame_pit') {
+        // Sun
+        var fpSunPulse = Math.sin(time * 0.08) * 5;
+        ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.8;
+        ctx.beginPath(); ctx.arc(780, 55, 25 + fpSunPulse, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(780, 55, 38 + fpSunPulse, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Clouds
+        ctx.fillStyle = 'rgba(148,163,184,0.35)';
+        ctx.beginPath(); ctx.arc(150, 60, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(172, 55, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(135, 58, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(500, 45, 20, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(520, 40, 16, 0, Math.PI * 2); ctx.fill();
+        // Fire pit (hole in ground)
+        ctx.fillStyle = '#1c1917'; ctx.beginPath(); ctx.ellipse(CW / 2, GROUND_Y + 15, 120, 20, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#292524'; ctx.beginPath(); ctx.ellipse(CW / 2, GROUND_Y + 15, 100, 16, 0, 0, Math.PI * 2); ctx.fill();
+        // Fire in pit
+        for (var fpi = 0; fpi < 8; fpi++) {
+          var fpx = CW / 2 - 60 + fpi * 17;
+          var fph = 18 + Math.sin(time * 0.15 + fpi * 1.3) * 12;
+          ctx.globalAlpha = 0.6 + Math.sin(time * 0.2 + fpi) * 0.2;
+          ctx.fillStyle = fpi % 3 === 0 ? '#fbbf24' : fpi % 3 === 1 ? '#f97316' : '#ef4444';
+          ctx.beginPath(); ctx.moveTo(fpx, GROUND_Y + 12); ctx.lineTo(fpx - 5, GROUND_Y + 12 - fph); ctx.lineTo(fpx + 5, GROUND_Y + 12 - fph); ctx.closePath(); ctx.fill();
+        }
+        // Ember sparks
+        ctx.globalAlpha = 0.5;
+        for (var fpei = 0; fpei < 10; fpei++) {
+          var fpex = (time * 1.8 + fpei * 85) % CW;
+          var fpey = GROUND_Y - ((time * 2.5 + fpei * 35) % 130);
+          ctx.fillStyle = fpei % 2 === 0 ? '#fbbf24' : '#f97316';
+          ctx.fillRect(fpex, fpey, 2, 2);
+        }
+        ctx.globalAlpha = 1;
+        // Ground glow from fire
+        ctx.fillStyle = '#f97316'; ctx.globalAlpha = 0.15;
+        ctx.fillRect(0, GROUND_Y + 10, CW, 8);
+        ctx.globalAlpha = 1;
+      }
+      // === DARK GRAVE ===
+      if (activeBg === 'dark_grave') {
+        // Dark sky
+        ctx.fillStyle = 'rgba(15,10,30,0.4)'; ctx.fillRect(0, 0, CW, GROUND_Y + 15);
+        // Moon
+        ctx.fillStyle = '#e2e8f0'; ctx.globalAlpha = 0.7;
+        ctx.beginPath(); ctx.arc(750, 50, 22, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.2; ctx.beginPath(); ctx.arc(750, 50, 32, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Tall graves (right side)
+        for (var dgi = 0; dgi < 4; dgi++) {
+          var dgx = 620 + dgi * 50;
+          ctx.fillStyle = '#57534e';
+          ctx.fillRect(dgx, GROUND_Y - 40 - dgi * 5, 18, 40 + dgi * 5);
+          ctx.beginPath(); ctx.arc(dgx + 9, GROUND_Y - 40 - dgi * 5, 11, Math.PI, 0); ctx.fill();
+          // Cross on grave
+          ctx.strokeStyle = '#44403c'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(dgx + 9, GROUND_Y - 45 - dgi * 5); ctx.lineTo(dgx + 9, GROUND_Y - 60 - dgi * 5); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(dgx + 3, GROUND_Y - 53 - dgi * 5); ctx.lineTo(dgx + 15, GROUND_Y - 53 - dgi * 5); ctx.stroke();
+        }
+        // Grave (left side)
+        ctx.fillStyle = '#78716c';
+        ctx.fillRect(120, GROUND_Y - 50, 50, 50);
+        ctx.beginPath(); ctx.arc(145, GROUND_Y - 50, 28, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#57534e';
+        ctx.fillRect(130, GROUND_Y - 45, 30, 45);
+        ctx.strokeStyle = '#44403c'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(145, GROUND_Y - 50); ctx.lineTo(145, GROUND_Y - 70); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(138, GROUND_Y - 60); ctx.lineTo(152, GROUND_Y - 60); ctx.stroke();
+        // Fence
+        ctx.strokeStyle = '#57534e'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(40, GROUND_Y - 40); ctx.lineTo(350, GROUND_Y - 40); ctx.stroke();
+        for (var dfi = 0; dfi < 10; dfi++) {
+          var dfx = 50 + dfi * 32;
+          ctx.beginPath(); ctx.moveTo(dfx, GROUND_Y + 10); ctx.lineTo(dfx, GROUND_Y - 50); ctx.stroke();
+          ctx.beginPath(); ctx.arc(dfx, GROUND_Y - 50, 3, 0, Math.PI * 2); ctx.fill();
+        }
+        // Scary shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.moveTo(300, GROUND_Y - 100); ctx.lineTo(340, GROUND_Y + 10); ctx.lineTo(260, GROUND_Y + 10); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        var shadowWobble = Math.sin(time * 0.05) * 3;
+        ctx.beginPath(); ctx.moveTo(310 + shadowWobble, GROUND_Y - 80); ctx.lineTo(350 + shadowWobble, GROUND_Y + 10); ctx.lineTo(270 + shadowWobble, GROUND_Y + 10); ctx.closePath(); ctx.fill();
+        // Fog
+        ctx.globalAlpha = 0.08; ctx.fillStyle = '#94a3b8';
+        for (var fogi = 0; fogi < 6; fogi++) {
+          var fogx = (time * 0.3 + fogi * 150) % (CW + 200) - 100;
+          ctx.beginPath(); ctx.ellipse(fogx, GROUND_Y - 5, 80, 12, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      // === BLOOD BATH ===
+      if (activeBg === 'blood_bath') {
+        // Red sun
+        var rbSunPulse = Math.sin(time * 0.06) * 4;
+        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.7;
+        ctx.beginPath(); ctx.arc(780, 50, 28 + rbSunPulse, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.arc(780, 50, 40 + rbSunPulse, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Red sky tint
+        ctx.fillStyle = 'rgba(220,38,38,0.08)'; ctx.fillRect(0, 0, CW, GROUND_Y + 15);
+        // Broken bath
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath(); ctx.ellipse(CW / 2, GROUND_Y - 10, 80, 20, 0, 0, Math.PI); ctx.fill();
+        ctx.fillRect(CW / 2 - 80, GROUND_Y - 10, 20, 10);
+        ctx.fillRect(CW / 2 + 60, GROUND_Y - 10, 20, 10);
+        // Broken edge
+        ctx.fillStyle = '#78716c';
+        ctx.beginPath(); ctx.moveTo(CW / 2 + 55, GROUND_Y - 15); ctx.lineTo(CW / 2 + 75, GROUND_Y - 25); ctx.lineTo(CW / 2 + 78, GROUND_Y - 10); ctx.closePath(); ctx.fill();
+        // Red liquid leaking
+        ctx.fillStyle = '#dc2626'; ctx.globalAlpha = 0.7;
+        ctx.beginPath(); ctx.ellipse(CW / 2, GROUND_Y - 5, 70, 12, 0, 0, Math.PI * 2); ctx.fill();
+        // Liquid drips
+        ctx.fillStyle = '#b91c1c'; ctx.globalAlpha = 0.5;
+        for (var bdi = 0; bdi < 4; bdi++) {
+          var bdx = CW / 2 + 65 + bdi * 5;
+          var bdy = GROUND_Y - 5 + Math.sin(time * 0.1 + bdi) * 4;
+          ctx.fillRect(bdx, bdy, 3, 10 + bdi * 3);
+        }
+        ctx.globalAlpha = 1;
+        // Rocks
+        ctx.fillStyle = '#57534e';
+        ctx.beginPath(); ctx.moveTo(100, GROUND_Y + 10); ctx.lineTo(120, GROUND_Y - 18); ctx.lineTo(145, GROUND_Y + 10); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#78716c';
+        ctx.beginPath(); ctx.moveTo(108, GROUND_Y + 10); ctx.lineTo(125, GROUND_Y - 10); ctx.lineTo(140, GROUND_Y + 10); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#57534e';
+        ctx.beginPath(); ctx.moveTo(620, GROUND_Y + 10); ctx.lineTo(650, GROUND_Y - 22); ctx.lineTo(680, GROUND_Y + 10); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#78716c';
+        ctx.beginPath(); ctx.moveTo(630, GROUND_Y + 10); ctx.lineTo(655, GROUND_Y - 14); ctx.lineTo(675, GROUND_Y + 10); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#44403c';
+        ctx.beginPath(); ctx.moveTo(200, GROUND_Y + 10); ctx.lineTo(215, GROUND_Y - 12); ctx.lineTo(235, GROUND_Y + 10); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(520, GROUND_Y + 10); ctx.lineTo(530, GROUND_Y - 8); ctx.lineTo(545, GROUND_Y + 10); ctx.closePath(); ctx.fill();
+        // Blood drip on ground
+        ctx.fillStyle = '#dc2626'; ctx.globalAlpha = 0.25;
+        ctx.fillRect(0, GROUND_Y + 12, CW, 6);
+        ctx.globalAlpha = 1;
+      }
+      // === CHEESE ===
+      if (activeBg === 'cheese') {
+        // Cheese yellow sky tint
+        ctx.fillStyle = 'rgba(250,204,21,0.06)'; ctx.fillRect(0, 0, CW, GROUND_Y + 15);
+        // Sun (cheese colored)
+        var chsP = Math.sin(time * 0.07) * 4;
+        ctx.fillStyle = '#facc15'; ctx.globalAlpha = 0.8;
+        ctx.beginPath(); ctx.arc(780, 55, 28 + chsP, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(780, 55, 40 + chsP, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // 3 gigantic cheese wheels
+        // Cheese 1 (left)
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath(); ctx.ellipse(160, GROUND_Y - 40, 65, 40, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath(); ctx.ellipse(160, GROUND_Y - 40, 65, 40, 0, 0, Math.PI); ctx.fill();
+        // Cheese holes
+        ctx.fillStyle = '#ca8a04';
+        ctx.beginPath(); ctx.arc(140, GROUND_Y - 45, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(175, GROUND_Y - 38, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(155, GROUND_Y - 30, 5, 0, Math.PI * 2); ctx.fill();
+        // Cheese 2 (center, bigger)
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath(); ctx.ellipse(450, GROUND_Y - 30, 80, 45, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath(); ctx.ellipse(450, GROUND_Y - 30, 80, 45, 0, 0, Math.PI); ctx.fill();
+        ctx.fillStyle = '#ca8a04';
+        ctx.beginPath(); ctx.arc(430, GROUND_Y - 35, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(465, GROUND_Y - 28, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(445, GROUND_Y - 22, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(480, GROUND_Y - 40, 4, 0, Math.PI * 2); ctx.fill();
+        // Cheese 3 (right)
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath(); ctx.ellipse(730, GROUND_Y - 35, 55, 35, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath(); ctx.ellipse(730, GROUND_Y - 35, 55, 35, 0, 0, Math.PI); ctx.fill();
+        ctx.fillStyle = '#ca8a04';
+        ctx.beginPath(); ctx.arc(720, GROUND_Y - 40, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(745, GROUND_Y - 30, 4, 0, Math.PI * 2); ctx.fill();
+        // Raining cheese (small cheese pieces falling)
+        ctx.fillStyle = '#fde047'; ctx.globalAlpha = 0.7;
+        for (var chi = 0; chi < 12; chi++) {
+          var chx = (chi * 77 + time * 2) % (CW + 40) - 20;
+          var chy = (chi * 43 + time * 6) % (GROUND_Y + 30) - 20;
+          var chs = 4 + (chi % 3) * 2;
+          ctx.save(); ctx.translate(chx, chy); ctx.rotate(time * 0.03 + chi);
+          ctx.fillRect(-chs, -chs / 2, chs * 2, chs);
+          ctx.restore();
+        }
         ctx.globalAlpha = 1;
       }
       if (activeBg === 'boss') {
