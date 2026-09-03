@@ -6061,7 +6061,7 @@
         });
         // Hyper laser eyes — continuous beam like bot's laser core
         if (hyperLaserActive && hyperLaserDir) {
-          var eyeX = stick.x + 4 * stick.facing, eyeY = stick.y - 30;
+          var eyeX = stick.x + 5 * stick.facing, eyeY = stick.y - 55;
           var bx = hyperLaserDir.x, by = hyperLaserDir.y;
           // Beam goes from eyes to edge of screen (800px)
           var beamEndX = eyeX + bx * 800, beamEndY = eyeY + by * 800;
@@ -6683,14 +6683,14 @@
         hyperLaserTimer--;
         hyperLaserTickTimer++;
         // Store beam direction
-        var ldx = mouseX - stick.x, ldy = mouseY - (stick.y - 30);
+        var ldx = mouseX - stick.x, ldy = mouseY - (stick.y - 55);
         var ldist = Math.sqrt(ldx * ldx + ldy * ldy) || 1;
         hyperLaserDir = { x: ldx / ldist, y: ldy / ldist };
         if (hyperLaserTickTimer >= HYPER_LASER_INTERVAL) {
           hyperLaserTickTimer = 0;
           // Damage enemies along the beam line
           var beamNX = hyperLaserDir.x, beamNY = hyperLaserDir.y;
-          var eyeX = stick.x, eyeY = stick.y - 30;
+          var eyeX = stick.x + 5 * stick.facing, eyeY = stick.y - 55;
           dummies.forEach(function(d) { if (d.alive) { var ex = d.x - eyeX, ey = (GROUND_Y - 30) - eyeY; var proj = ex * beamNX + ey * beamNY; if (proj > 0 && proj < 800) { var px = eyeX + beamNX * proj, py = eyeY + beamNY * proj; if (Math.abs(d.x - px) < 25 && Math.abs((GROUND_Y - 30) - py) < 35) dealDamageToDummy(d, HYPER_LASER_DMG, 'laser'); } } });
           miniBosses.forEach(function(mb) { if (mb.alive) { var ex = mb.x - eyeX, ey = (GROUND_Y - 30) - eyeY; var proj = ex * beamNX + ey * beamNY; if (proj > 0 && proj < 800) { var px = eyeX + beamNX * proj, py = eyeY + beamNY * proj; if (Math.abs(mb.x - px) < 30 && Math.abs((GROUND_Y - 30) - py) < 50) dealDamageToMiniBoss(mb, HYPER_LASER_DMG, 'laser'); } } });
           if (boss && boss.alive) { var ex = boss.x - eyeX, ey = (GROUND_Y - 30) - eyeY; var proj = ex * beamNX + ey * beamNY; if (proj > 0 && proj < 800) { var px = eyeX + beamNX * proj, py = eyeY + beamNY * proj; if (Math.abs(boss.x - px) < 30 && Math.abs((GROUND_Y - 30) - py) < 50) dealDamageToBoss(HYPER_LASER_DMG, 'laser'); } }
