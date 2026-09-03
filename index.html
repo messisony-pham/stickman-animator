@@ -462,6 +462,7 @@
             <button onclick="window.sandboxSpawn('boss')" class="py-1 rounded bg-purple-700 hover:bg-purple-600 text-purple-200 text-[9px] border border-purple-500">💀 Boss</button>
             <button onclick="window.sandboxSpawn('titan')" class="py-1 rounded bg-amber-700 hover:bg-amber-600 text-amber-200 text-[9px] border border-amber-500">⛏ Titan</button>
             <button onclick="window.sandboxSpawn('sentinel')" class="py-1 rounded bg-cyan-700 hover:bg-cyan-600 text-cyan-200 text-[9px] border border-cyan-500">👁 Sentinel</button>
+            <button onclick="window.sandboxSpawn('milkson')" class="py-1 rounded bg-red-700 hover:bg-red-600 text-red-200 text-[9px] border border-red-500">🥛 Milkson</button>
           </div>
           <div class="text-slate-400 text-[8px] mb-1 font-bold uppercase">Allies (FREE)</div>
           <div class="grid grid-cols-3 gap-1 mb-1">
@@ -682,6 +683,8 @@
     const CHEESER_HP = 5000, CHEESER_HP_LV10 = 12000;
     const CHEESER_THROW_DMG = 200, CHEESER_THROW_CD = 20, CHEESER_THROW_SPEED = 12;
     const CHEESER_HEAL_AMT = 1; // 100% heal
+    // Milkson (sandbox-only enemy)
+    const MILKSON_HP = 10000, MILKSON_DMG = 65, MILKSON_SPD = 1.2, MILKSON_ATK_CD = 40;
 
     // Normal dummy
     const DUMMY_BASE_HP = 75, DUMMY_SPD = 0.4, DUMMY_CHASE_RANGE = 200;
@@ -871,7 +874,7 @@
     let hyperQuakeSpikes = [], hyperAuraTimer = 0;
     let hyperLaserDir = null;  // beam direction for laser eyes
     // Cheeser state
-    let cheeserThrowCD = 0, cheeserHealCD = 0, cheeserCheeseBullets = [], cheeserMultishot = 1;
+    let cheeserThrowCD = 0, cheeserHealCD = 0, cheeserCheeseBullets = [], cheeserMultishot = parseInt(localStorage.getItem('sm_cheeserMultishot')) || 1;
     // EXP bar state
     let expKills = 0, expNextLevel = 5;
     let isCharging = false, chargeDist = 0, chargeDmgDealt = false;
@@ -2379,6 +2382,7 @@
         case 'boss': boss = { x: x, y: GROUND_Y, hp: BOSS_HP, maxHp: BOSS_HP, facing: stick.x < x ? -1 : 1, state: 'chase', animTime: 0, attackCD: BOSS_ATK_CD, hitFlash: 0, alive: true, vy: 0, dashDist: 0, dashVx: 0, dashHit: false }; createParticles(x, GROUND_Y, 15, '#a855f7'); createTextParticle(x, GROUND_Y - 60, '💀 BOSS!', '#a855f7', 16); break;
         case 'titan': boss = { x: x, y: GROUND_Y, hp: 500, maxHp: 500, facing: stick.x < x ? -1 : 1, state: 'chase', animTime: 0, attackCD: TITAN_ATK_CD, hitFlash: 0, alive: true, vy: 0, type: 'titan', slamHit: false, stompCD: 0 }; createParticles(x, GROUND_Y, 15, '#d97706'); createTextParticle(x, GROUND_Y - 60, '⛏ TITAN!', '#d97706', 16); break;
         case 'sentinel': sentinel = { x: x, y: GROUND_Y, hp: SENTINEL_HP, maxHp: SENTINEL_HP, facing: stick.x < x ? -1 : 1, state: 'chase', animTime: 0, attackCD: 60, hitFlash: 0, alive: true, vy: 0, dodgeCount: 3, dashDist: 0, dashVx: 0, dashHit: false, teleportCD: 180 }; createParticles(x, GROUND_Y, 15, '#06b6d4'); createTextParticle(x, GROUND_Y - 60, '👁 SENTINEL!', '#06b6d4', 16); canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 300); break;
+        case 'milkson': miniBosses.push({ x: x, y: GROUND_Y, hp: MILKSON_HP, maxHp: MILKSON_HP, speed: MILKSON_SPD, attackCD: MILKSON_ATK_CD, hitFlash: 0, facing: stick.x < x ? -1 : 1, alive: true, type: 'milkson', animTime: 0, spawnCD: 0 }); createParticles(x, GROUND_Y, 20, '#fca5a5'); createTextParticle(x, GROUND_Y - 80, '🥛 MILKSON 10K HP!', '#ef4444', 18); canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 400); break;
       }
     };
     window.sandboxSpawnAlly = function(type) {
@@ -3631,6 +3635,48 @@
         ctx.fillText('SNIPER ' + mb.hp, dx, GROUND_Y - 83); ctx.textAlign = 'start';
         return;
       }
+      if (mb.type === 'milkson') {
+        // Milkson: big milk carton body, angry face, 10K HP
+        const bc = mb.hitFlash > 0 ? '#fff' : '#ef4444';
+        const hc = mb.hitFlash > 0 ? '#fca5a5' : '#fca5a5';
+        // Glow
+        ctx.globalAlpha = 0.15 + Math.sin(time * 0.06) * 0.05; ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 30, 40, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        // Milk carton body (big rectangle)
+        ctx.fillStyle = '#fca5a5';
+        ctx.fillRect(dx - 14, GROUND_Y - 70, 28, 45);
+        // Carton top (triangle fold)
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.moveTo(dx - 14, GROUND_Y - 70); ctx.lineTo(dx, GROUND_Y - 82); ctx.lineTo(dx + 14, GROUND_Y - 70); ctx.closePath(); ctx.fill();
+        // Label "MILK" on body
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('MILK', dx, GROUND_Y - 48);
+        // Angry eyes
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath(); ctx.arc(dx - 5, GROUND_Y - 58, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 5, GROUND_Y - 58, 3, 0, Math.PI * 2); ctx.fill();
+        // Angry eyebrows
+        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(dx - 8, GROUND_Y - 64); ctx.lineTo(dx - 2, GROUND_Y - 62); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx + 8, GROUND_Y - 64); ctx.lineTo(dx + 2, GROUND_Y - 62); ctx.stroke();
+        // Arms
+        ctx.strokeStyle = bc; ctx.lineWidth = 4;
+        var armW = Math.sin(time * 0.15) * 5;
+        ctx.beginPath(); ctx.moveTo(dx - 14, GROUND_Y - 50); ctx.lineTo(dx - 28, GROUND_Y - 38 + armW); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx + 14, GROUND_Y - 50); ctx.lineTo(dx + 28, GROUND_Y - 38 - armW); ctx.stroke();
+        // Legs
+        ctx.beginPath(); ctx.moveTo(dx - 6, GROUND_Y - 25); ctx.lineTo(dx - 10, GROUND_Y + 18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx + 6, GROUND_Y - 25); ctx.lineTo(dx + 10, GROUND_Y + 18); ctx.stroke();
+        ctx.textAlign = 'start';
+        // HP bar (wide)
+        const bw = 60, pct = mb.hp / mb.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - bw / 2 - 1, GROUND_Y - 95, bw + 2, 7);
+        ctx.fillStyle = pct > 0.5 ? '#ef4444' : '#f87171';
+        ctx.fillRect(dx - bw / 2, GROUND_Y - 94, bw * Math.max(0, pct), 5);
+        ctx.fillStyle = '#ef4444'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('🥛 MILKSON ' + mb.hp, dx, GROUND_Y - 98); ctx.textAlign = 'start';
+        return;
+      }
       const isT = mb.type === 'tank';
       const bc = mb.hitFlash > 0 ? '#fbbf24' : isT ? '#c084fc' : '#fb923c';
       const hc = mb.hitFlash > 0 ? '#fde68a' : isT ? '#d8b4fe' : '#fdba74';
@@ -3803,8 +3849,8 @@
           const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : 20;
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
-          var killName = mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : '⚡ SPEED';
-          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : '#fb923c');
+          var killName = mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
+          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : mb.type === 'milkson' ? '#ef4444' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, killName + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
           if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
@@ -4260,6 +4306,23 @@
             bullets.push({ x: mb.x, y: GROUND_Y - 40, vx: Math.cos(sa) * 8, vy: Math.sin(sa) * 8, dmg: SNIPER_DMG, life: 80, alive: true, isSniper: true });
             createTextParticle(mb.x, GROUND_Y - 80, '🎯 SNIPED!', '#eab308', 16);
             createParticles(mb.x, GROUND_Y - 40, 6, '#eab308');
+          }
+        } else if (mb.type === 'milkson') {
+          // Milkson: slow, tanky, spawns dummies while chasing
+          if (dist > 60) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          mb.attackCD--;
+          if (mb.attackCD <= 0 && dist < DUMMY_ATK_RANGE) {
+            damagePlayer(MILKSON_DMG, '#ef4444');
+            mb.attackCD = MILKSON_ATK_CD;
+            createTextParticle(mb.x, GROUND_Y - 80, '🥛 MILK ' + MILKSON_DMG + '!', '#ef4444', 14);
+          }
+          // Spawn dummy helper every 8s
+          if (!mb.spawnCD) mb.spawnCD = 0;
+          mb.spawnCD++;
+          if (mb.spawnCD >= 480) {
+            mb.spawnCD = 0;
+            dummies.push(createDummy(mb.x + (Math.random() - 0.5) * 40, {}));
+            createTextParticle(mb.x, GROUND_Y - 60, '🥛 SPAWN!', '#fca5a5', 12);
           }
         } else {
           // Tank / Speed / Boss
@@ -7112,6 +7175,7 @@
     function performCheeserUlt() {
       if (cheeserMultishot >= 5) { createTextParticle(stick.x, stick.y - 80, 'MAX STACK!', '#ef4444', 14); return; }
       cheeserMultishot = Math.min(5, cheeserMultishot + 1);
+      localStorage.setItem('sm_cheeserMultishot', cheeserMultishot);
       createTextParticle(stick.x, stick.y - 80, '🧀 x' + cheeserMultishot + ' CHEESE!', '#facc15', 20);
       createParticles(stick.x, stick.y - 30, 15, '#facc15');
     }
@@ -7283,7 +7347,7 @@
       hyperPunchCD = 0; hyperSlamCD = 0; hyperQuakeCD = 0; hyperLaserCD = 0; hyperLaserActive = false;
       hyperGSlamCD = 0; hyperShieldCD = 0; hyperShieldActive = false;
       hyperSpiritLaser = null; hyperLaserDir = null; hyperQuakeSpikes = []; hyperFlyActive = false;
-      cheeserThrowCD = 0; cheeserHealCD = 0; cheeserCheeseBullets = []; cheeserMultishot = 1;
+      cheeserThrowCD = 0; cheeserHealCD = 0; cheeserCheeseBullets = []; // cheeserMultishot persists across levels!
       expKills = 0; expNextLevel = 5;
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
