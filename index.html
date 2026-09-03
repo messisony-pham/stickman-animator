@@ -6059,21 +6059,45 @@
           ctx.beginPath(); ctx.moveTo(spk.x - 8, GROUND_Y + 15); ctx.lineTo(spk.x, GROUND_Y + 15 - h); ctx.lineTo(spk.x + 8, GROUND_Y + 15); ctx.closePath(); ctx.fill();
           ctx.globalAlpha = 1;
         });
-        // Laser bullets
-        ctx.fillStyle = '#06b6d4';
+        // Laser bullets — real laser beam look
         hyperLaserBullets.forEach(function(b) {
-          ctx.globalAlpha = 0.9;
-          ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill();
-          ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(b.x, b.y, 8, 0, Math.PI * 2); ctx.fill();
-          ctx.globalAlpha = 1;
+          var tailX = b.x - b.vx * 3, tailY = b.y - b.vy * 3;
+          // Outer glow
+          ctx.globalAlpha = 0.15; ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 14;
+          ctx.beginPath(); ctx.moveTo(tailX, tailY); ctx.lineTo(b.x, b.y); ctx.stroke();
+          // Mid glow
+          ctx.globalAlpha = 0.4; ctx.lineWidth = 8; ctx.strokeStyle = '#22d3ee';
+          ctx.beginPath(); ctx.moveTo(tailX, tailY); ctx.lineTo(b.x, b.y); ctx.stroke();
+          // Bright core
+          ctx.globalAlpha = 1; ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff';
+          ctx.beginPath(); ctx.moveTo(tailX, tailY); ctx.lineTo(b.x, b.y); ctx.stroke();
+          // Head glow
+          ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.8;
+          ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#06b6d4'; ctx.globalAlpha = 0.3;
+          ctx.beginPath(); ctx.arc(b.x, b.y, 10, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1; ctx.lineWidth = 5.5;
         });
-        // Laser eyes beam visual
+        // Laser eyes beam visual — shooting from head
         if (hyperLaserActive) {
           var dx2 = mouseX - stick.x, dy2 = mouseY - (stick.y - 30);
           var dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
-          ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 3; ctx.globalAlpha = 0.6;
-          ctx.beginPath(); ctx.moveTo(stick.x + 5 * stick.facing, stick.y - 55); ctx.lineTo(stick.x + (dx2 / dist2) * 40, stick.y - 30 + (dy2 / dist2) * 40); ctx.stroke();
-          ctx.globalAlpha = 0.2; ctx.lineWidth = 8; ctx.stroke();
+          var nx = dx2 / dist2, ny = dy2 / dist2;
+          var eyeX = stick.x + 4 * stick.facing, eyeY = stick.y - 55;
+          // Outer glow beam
+          ctx.strokeStyle = '#06b6d4'; ctx.globalAlpha = 0.25; ctx.lineWidth = 16;
+          ctx.beginPath(); ctx.moveTo(eyeX, eyeY); ctx.lineTo(eyeX + nx * 60, eyeY + ny * 60); ctx.stroke();
+          // Mid beam
+          ctx.globalAlpha = 0.5; ctx.lineWidth = 7; ctx.strokeStyle = '#22d3ee';
+          ctx.beginPath(); ctx.moveTo(eyeX, eyeY); ctx.lineTo(eyeX + nx * 60, eyeY + ny * 60); ctx.stroke();
+          // Bright core beam
+          ctx.globalAlpha = 0.9; ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff';
+          ctx.beginPath(); ctx.moveTo(eyeX, eyeY); ctx.lineTo(eyeX + nx * 60, eyeY + ny * 60); ctx.stroke();
+          // Eye glow
+          ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.7;
+          ctx.beginPath(); ctx.arc(eyeX, eyeY, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#06b6d4'; ctx.globalAlpha = 0.3;
+          ctx.beginPath(); ctx.arc(eyeX, eyeY, 8, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1; ctx.lineWidth = 5.5;
         }
         // Spirit orbs falling
