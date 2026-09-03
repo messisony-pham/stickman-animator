@@ -6603,7 +6603,7 @@
     function performHyperPunch() {
       if (hyperPunchCD > 0 || stick.state === 'dash') return;
       hyperPunchCD = HYPER_PUNCH_CD;
-      stick.state = 'shoot'; stick.animTime = 0;
+      stick.state = 'shoot'; stick.animTime = 0; attackCooldown = HYPER_PUNCH_CD;
       var dmg = HYPER_PUNCH_DMG;
       dummies.forEach(function(d) { if (d.alive && Math.abs(stick.x - d.x) < HYPER_PUNCH_RANGE) dealDamageToDummy(d, dmg, 'punch'); });
       miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(stick.x - mb.x) < HYPER_PUNCH_RANGE) dealDamageToMiniBoss(mb, dmg, 'punch'); });
@@ -6613,12 +6613,13 @@
       if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(stick.x - bossRushSentinel1.x) < HYPER_PUNCH_RANGE) dealColossalSentinelDamage(bossRushSentinel1, dmg, 'punch');
       if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(stick.x - bossRushSentinel2.x) < HYPER_PUNCH_RANGE) dealColossalSentinelDamage(bossRushSentinel2, dmg, 'punch');
       if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(stick.x - bossRushColossal.x) < HYPER_PUNCH_RANGE) dealColossalDamage(dmg, 'punch');
-      createParticles(stick.x + 20 * stick.facing, stick.y - 30, 4, '#06b6d4');
+      createParticles(stick.x + 20 * stick.facing, stick.y - 35, 12, '#06b6d4');
+      createParticles(stick.x + 30 * stick.facing, stick.y - 30, 6, '#3b82f6');
     }
     function performHyperSmallSlam() {
       if (hyperSlamCD > 0) return;
       hyperSlamCD = HYPER_SLAM_CD;
-      stick.state = 'grenade'; stick.animTime = 0;
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = HYPER_SLAM_CD;
       var dmg = HYPER_SLAM_DMG;
       createExplosion(stick.x, GROUND_Y - 10, HYPER_SLAM_RADIUS, '#06b6d4');
       dummies.forEach(function(d) { if (d.alive && Math.abs(stick.x - d.x) < HYPER_SLAM_RADIUS) dealDamageToDummy(d, dmg, 'slam'); });
@@ -6649,7 +6650,7 @@
     function performHyperGreatSlam() {
       if (hyperGSlamCD > 0) return;
       hyperGSlamCD = HYPER_GSLAM_CD;
-      stick.state = 'grenade'; stick.animTime = 0;
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 20;
       var dmg = HYPER_GSLAM_DMG;
       createExplosion(stick.x, GROUND_Y - 10, HYPER_GSLAM_RADIUS, '#8b5cf6');
       canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 500);
