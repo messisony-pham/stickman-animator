@@ -871,7 +871,7 @@
     let hyperQuakeSpikes = [], hyperAuraTimer = 0;
     let hyperLaserDir = null;  // beam direction for laser eyes
     // Cheeser state
-    let cheeserThrowCD = 0, cheeserHealCD = 0, cheeserCheeseBullets = [];
+    let cheeserThrowCD = 0, cheeserHealCD = 0, cheeserCheeseBullets = [], cheeserMultishot = 1;
     // EXP bar state
     let expKills = 0, expNextLevel = 5;
     let isCharging = false, chargeDist = 0, chargeDmgDealt = false;
@@ -3164,6 +3164,14 @@
           ctx.fillStyle = '#4ade80';
           ctx.beginPath(); ctx.arc(x, y - 30, 30, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
+        }
+        // Multishot indicator
+        if (cheeserMultishot > 1) {
+          ctx.fillStyle = '#facc15';
+          ctx.font = 'bold 10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('x' + cheeserMultishot, x, headY - 20);
+          ctx.textAlign = 'start';
         }
       }
       // Reset line style for body/arms after character-specific drawing
@@ -7092,8 +7100,20 @@
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = 15;
       var dx = mouseX - stick.x, dy = mouseY - (stick.y - 30);
       var dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      cheeserCheeseBullets.push({ x: stick.x, y: stick.y - 30, vx: (dx / dist) * CHEESER_THROW_SPEED, vy: (dy / dist) * CHEESER_THROW_SPEED, timer: 120 });
-      createParticles(stick.x, stick.y - 30, 3, '#facc15');
+      var n = cheeserMultishot;
+      var spreadAngle = 0.15; // radians between each cheese
+      var baseAngle = Math.atan2(dy, dx);
+      for (var i = 0; i < n; i++) {
+        var angle = n === 1 ? baseAngle : baseAngle + (i - (n - 1) / 2) * spreadAngle;
+        cheeserCheeseBullets.push({ x: stick.x, y: stick.y - 30, vx: Math.cos(angle) * CHEESER_THROW_SPEED, vy: Math.sin(angle) * CHEESER_THROW_SPEED, timer: 120 });
+      }
+      createParticles(stick.x, stick.y - 30, 3 + n, '#facc15');
+    }
+    function performCheeserUlt() {
+      if (cheeserMultishot >= 5) { createTextParticle(stick.x, stick.y - 80, 'MAX STACK!', '#ef4444', 14); return; }
+      cheeserMultishot = Math.min(5, cheeserMultishot + 1);
+      createTextParticle(stick.x, stick.y - 80, '🧀 x' + cheeserMultishot + ' CHEESE!', '#facc15', 20);
+      createParticles(stick.x, stick.y - 30, 15, '#facc15');
     }
     function performCheeserHeal() {
       if (cheeserHealCD > 0) return;
@@ -7186,6 +7206,8 @@
         if (e.key === '3') performHyperSpiritOrb();
         if (e.key.toLowerCase() === 'f') performHyperGreatSlam();
         if (e.key.toLowerCase() === 'e') performHyperShield();
+      } else if (selectedChar === 'cheeser') {
+        if (e.key === '3') performCheeserUlt();
       }
     });
     window.addEventListener('keyup', (e) => keys.delete(e.key));
@@ -7261,7 +7283,7 @@
       hyperPunchCD = 0; hyperSlamCD = 0; hyperQuakeCD = 0; hyperLaserCD = 0; hyperLaserActive = false;
       hyperGSlamCD = 0; hyperShieldCD = 0; hyperShieldActive = false;
       hyperSpiritLaser = null; hyperLaserDir = null; hyperQuakeSpikes = []; hyperFlyActive = false;
-      cheeserThrowCD = 0; cheeserHealCD = 0; cheeserCheeseBullets = [];
+      cheeserThrowCD = 0; cheeserHealCD = 0; cheeserCheeseBullets = []; cheeserMultishot = 1;
       expKills = 0; expNextLevel = 5;
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
@@ -7379,6 +7401,7 @@
       } else if (selectedChar === 'cheeser') {
         rows.push(['L-CLICK', 'CHEESE 200', 'text-yellow-400']);
         rows.push(['R-CLICK', 'EAT HEAL 100%', 'text-green-400']);
+        rows.push(['3', 'MULTI CHEESE +1', 'text-amber-400']);
       }
       rows.push(['ESC', 'PAUSE', 'text-slate-500']);
       rows.push(['TAB', 'SHOP', 'text-amber-400']);
