@@ -838,7 +838,7 @@
     let hyperPunchCD = 0, hyperSlamCD = 0, hyperQuakeCD = 0;
     let hyperLaserCD = 0, hyperLaserActive = false, hyperLaserTimer = 0, hyperLaserTickTimer = 0;
     let hyperGSlamCD = 0, hyperShieldCD = 0, hyperShieldActive = false, hyperShieldTimer = 0;
-    let hyperSpiritCD = 0, hyperSpiritLaser = null;  // {x, timer, tickTimer, phase: 'beam'|'nuke', nukeTimer}
+    let hyperSpiritLaser = null;  // {x, timer, tickTimer, phase: 'beam'|'nuke', nukeTimer}
     let hyperFlyActive = false;
     let hyperQuakeSpikes = [], hyperAuraTimer = 0;
     let hyperLaserDir = null;  // beam direction for laser eyes
@@ -6671,9 +6671,12 @@
       createTextParticle(stick.x, stick.y - 90, '🛡 SHIELD 10s!', '#3b82f6', 18);
     }
     function performHyperSpiritOrb() {
-      if (hyperSpiritCD > 0 || hyperSpiritLaser) return;
-      hyperSpiritCD = HYPER_SPIRIT_CD;
-      hyperSpiritLaser = { x: stick.x, timer: HYPER_SPIRIT_DUR, tickTimer: 0, phase: 'beam', nukeTimer: 0 };
+      if (hyperSpiritLaser || !ultReady) return;
+      // Consume ult bar — resets to 0
+      ultReady = false; ultCharge = 0;
+      ultBar.style.width = '0%'; ultBarText.textContent = '0%';
+      // Beam targets mouse X position (clamped to screen)
+      hyperSpiritLaser = { x: Math.max(30, Math.min(CW - 30, mouseX)), timer: HYPER_SPIRIT_DUR, tickTimer: 0, phase: 'beam', nukeTimer: 0 };
       createTextParticle(CW / 2, 60, '⚡ SPIRIT LASER!', '#ffffff', 28);
     }
     function performHyperM1() { performHyperPunch(); }
@@ -6684,7 +6687,7 @@
       if (hyperQuakeCD > 0) hyperQuakeCD--;
       if (hyperGSlamCD > 0) hyperGSlamCD--;
       if (hyperShieldCD > 0) hyperShieldCD--;
-      if (hyperSpiritCD > 0) hyperSpiritCD--;
+
       // Earthquake spikes
       hyperQuakeSpikes.forEach(function(spk) {
         if (spk.timer > 0) spk.timer--;
@@ -7047,6 +7050,7 @@
         rows.push(['F', 'GREAT SLAM 24', 'text-violet-400']);
         rows.push(['E', 'SHIELD 10s', 'text-blue-400']);
         rows.push(['3', 'SPIRIT LASER 15/tick + 200 NUKE', 'text-white']);
+        rows.push(['3 REQ', 'NEEDS 100% ULT', 'text-amber-400']);
         rows.push(['W/SPACE', 'FLY', 'text-cyan-400']);
       }
       rows.push(['ESC', 'PAUSE', 'text-slate-500']);
