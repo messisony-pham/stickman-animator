@@ -91,6 +91,13 @@
             <div class="text-[9px] text-emerald-400">Punch 13</div>
             <div class="text-[9px] text-cyan-500/60">HP:350 Fly</div>
           </div>
+          <div id="charCheeser" class="char-card bg-slate-800 border border-slate-600 rounded-lg p-2 cursor-pointer hover:border-yellow-400 transition-all text-center relative hidden" onclick="buyChar('cheeser')">
+            <div id="cheeserLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">🔒</span><span class="text-yellow-400 text-[9px] font-bold">100🏆</span></div>
+            <div class="text-2xl">🧀</div>
+            <div class="font-bold text-yellow-400 text-[11px]">CHEESER</div>
+            <div class="text-[9px] text-emerald-400">Cheese 200</div>
+            <div class="text-[9px] text-yellow-500/60">HP:5000 SECRET</div>
+          </div>
         </div>
       </div>
 
@@ -506,6 +513,8 @@
     let boughtBots = localStorage.getItem('sm_boughtBots') === 'true';
     let boughtKnight = localStorage.getItem('sm_boughtKnight') === 'true';
     let boughtHyper = localStorage.getItem('sm_boughtHyper') === 'true';
+    let cheeserUnlocked = localStorage.getItem('sm_cheeserUnlocked') === 'true';
+    let boughtCheeser = localStorage.getItem('sm_boughtCheeser') === 'true';
     function isCharBought(c) {
       if (c === 'fighter') return true;
       if (c === 'soldier') return boughtSoldier;
@@ -515,6 +524,7 @@
       if (c === 'bots') return boughtBots;
       if (c === 'knight') return boughtKnight;
       if (c === 'hyper') return boughtHyper;
+      if (c === 'cheeser') return boughtCheeser;
       return false;
     }
     function trackCharUse(c) {
@@ -528,6 +538,7 @@
         if (c === 'bots') { boughtBots = false; localStorage.removeItem('sm_boughtBots'); }
         if (c === 'knight') { boughtKnight = false; localStorage.removeItem('sm_boughtKnight'); }
         if (c === 'hyper') { boughtHyper = false; localStorage.removeItem('sm_boughtHyper'); }
+        if (c === 'cheeser') { boughtCheeser = false; localStorage.removeItem('sm_boughtCheeser'); }
         charUses[c] = 0; localStorage.setItem('sm_' + c + 'Uses', 0);
         updateCharLockUI(); updateMenuPoints();
       }
@@ -554,6 +565,9 @@
       } else if (c === 'hyper' && totalPoints >= 1500 && bossPoints >= 6) {
         totalPoints -= 1500; bossPoints -= 6; savePoints(); boughtHyper = true; localStorage.setItem('sm_boughtHyper', 'true');
         charUses.hyper = 0; localStorage.setItem('sm_hyperUses', 0);
+      } else if (c === 'cheeser' && cheeserUnlocked && bossPoints >= 100) {
+        bossPoints -= 100; savePoints(); boughtCheeser = true; localStorage.setItem('sm_boughtCheeser', 'true');
+        charUses.cheeser = 0; localStorage.setItem('sm_cheeserUses', 0);
       } else { return; }
       updateCharLockUI(); updateMenuPoints(); selectChar(c);
     };
@@ -579,6 +593,11 @@
       var hy = document.getElementById('charHyper');
       var hyLock = document.getElementById('hyperLock');
       if (hyLock) hyLock.classList.toggle('hidden', isCharBought('hyper'));
+      // Cheeser: only show if code was redeemed
+      var chEl = document.getElementById('charCheeser');
+      var chLock = document.getElementById('cheeserLock');
+      if (chEl) chEl.classList.toggle('hidden', !cheeserUnlocked);
+      if (chLock) chLock.classList.toggle('hidden', isCharBought('cheeser'));
       s.style.opacity = isCharBought('soldier') ? '1' : '1';
       sup.style.opacity = isCharBought('super') ? '1' : '1';
       mg.style.opacity = isCharBought('mage') ? '1' : '1';
@@ -595,6 +614,7 @@
       document.getElementById('charBots').classList.toggle('selected', c === 'bots');
       document.getElementById('charKnight').classList.toggle('selected', c === 'knight');
       document.getElementById('charHyper').classList.toggle('selected', c === 'hyper');
+      document.getElementById('charCheeser').classList.toggle('selected', c === 'cheeser');
     };
 
     // Soldier abilities
@@ -657,6 +677,11 @@
     const HYPER_SPIRIT_TICK_DMG = 15, HYPER_SPIRIT_NUKE_DMG = 200, HYPER_SPIRIT_CD = 1200, HYPER_SPIRIT_DUR = 180, HYPER_SPIRIT_TICK_INT = 19, HYPER_SPIRIT_RADIUS = 120;
     const HYPER_AURA_DMG = 2, HYPER_AURA_RADIUS = 80, HYPER_AURA_INTERVAL = 30; // every 0.5s
     const HYPER_FLY_SPD = 5;
+
+    // Cheeser constants
+    const CHEESER_HP = 5000, CHEESER_HP_LV10 = 12000;
+    const CHEESER_THROW_DMG = 200, CHEESER_THROW_CD = 20, CHEESER_THROW_SPEED = 12;
+    const CHEESER_HEAL_AMT = 1; // 100% heal
 
     // Normal dummy
     const DUMMY_BASE_HP = 75, DUMMY_SPD = 0.4, DUMMY_CHASE_RANGE = 200;
@@ -845,6 +870,8 @@
     let hyperFlyActive = false;
     let hyperQuakeSpikes = [], hyperAuraTimer = 0;
     let hyperLaserDir = null;  // beam direction for laser eyes
+    // Cheeser state
+    let cheeserThrowCD = 0, cheeserHealCD = 0, cheeserCheeseBullets = [];
     // EXP bar state
     let expKills = 0, expNextLevel = 5;
     let isCharging = false, chargeDist = 0, chargeDmgDealt = false;
@@ -1065,6 +1092,7 @@
       else if (selectedChar === 'super') performSuperPunch();
       else if (selectedChar === 'bots') performBotBlast();
       else if (selectedChar === 'hyper') performHyperPunch();
+      else if (selectedChar === 'cheeser') performCheeserThrow();
       else performPunch();
     });
     document.getElementById('mobBtnKick').addEventListener('touchstart', function(e) {
@@ -1077,6 +1105,7 @@
       else if (selectedChar === 'ninja') performNinjaKunai();
       else if (selectedChar === 'bots') performBotParry();
       else if (selectedChar === 'hyper') performHyperSmallSlam();
+      else if (selectedChar === 'cheeser') performCheeserHeal();
     });
     function mobAbility1() {
       if (selectedChar === 'soldier') performDash();
@@ -2133,6 +2162,7 @@
       'L0R3': { points: 0, bossPts: 0, ally: 'healer' },
       'S0NYPR09929': { points: 20000, bossPts: 50 },
       'CHEESEHOLY': { points: 0, bossPts: 0, bg: 'cheese' },
+      'CH33S3NYPR072711': { points: 0, bossPts: 0, cheeser: true },
     };
     function redeemCode() {
       var input = document.getElementById('codeInput');
@@ -2158,6 +2188,11 @@
           updateBgLockUI();
         }
         msg = '✅ 🧀 Cheese Background unlocked!';
+      } else if (reward.cheeser) {
+        cheeserUnlocked = true;
+        localStorage.setItem('sm_cheeserUnlocked', 'true');
+        updateCharLockUI();
+        msg = '✅ 🧀 CHEESER SECRET CHARACTER unlocked! Need 100🏆 to recruit.';
       } else {
         if (reward.points > 0) msg += '+' + reward.points + ' pts';
         if (reward.bossPts > 0) msg += (msg ? ' ' : '') + '+' + reward.bossPts + ' 🏆';
@@ -2213,6 +2248,10 @@
         PLAYER_MAX_HP_CURRENT = HYPER_HP;
         document.getElementById('charIcon').textContent = '⚡';
         document.getElementById('charName').textContent = 'Hyper' + modeLabel;
+      } else if (selectedChar === 'cheeser') {
+        PLAYER_MAX_HP_CURRENT = CHEESER_HP;
+        document.getElementById('charIcon').textContent = '🧀';
+        document.getElementById('charName').textContent = 'Cheeser' + modeLabel;
       } else {
         PLAYER_MAX_HP_CURRENT = MAGE_HP;
         document.getElementById('charIcon').textContent = '🧙';
@@ -3098,6 +3137,34 @@
           ctx.beginPath(); ctx.arc(x, y - 30, HYPER_AURA_RADIUS * 0.7, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
         }
+      } else if (selectedChar === 'cheeser') {
+        // Cheese hat — yellow wedge on top of head
+        var hatY = headY - 14;
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(x - 12, hatY + 8);
+        ctx.lineTo(x + 12, hatY + 8);
+        ctx.lineTo(x + 6, hatY - 6);
+        ctx.lineTo(x - 8, hatY - 4);
+        ctx.closePath();
+        ctx.fill();
+        // Cheese holes
+        ctx.fillStyle = '#ca8a04';
+        ctx.beginPath(); ctx.arc(x - 4, hatY + 2, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 5, hatY + 1, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 1, hatY - 1, 1.8, 0, Math.PI * 2); ctx.fill();
+        // Cheese glow
+        ctx.globalAlpha = 0.15 + Math.sin(time * 0.1) * 0.08;
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath(); ctx.arc(x, headY, 20, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Eat cheese heal effect
+        if (cheeserHealCD > 280) {
+          ctx.globalAlpha = 0.3;
+          ctx.fillStyle = '#4ade80';
+          ctx.beginPath(); ctx.arc(x, y - 30, 30, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
       }
       // Reset line style for body/arms after character-specific drawing
       ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -3632,7 +3699,7 @@
     }
 
     function dealDamageToDummy(d, dmg, source) {
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage')); d.hp -= dmg; d.hitFlash = 6;
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * (selectedChar === 'cheeser' && bgMode === 'cheese' ? 2 : 1)); d.hp -= dmg; d.hitFlash = 6;
       const c = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : source === 'kick' ? '#fb7185' : '#facc15';
       createTextParticle(d.x, GROUND_Y - 55, '-' + dmg, c, 14);
       createParticles(d.x, GROUND_Y - 30, 6, c);
@@ -4948,7 +5015,7 @@
       addUltCharge(10);
       updateEXPBar();
       const tl = Math.min(Math.floor(totalKills / LEVEL_UP_KILLS) + 1, MAX_LEVEL);
-      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
+      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
     }
 
     // ==================== SPAWNING ====================
@@ -5681,7 +5748,7 @@
       if (isShielded) { shieldTimer--; if (shieldTimer <= 0) { isShielded = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD DOWN', '#94a3b8', 14); } }
       if (shieldCD > 0) shieldCD--;
       updateUltUI(); updateUltimate();
-      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders(); updateKnightAbilities(); updateHyperAbilities(); updateCampaignSpawns(); checkCampaignWin();
+      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateCheeserAbilities(); updateCampaignSpawns(); checkCampaignWin();
       if (ninjaSlashCD > 0) ninjaSlashCD--;
       if (ninjaKunaiCD > 0) ninjaKunaiCD--;
       if (ninjaDashCD > 0) ninjaDashCD--;
@@ -6172,6 +6239,21 @@
       dummies.forEach(d => drawDummy(d));
       miniBosses.forEach(mb => drawMiniBoss(mb));
       drawAllyGunners(); drawAllies(); drawBotStriders();
+      // Cheeser cheese bullets
+      if (selectedChar === 'cheeser') {
+        cheeserCheeseBullets.forEach(function(b) {
+          ctx.fillStyle = '#facc15';
+          ctx.beginPath(); ctx.arc(b.x, b.y, 6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ca8a04';
+          ctx.beginPath(); ctx.arc(b.x - 2, b.y - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(b.x + 2, b.y + 1, 1, 0, Math.PI * 2); ctx.fill();
+          // Trail
+          ctx.globalAlpha = 0.3;
+          ctx.fillStyle = '#facc15';
+          ctx.beginPath(); ctx.arc(b.x - b.vx * 0.3, b.y - b.vy * 0.3, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+      }
       // Hyper effects drawing
       if (selectedChar === 'hyper') {
         // Earthquake spikes
@@ -7002,6 +7084,49 @@
         if (stick.y < 80) { stick.y = 80; stick.vy = 0; }
       }
     }
+
+    // ==================== CHEESER ABILITIES ====================
+    function performCheeserThrow() {
+      if (cheeserThrowCD > 0 || stick.state === 'dash') return;
+      cheeserThrowCD = CHEESER_THROW_CD;
+      stick.state = 'shoot'; stick.animTime = 0; attackCooldown = 15;
+      var dx = mouseX - stick.x, dy = mouseY - (stick.y - 30);
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      cheeserCheeseBullets.push({ x: stick.x, y: stick.y - 30, vx: (dx / dist) * CHEESER_THROW_SPEED, vy: (dy / dist) * CHEESER_THROW_SPEED, timer: 120 });
+      createParticles(stick.x, stick.y - 30, 3, '#facc15');
+    }
+    function performCheeserHeal() {
+      if (cheeserHealCD > 0) return;
+      cheeserHealCD = 300; // 5s cooldown
+      var healAmt = Math.floor(PLAYER_MAX_HP_CURRENT * CHEESER_HEAL_AMT);
+      playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + healAmt);
+      updateHPBar();
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 20;
+      createTextParticle(stick.x, stick.y - 80, '🧀 +' + healAmt + ' HP', '#4ade80', 16);
+      createParticles(stick.x, stick.y - 20, 8, '#facc15');
+    }
+    function updateCheeserAbilities() {
+      if (cheeserThrowCD > 0) cheeserThrowCD--;
+      if (cheeserHealCD > 0) cheeserHealCD--;
+      // Update cheese bullets
+      cheeserCheeseBullets.forEach(function(b) {
+        b.x += b.vx; b.y += b.vy; b.timer--;
+        var hit = false;
+        dummies.forEach(function(d) { if (!hit && d.alive && Math.abs(b.x - d.x) < 20 && Math.abs(b.y - (GROUND_Y - 30)) < 40) { var dmg = CHEESER_THROW_DMG; dealDamageToDummy(d, dmg, 'cheese'); hit = true; } });
+        miniBosses.forEach(function(mb) { if (!hit && mb.alive && Math.abs(b.x - mb.x) < 25 && Math.abs(b.y - (GROUND_Y - 30)) < 50) { dealDamageToMiniBoss(mb, CHEESER_THROW_DMG, 'cheese'); hit = true; } });
+        if (!hit && boss && boss.alive && Math.abs(b.x - boss.x) < 25 && Math.abs(b.y - (GROUND_Y - 30)) < 50) { dealDamageToBoss(CHEESER_THROW_DMG, 'cheese'); hit = true; }
+        if (!hit && bossRushDeath && bossRushDeath.hp > 0 && Math.abs(b.x - bossRushDeath.x) < 25) { bossRushDeath.hp -= CHEESER_THROW_DMG; bossRushDeath.hitFlash = 6; createTextParticle(b.x, b.y, '-' + CHEESER_THROW_DMG, '#facc15', 12); hit = true; }
+        if (!hit && bossRushUltra && bossRushUltra.hp > 0 && Math.abs(b.x - bossRushUltra.x) < 30) { dealUltraBossDamage(CHEESER_THROW_DMG); hit = true; }
+        if (!hit && bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(b.x - bossRushSentinel1.x) < 25) { dealColossalSentinelDamage(bossRushSentinel1, CHEESER_THROW_DMG, 'cheese'); hit = true; }
+        if (!hit && bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(b.x - bossRushSentinel2.x) < 25) { dealColossalSentinelDamage(bossRushSentinel2, CHEESER_THROW_DMG, 'cheese'); hit = true; }
+        if (!hit && bossRushColossal && bossRushColossal.hp > 0 && Math.abs(b.x - bossRushColossal.x) < 35) { dealColossalDamage(CHEESER_THROW_DMG, 'cheese'); hit = true; }
+        if (!hit && commander && commander.alive && Math.abs(b.x - commander.x) < 25) { commander.hp -= CHEESER_THROW_DMG; commander.hitFlash = 6; hit = true; }
+        if (hit) { createParticles(b.x, b.y, 4, '#facc15'); b.timer = 0; }
+        if (b.x < 0 || b.x > CW || b.timer <= 0) b.timer = 0;
+      });
+      cheeserCheeseBullets = cheeserCheeseBullets.filter(function(b) { return b.timer > 0; });
+    }
+
     const GAME_KEYS = new Set(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','a','A','d','D','w','W','s','S','q','Q','e','E','f','F','1','2','3','Escape']);
     window.addEventListener('keydown', (e) => {
       // Don't capture keys when typing in input fields
@@ -7087,6 +7212,8 @@
         if (e.button === 2) performKnightParry(); else performKnightSlash();
       } else if (selectedChar === 'hyper') {
         if (e.button === 2) performHyperSmallSlam(); else performHyperPunch();
+      } else if (selectedChar === 'cheeser') {
+        if (e.button === 2) performCheeserHeal(); else performCheeserThrow();
       }
     });
     canvas.addEventListener('mousemove', (e) => {
@@ -7101,7 +7228,7 @@
       mouseX = (t.clientX - rect.left) * (CW / rect.width);
       mouseY = (t.clientY - rect.top) * (CH / rect.height);
       if (mouseX > stick.x) stick.facing = 1; else stick.facing = -1;
-      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else performPunch();
+      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else if (selectedChar === 'cheeser') performCheeserThrow(); else performPunch();
     }, { passive: false });
 
     // ==================== RESET ====================
@@ -7132,8 +7259,9 @@
       knightChargeActive = false; knightChargeDist = 0; knightLungeActive = false; knightLungeDist = 0;
       knightShieldHP = 0; knightShieldMax = 0;
       hyperPunchCD = 0; hyperSlamCD = 0; hyperQuakeCD = 0; hyperLaserCD = 0; hyperLaserActive = false;
-      hyperGSlamCD = 0; hyperShieldCD = 0; hyperShieldActive = false; hyperSpiritCD = 0;
+      hyperGSlamCD = 0; hyperShieldCD = 0; hyperShieldActive = false;
       hyperSpiritLaser = null; hyperLaserDir = null; hyperQuakeSpikes = []; hyperFlyActive = false;
+      cheeserThrowCD = 0; cheeserHealCD = 0; cheeserCheeseBullets = [];
       expKills = 0; expNextLevel = 5;
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
@@ -7248,6 +7376,9 @@
         rows.push(['3', 'SPIRIT LASER 15/tick + 200 NUKE', 'text-white']);
         rows.push(['3 REQ', 'NEEDS 100% ULT', 'text-amber-400']);
         rows.push(['W/SPACE', 'FLY', 'text-cyan-400']);
+      } else if (selectedChar === 'cheeser') {
+        rows.push(['L-CLICK', 'CHEESE 200', 'text-yellow-400']);
+        rows.push(['R-CLICK', 'EAT HEAL 100%', 'text-green-400']);
       }
       rows.push(['ESC', 'PAUSE', 'text-slate-500']);
       rows.push(['TAB', 'SHOP', 'text-amber-400']);
