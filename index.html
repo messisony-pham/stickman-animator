@@ -654,7 +654,7 @@
     const HYPER_LASER_DMG = 4, HYPER_LASER_INTERVAL = 12, HYPER_LASER_DUR = 420; // 0.2s interval, 7s
     const HYPER_GSLAM_DMG = 24, HYPER_GSLAM_CD = 600, HYPER_GSLAM_RADIUS = 130;
     const HYPER_SHIELD_CD = 900, HYPER_SHIELD_DUR = 600; // 10s shield
-    const HYPER_SPIRIT_DMG = 125, HYPER_SPIRIT_CD = 1200, HYPER_SPIRIT_COUNT = 5;
+    const HYPER_SPIRIT_TICK_DMG = 15, HYPER_SPIRIT_NUKE_DMG = 200, HYPER_SPIRIT_CD = 1200, HYPER_SPIRIT_DUR = 180, HYPER_SPIRIT_TICK_INT = 19, HYPER_SPIRIT_RADIUS = 120;
     const HYPER_AURA_DMG = 2, HYPER_AURA_RADIUS = 80, HYPER_AURA_INTERVAL = 30; // every 0.5s
     const HYPER_FLY_SPD = 5;
 
@@ -838,7 +838,7 @@
     let hyperPunchCD = 0, hyperSlamCD = 0, hyperQuakeCD = 0;
     let hyperLaserCD = 0, hyperLaserActive = false, hyperLaserTimer = 0, hyperLaserTickTimer = 0;
     let hyperGSlamCD = 0, hyperShieldCD = 0, hyperShieldActive = false, hyperShieldTimer = 0;
-    let hyperSpiritCD = 0, hyperSpiritOrbs = [];
+    let hyperSpiritCD = 0, hyperSpiritLaser = null;  // {x, timer, tickTimer, phase: 'beam'|'nuke', nukeTimer}
     let hyperFlyActive = false;
     let hyperQuakeSpikes = [], hyperAuraTimer = 0;
     let hyperLaserDir = null;  // beam direction for laser eyes
@@ -6084,17 +6084,46 @@
           ctx.beginPath(); ctx.arc(eyeX, eyeY, 10, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1; ctx.lineWidth = 5.5;
         }
-        // Spirit orbs falling
-        hyperSpiritOrbs.forEach(function(orb) {
-          if (orb.timer > 0) return;
-          ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.9;
-          ctx.beginPath(); ctx.arc(orb.x, orb.y, 8, 0, Math.PI * 2); ctx.fill();
-          ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(orb.x, orb.y, 14, 0, Math.PI * 2); ctx.fill();
-          // Trail
-          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.globalAlpha = 0.4;
-          ctx.beginPath(); ctx.moveTo(orb.x, orb.y); ctx.lineTo(orb.x, orb.y - 20); ctx.stroke();
-          ctx.globalAlpha = 1; ctx.lineWidth = 5.5;
-        });
+        // Spirit laser — big white beam from sky
+        if (hyperSpiritLaser) {
+          var sl = hyperSpiritLaser;
+          if (sl.phase === 'beam') {
+            var beamW = 50; // 5x bigger than laser eye (~10px)
+            // Outer glow
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fillRect(sl.x - beamW - 20, 0, beamW * 2 + 40, GROUND_Y);
+            // Mid glow
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.fillRect(sl.x - beamW, 0, beamW * 2, GROUND_Y);
+            // Bright core
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillRect(sl.x - beamW * 0.3, 0, beamW * 0.6, GROUND_Y);
+            // Center white hot
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(sl.x - 4, 0, 8, GROUND_Y);
+            // Pulsing flash
+            ctx.globalAlpha = 0.1 + Math.sin(time * 0.8) * 0.08;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(sl.x - beamW - 30, 0, beamW * 2 + 60, GROUND_Y);
+            ctx.globalAlpha = 1;
+            // Ground impact particles
+            createParticles(sl.x + (Math.random() - 0.5) * 40, GROUND_Y - 5, 1, '#ffffff');
+          } else if (sl.phase === 'nuke') {
+            // Nuke explosion ring
+            var nukeAlpha = sl.nukeTimer / 45;
+            var nukeR = HYPER_SPIRIT_RADIUS * 1.5 * (1 - nukeAlpha) * 1.2;
+            ctx.globalAlpha = nukeAlpha * 0.6;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(sl.x, GROUND_Y - 30, nukeR, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = nukeAlpha * 0.3;
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.arc(sl.x, GROUND_Y - 30, nukeR * 1.3, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = nukeAlpha * 0.8;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(sl.x, GROUND_Y - 30, nukeR * 0.4, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+        }
       }
       // Draw Ultra Boss — normal boss style but bigger with cool crown
       if (bossRushUltra && bossRushUltra.hp > 0) {
@@ -6642,15 +6671,10 @@
       createTextParticle(stick.x, stick.y - 90, '🛡 SHIELD 10s!', '#3b82f6', 18);
     }
     function performHyperSpiritOrb() {
-      if (hyperSpiritCD > 0) return;
+      if (hyperSpiritCD > 0 || hyperSpiritLaser) return;
       hyperSpiritCD = HYPER_SPIRIT_CD;
-      createTextParticle(CW / 2, 60, '✨ SPIRIT ORB!', '#ffffff', 28);
-      hyperSpiritOrbs = [];
-      for (var i = 0; i < HYPER_SPIRIT_COUNT; i++) {
-        var tx = stick.x + (Math.random() - 0.5) * 400;
-        tx = Math.max(50, Math.min(CW - 50, tx));
-        hyperSpiritOrbs.push({ x: tx, y: -20 - i * 30, targetY: GROUND_Y - 30, speed: 8, dmg: false, timer: 60 + i * 15, color: '#ffffff' });
-      }
+      hyperSpiritLaser = { x: stick.x, timer: HYPER_SPIRIT_DUR, tickTimer: 0, phase: 'beam', nukeTimer: 0 };
+      createTextParticle(CW / 2, 60, '⚡ SPIRIT LASER!', '#ffffff', 28);
     }
     function performHyperM1() { performHyperPunch(); }
     function performHyperKick() { performHyperSmallSlam(); }
@@ -6708,25 +6732,47 @@
         hyperShieldTimer--;
         if (hyperShieldTimer <= 0) { hyperShieldActive = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD OFF', '#64748b', 12); }
       }
-      // Spirit orbs
-      hyperSpiritOrbs.forEach(function(orb) {
-        if (orb.timer > 0) { orb.timer--; return; }
-        orb.y += orb.speed;
-        if (!orb.dmg && orb.y >= orb.targetY) {
-          orb.dmg = true; orb.timer = 30;
-          createExplosion(orb.x, orb.targetY, 40, '#ffffff');
-          dummies.forEach(function(d) { if (d.alive && Math.abs(orb.x - d.x) < 40) dealDamageToDummy(d, HYPER_SPIRIT_DMG, 'spirit'); });
-          miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(orb.x - mb.x) < 40) dealDamageToMiniBoss(mb, HYPER_SPIRIT_DMG, 'spirit'); });
-          if (boss && boss.alive && Math.abs(orb.x - boss.x) < 40) dealDamageToBoss(HYPER_SPIRIT_DMG, 'spirit');
-          if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(orb.x - bossRushDeath.x) < 40) { bossRushDeath.hp -= HYPER_SPIRIT_DMG; bossRushDeath.hitFlash = 8; createTextParticle(orb.x, orb.y, '-' + HYPER_SPIRIT_DMG, '#fff', 16); }
-          if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(orb.x - bossRushUltra.x) < 40) dealUltraBossDamage(HYPER_SPIRIT_DMG);
-          if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(orb.x - bossRushSentinel1.x) < 40) dealColossalSentinelDamage(bossRushSentinel1, HYPER_SPIRIT_DMG, 'spirit');
-          if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(orb.x - bossRushSentinel2.x) < 40) dealColossalSentinelDamage(bossRushSentinel2, HYPER_SPIRIT_DMG, 'spirit');
-          if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(orb.x - bossRushColossal.x) < 40) dealColossalDamage(HYPER_SPIRIT_DMG, 'spirit');
+      // Spirit laser — big white beam from sky, then nuke explosion
+      if (hyperSpiritLaser) {
+        var sl = hyperSpiritLaser;
+        if (sl.phase === 'beam') {
+          sl.timer--;
+          sl.tickTimer++;
+          if (sl.tickTimer >= HYPER_SPIRIT_TICK_INT) {
+            sl.tickTimer = 0;
+            // Tick damage to enemies in beam radius
+            dummies.forEach(function(d) { if (d.alive && Math.abs(sl.x - d.x) < HYPER_SPIRIT_RADIUS) dealDamageToDummy(d, HYPER_SPIRIT_TICK_DMG, 'spirit'); });
+            miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(sl.x - mb.x) < HYPER_SPIRIT_RADIUS) dealDamageToMiniBoss(mb, HYPER_SPIRIT_TICK_DMG, 'spirit'); });
+            if (boss && boss.alive && Math.abs(sl.x - boss.x) < HYPER_SPIRIT_RADIUS) dealDamageToBoss(HYPER_SPIRIT_TICK_DMG, 'spirit');
+            if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(sl.x - bossRushDeath.x) < HYPER_SPIRIT_RADIUS) { bossRushDeath.hp -= HYPER_SPIRIT_TICK_DMG; bossRushDeath.hitFlash = 3; createTextParticle(sl.x, GROUND_Y - 40, '-' + HYPER_SPIRIT_TICK_DMG, '#fff', 10); }
+            if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(sl.x - bossRushUltra.x) < HYPER_SPIRIT_RADIUS) dealUltraBossDamage(HYPER_SPIRIT_TICK_DMG);
+            if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(sl.x - bossRushSentinel1.x) < HYPER_SPIRIT_RADIUS) dealColossalSentinelDamage(bossRushSentinel1, HYPER_SPIRIT_TICK_DMG, 'spirit');
+            if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(sl.x - bossRushSentinel2.x) < HYPER_SPIRIT_RADIUS) dealColossalSentinelDamage(bossRushSentinel2, HYPER_SPIRIT_TICK_DMG, 'spirit');
+            if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(sl.x - bossRushColossal.x) < HYPER_SPIRIT_RADIUS) dealColossalDamage(HYPER_SPIRIT_TICK_DMG, 'spirit');
+            createParticles(sl.x + (Math.random() - 0.5) * 60, GROUND_Y - 20, 3, '#ffffff');
+          }
+          if (sl.timer <= 0) {
+            // Switch to nuke phase
+            sl.phase = 'nuke'; sl.nukeTimer = 45;
+            createExplosion(sl.x, GROUND_Y - 30, HYPER_SPIRIT_RADIUS, '#ffffff');
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 600);
+            createTextParticle(sl.x, 80, '💥 SPIRIT NUKE! ' + HYPER_SPIRIT_NUKE_DMG, '#fbbf24', 24);
+            // Nuke damage to all enemies in radius
+            dummies.forEach(function(d) { if (d.alive && Math.abs(sl.x - d.x) < HYPER_SPIRIT_RADIUS * 1.5) dealDamageToDummy(d, HYPER_SPIRIT_NUKE_DMG, 'spirit'); });
+            miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(sl.x - mb.x) < HYPER_SPIRIT_RADIUS * 1.5) dealDamageToMiniBoss(mb, HYPER_SPIRIT_NUKE_DMG, 'spirit'); });
+            if (boss && boss.alive && Math.abs(sl.x - boss.x) < HYPER_SPIRIT_RADIUS * 1.5) dealDamageToBoss(HYPER_SPIRIT_NUKE_DMG, 'spirit');
+            if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(sl.x - bossRushDeath.x) < HYPER_SPIRIT_RADIUS * 1.5) { bossRushDeath.hp -= HYPER_SPIRIT_NUKE_DMG; bossRushDeath.hitFlash = 12; createTextParticle(sl.x, GROUND_Y - 60, '-' + HYPER_SPIRIT_NUKE_DMG, '#fbbf24', 20); }
+            if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(sl.x - bossRushUltra.x) < HYPER_SPIRIT_RADIUS * 1.5) dealUltraBossDamage(HYPER_SPIRIT_NUKE_DMG);
+            if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(sl.x - bossRushSentinel1.x) < HYPER_SPIRIT_RADIUS * 1.5) dealColossalSentinelDamage(bossRushSentinel1, HYPER_SPIRIT_NUKE_DMG, 'spirit');
+            if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(sl.x - bossRushSentinel2.x) < HYPER_SPIRIT_RADIUS * 1.5) dealColossalSentinelDamage(bossRushSentinel2, HYPER_SPIRIT_NUKE_DMG, 'spirit');
+            if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(sl.x - bossRushColossal.x) < HYPER_SPIRIT_RADIUS * 1.5) dealColossalDamage(HYPER_SPIRIT_NUKE_DMG, 'spirit');
+            for (var pi = 0; pi < 40; pi++) createParticles(sl.x + (Math.random() - 0.5) * 200, GROUND_Y - Math.random() * 100, 3, '#ffffff');
+          }
+        } else if (sl.phase === 'nuke') {
+          sl.nukeTimer--;
+          if (sl.nukeTimer <= 0) hyperSpiritLaser = null;
         }
-        if (orb.timer > 0) orb.timer--;
-      });
-      hyperSpiritOrbs = hyperSpiritOrbs.filter(function(o) { return o.timer > -10; });
+      }
       // Hyper aura damage
       if (gameMode !== 'menu') {
         hyperAuraTimer++;
@@ -6888,7 +6934,7 @@
       knightShieldHP = 0; knightShieldMax = 0;
       hyperPunchCD = 0; hyperSlamCD = 0; hyperQuakeCD = 0; hyperLaserCD = 0; hyperLaserActive = false;
       hyperGSlamCD = 0; hyperShieldCD = 0; hyperShieldActive = false; hyperSpiritCD = 0;
-      hyperSpiritOrbs = []; hyperLaserDir = null; hyperQuakeSpikes = []; hyperFlyActive = false;
+      hyperSpiritLaser = null; hyperLaserDir = null; hyperQuakeSpikes = []; hyperFlyActive = false;
       expKills = 0; expNextLevel = 5;
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
@@ -7000,7 +7046,7 @@
         rows.push(['2', 'LASER EYES 7s', 'text-cyan-400']);
         rows.push(['F', 'GREAT SLAM 24', 'text-violet-400']);
         rows.push(['E', 'SHIELD 10s', 'text-blue-400']);
-        rows.push(['3', 'SPIRIT ORB 125x5', 'text-white']);
+        rows.push(['3', 'SPIRIT LASER 15/tick + 200 NUKE', 'text-white']);
         rows.push(['W/SPACE', 'FLY', 'text-cyan-400']);
       }
       rows.push(['ESC', 'PAUSE', 'text-slate-500']);
