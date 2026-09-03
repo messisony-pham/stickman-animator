@@ -1945,6 +1945,8 @@
       if (lv.duration && campaignTimer >= lv.duration) {
         // Lv 8: boss must be beaten
         if (lv.bossAtTimer && boss && boss.alive) return;
+        // Lv 5: commander must be beaten
+        if (lv.spawnCommanderAt && commander && commander.alive) return;
         campaignWinLevel();
         return;
       }
