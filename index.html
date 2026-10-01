@@ -98,6 +98,13 @@
             <div class="text-[9px] text-emerald-400">Cheese 200</div>
             <div class="text-[9px] text-yellow-500/60">HP:5000 SECRET</div>
           </div>
+          <div id="charPhantom" class="char-card bg-slate-800 border border-slate-600 rounded-lg p-2 cursor-pointer hover:border-slate-400 transition-all text-center relative" onclick="buyChar('phantom')">
+            <div id="phantomLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">🔒</span><span class="text-slate-300 text-[9px] font-bold">SECRET</span><span class="text-[7px] text-slate-500 text-center leading-tight">Beat the<br>Colossal</span></div>
+            <div class="text-2xl">🌑</div>
+            <div class="font-bold text-slate-300 text-[11px]">PHANTOM</div>
+            <div class="text-[9px] text-emerald-400">Shadow 9</div>
+            <div class="text-[9px] text-slate-500">HP:100 → -150</div>
+          </div>
         </div>
       </div>
 
@@ -129,7 +136,7 @@
 
   <!-- Settings Overlay -->
   <div id="settingsScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.75);">
-    <div class="bg-slate-800 border-2 border-slate-600 rounded-2xl p-6 w-80 shadow-2xl">
+    <div class="bg-slate-800 border-2 border-slate-600 rounded-2xl p-6 w-80 shadow-2xl max-h-[92vh] overflow-y-auto">
       <h2 class="text-white font-bold text-lg mb-4 text-center">⚙️ Settings</h2>
       <div class="mb-4">
         <p class="text-slate-300 text-sm font-bold mb-2">Background</p>
@@ -159,6 +166,13 @@
           <button onclick="setPlayerColor('#111827')" class="colorPickBtn w-7 h-7 rounded-full bg-gray-900 border-2 border-transparent hover:border-white transition-colors"></button>
           <button onclick="setPlayerColor('#f9fafb')" class="colorPickBtn w-7 h-7 rounded-full bg-gray-100 border-2 border-transparent hover:border-white transition-colors"></button>
         </div>
+      </div>
+      <div class="mb-4">
+        <p class="text-slate-300 text-sm font-bold mb-2">✨ Enchanted Trait</p>
+        <div id="traitCurrent" class="text-xs text-center mb-2 py-1.5 rounded-lg bg-slate-900/60 border border-slate-600 text-slate-500">No trait equipped — roll one!</div>
+        <button id="traitRollBtn" class="w-full py-2 rounded-lg bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-sm font-bold transition-all active:scale-95">🎲 Roll Trait (1 🏆)</button>
+        <div id="traitGrid" class="grid grid-cols-4 gap-1 mt-2"></div>
+        <p id="traitStatus" class="text-[10px] text-slate-500 mt-1 text-center">Roll (1🏆) to unlock traits permanently — click owned traits to equip.</p>
       </div>
       <div class="mb-4">
         <p class="text-slate-300 text-sm font-bold mb-2">📱 Mobile Mode</p>
@@ -516,6 +530,8 @@
     let boughtHyper = localStorage.getItem('sm_boughtHyper') === 'true';
     let cheeserUnlocked = localStorage.getItem('sm_cheeserUnlocked') === 'true';
     let boughtCheeser = localStorage.getItem('sm_boughtCheeser') === 'true';
+    let phantomUnlocked = localStorage.getItem('sm_phantomUnlocked') === 'true';
+    let boughtPhantom = localStorage.getItem('sm_boughtPhantom') === 'true';
     function isCharBought(c) {
       if (c === 'fighter') return true;
       if (c === 'soldier') return boughtSoldier;
@@ -526,6 +542,7 @@
       if (c === 'knight') return boughtKnight;
       if (c === 'hyper') return boughtHyper;
       if (c === 'cheeser') return boughtCheeser;
+      if (c === 'phantom') return boughtPhantom;
       return false;
     }
     function trackCharUse(c) {
@@ -540,6 +557,7 @@
         if (c === 'knight') { boughtKnight = false; localStorage.removeItem('sm_boughtKnight'); }
         if (c === 'hyper') { boughtHyper = false; localStorage.removeItem('sm_boughtHyper'); }
         if (c === 'cheeser') { boughtCheeser = false; localStorage.removeItem('sm_boughtCheeser'); }
+        if (c === 'phantom') { boughtPhantom = false; localStorage.removeItem('sm_boughtPhantom'); }
         charUses[c] = 0; localStorage.setItem('sm_' + c + 'Uses', 0);
         updateCharLockUI(); updateMenuPoints();
       }
@@ -569,7 +587,14 @@
       } else if (c === 'cheeser' && cheeserUnlocked && bossPoints >= 100) {
         bossPoints -= 100; savePoints(); boughtCheeser = true; localStorage.setItem('sm_boughtCheeser', 'true');
         charUses.cheeser = 0; localStorage.setItem('sm_cheeserUses', 0);
-      } else { return; }
+      } else if (c === 'phantom' && phantomUnlocked && totalPoints >= 100) {
+        totalPoints -= 100; savePoints(); boughtPhantom = true; localStorage.setItem('sm_boughtPhantom', 'true');
+        charUses.phantom = 0; localStorage.setItem('sm_phantomUses', 0);
+      } else {
+        if (c === 'phantom' && !phantomUnlocked) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🔒</span><span class="text-red-400 text-[8px] font-bold text-center px-1">Beat the Colossal in Boss Rush to unlock!</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2500); }
+        if (c === 'phantom' && phantomUnlocked && totalPoints < 100) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🪙</span><span class="text-red-400 text-[8px] font-bold">Need 100 points!</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2000); }
+        return;
+      }
       updateCharLockUI(); updateMenuPoints(); selectChar(c);
     };
     function updateCharLockUI() {
@@ -599,6 +624,19 @@
       var chLock = document.getElementById('cheeserLock');
       if (chEl) chEl.classList.toggle('hidden', !cheeserUnlocked);
       if (chLock) chLock.classList.toggle('hidden', isCharBought('cheeser'));
+      // Phantom: card always visible, locked until the secret mission is done
+      var phEl = document.getElementById('charPhantom');
+      var phLock = document.getElementById('phantomLock');
+      if (phEl) phEl.classList.remove('hidden');
+      if (phLock) {
+        var phBought = isCharBought('phantom');
+        phLock.classList.toggle('hidden', phBought);
+        if (!phBought) {
+          phLock.innerHTML = phantomUnlocked
+            ? '<span class="text-lg">🔒</span><span class="text-slate-300 text-[9px] font-bold">100🪙</span>'
+            : '<span class="text-lg">🔒</span><span class="text-slate-300 text-[9px] font-bold">SECRET</span><span class="text-[7px] text-slate-500 text-center leading-tight">Beat the<br>Colossal</span>';
+        }
+      }
       s.style.opacity = isCharBought('soldier') ? '1' : '1';
       sup.style.opacity = isCharBought('super') ? '1' : '1';
       mg.style.opacity = isCharBought('mage') ? '1' : '1';
@@ -616,6 +654,7 @@
       document.getElementById('charKnight').classList.toggle('selected', c === 'knight');
       document.getElementById('charHyper').classList.toggle('selected', c === 'hyper');
       document.getElementById('charCheeser').classList.toggle('selected', c === 'cheeser');
+      document.getElementById('charPhantom').classList.toggle('selected', c === 'phantom');
     };
 
     // Soldier abilities
@@ -683,6 +722,16 @@
     const CHEESER_HP = 5000, CHEESER_HP_LV10 = 12000;
     const CHEESER_THROW_DMG = 200, CHEESER_THROW_CD = 20, CHEESER_THROW_SPEED = 12;
     const CHEESER_HEAL_AMT = 1; // 100% heal
+    // Phantom (secret character)
+    const PHANTOM_HP = 100, PHANTOM_MIN_HP = -150;
+    const PHANTOM_PUNCH_DMG = 9, PHANTOM_PUNCH_CD = 14, PHANTOM_PUNCH_RANGE = 60;
+    const PHANTOM_TELEPORT_WINDUP = 60, PHANTOM_TELEPORT_CD = 240;
+    const PHANTOM_POSSESS_DMG = 15, PHANTOM_POSSESS_CD = 600, PHANTOM_POSSESS_DUR = 240;
+    const PHANTOM_EXPLODE_DMG = 20, PHANTOM_EXPLODE_CD = 300, PHANTOM_EXPLODE_RADIUS = 150;
+    const PHANTOM_DASH_DMG = 10, PHANTOM_DASH_CD = 240, PHANTOM_DASH_DIST = 220, PHANTOM_DASH_SPD = 26;
+    const PHANTOM_RAIN_DMG = 2, PHANTOM_RAIN_CD = 600, PHANTOM_RAIN_DUR = 360, PHANTOM_RAIN_TICK = 6;
+    const PHANTOM_ULT_TICK_DMG = 7, PHANTOM_ULT_DUR = 600, PHANTOM_ULT_EXPLODE_DMG = 20, PHANTOM_ULT_RADIUS = 260, PHANTOM_ULT_TICK_INT = 60;
+
     // Milkson (sandbox-only enemy)
     const MILKSON_HP = 10000, MILKSON_DMG = 65, MILKSON_SPD = 1.2, MILKSON_ATK_CD = 40;
 
@@ -775,6 +824,100 @@
     let totalPoints = parseInt(localStorage.getItem('sm_totalPoints') || '0');
     let bossPoints = parseInt(localStorage.getItem('sm_bossPoints') || '0');
     function savePoints() { localStorage.setItem('sm_totalPoints', totalPoints); localStorage.setItem('sm_bossPoints', bossPoints); var gp = document.getElementById('gamePoints'); if (gp) gp.textContent = totalPoints + '🪙 ' + bossPoints + '🏆'; }
+
+    // ==================== ENCHANTED TRAITS ====================
+    // Rolled traits are OWNED PERMANENTLY. Higher rarity = much harder.
+    // Group weights (sum = 100): common 55 / uncommon 25 / rare 12 / epic 5.5 / legendary 2 / mythic 0.5
+    const TRAITS = [
+      { id: 'fire',      name: 'Fire',      emoji: '🔥',  rarity: 'common',    weight: 55 / 6, mult: 1.25, color: '#f97316' },
+      { id: 'water',     name: 'Water',     emoji: '💧',  rarity: 'common',    weight: 55 / 6, mult: 1.25, color: '#38bdf8' },
+      { id: 'wind',      name: 'Wind',      emoji: '🌪️', rarity: 'common',    weight: 55 / 6, mult: 1.25, color: '#a3e635' },
+      { id: 'earth',     name: 'Earth',     emoji: '🌍',  rarity: 'common',    weight: 55 / 6, mult: 1.35, color: '#b45309' },
+      { id: 'nature',    name: 'Nature',    emoji: '🌿',  rarity: 'common',    weight: 55 / 6, mult: 1.3,  color: '#22c55e' },
+      { id: 'stone',     name: 'Stone',     emoji: '🪨',  rarity: 'common',    weight: 55 / 6, mult: 1.3,  color: '#a8a29e' },
+      { id: 'ice',       name: 'Ice',       emoji: '❄️',  rarity: 'uncommon',  weight: 25 / 3, mult: 1.5,  color: '#7dd3fc' },
+      { id: 'lightning', name: 'Lightning', emoji: '⚡',  rarity: 'uncommon',  weight: 25 / 3, mult: 1.55, color: '#facc15' },
+      { id: 'blast',     name: 'Blast',     emoji: '💥',  rarity: 'uncommon',  weight: 25 / 3, mult: 1.5,  color: '#fb7185' },
+      { id: 'spike',     name: 'Spike',     emoji: '🗡️', rarity: 'rare',      weight: 12 / 2, mult: 1.75, color: '#e2e8f0' },
+      { id: 'cloud',     name: 'Cloud',     emoji: '☁️',  rarity: 'rare',      weight: 12 / 2, mult: 1.75, color: '#cbd5e1' },
+      { id: 'light',     name: 'Light',     emoji: '✨',  rarity: 'epic',      weight: 5.5 / 3, mult: 2.0, color: '#fde68a' },
+      { id: 'darkness',  name: 'Darkness',  emoji: '🌑',  rarity: 'epic',      weight: 5.5 / 3, mult: 2.05, color: '#7c3aed' },
+      { id: 'super',     name: 'Super',     emoji: '🌟',  rarity: 'epic',      weight: 5.5 / 3, mult: 2.1, color: '#f472b6' },
+      { id: 'absolute',  name: 'Absolute',  emoji: '🛡️', rarity: 'legendary', weight: 2 / 2,  mult: 3.0,  color: '#fbbf24' },
+      { id: 'cosmic',    name: 'Cosmic',    emoji: '🌌',  rarity: 'legendary', weight: 2 / 2,  mult: 3.5,  color: '#818cf8' },
+      { id: 'cheese',    name: 'Cheese',    emoji: '🧀',  rarity: 'mythic',    weight: 0.5,    mult: 5.0,  color: '#eab308' }
+    ];
+    const RARITY_META = {
+      common:    { label: 'Common',    color: '#94a3b8' },
+      uncommon:  { label: 'Uncommon',  color: '#4ade80' },
+      rare:      { label: 'Rare',      color: '#38bdf8' },
+      epic:      { label: 'Epic',      color: '#a855f7' },
+      legendary: { label: 'Legendary', color: '#fbbf24' },
+      mythic:    { label: 'Mythic',    color: '#f472b6' }
+    };
+    const TRAIT_TOTAL_WEIGHT = TRAITS.reduce(function (s, t) { return s + t.weight; }, 0);
+    let ownedTraits = {};
+    try { ownedTraits = JSON.parse(localStorage.getItem('sm_ownedTraits') || '{}') || {}; } catch (e) { ownedTraits = {}; }
+    let equippedTrait = localStorage.getItem('sm_equippedTrait') || null;
+    // migrate: any previously-equipped trait counts as owned
+    if (equippedTrait && !ownedTraits[equippedTrait]) { ownedTraits[equippedTrait] = true; localStorage.setItem('sm_ownedTraits', JSON.stringify(ownedTraits)); }
+    function saveOwnedTraits() { localStorage.setItem('sm_ownedTraits', JSON.stringify(ownedTraits)); }
+    function ownedTraitCount() { var n = 0; for (var k in ownedTraits) if (ownedTraits[k]) n++; return n; }
+    function getTraitById(id) { for (var i = 0; i < TRAITS.length; i++) if (TRAITS[i].id === id) return TRAITS[i]; return null; }
+    function getTraitMult() { var t = getTraitById(equippedTrait); return t ? t.mult : 1; }
+    function rollTrait(free) {
+      var isFree = free === true;
+      var status = document.getElementById('traitStatus');
+      if (!isFree) {
+        if (bossPoints < 1) { if (status) { status.textContent = '❌ Need 1 🏆 boss point!'; status.style.color = '#f87171'; } return; }
+        bossPoints -= 1; savePoints();
+      }
+      var r = Math.random() * TRAIT_TOTAL_WEIGHT, acc = 0, picked = TRAITS[0];
+      for (var i = 0; i < TRAITS.length; i++) { acc += TRAITS[i].weight; if (r <= acc) { picked = TRAITS[i]; break; } }
+      var isNew = !ownedTraits[picked.id];
+      ownedTraits[picked.id] = true; saveOwnedTraits();
+      equippedTrait = picked.id; localStorage.setItem('sm_equippedTrait', equippedTrait);
+      var rar = RARITY_META[picked.rarity];
+      var comp = '';
+      if (!isNew) {
+        if (picked.rarity === 'legendary' || picked.rarity === 'mythic') { bossPoints += 1; savePoints(); comp = ' <span style="color:#fbbf24">→ +1 🏆 boss point</span>'; }
+        else { totalPoints += 100; savePoints(); comp = ' <span style="color:#fbbf24">→ +100 🪙 points</span>'; }
+      }
+      if (status) { status.innerHTML = (isNew ? '🌟 NEW! ' : '🔁 Duplicate ') + '<b style="color:' + rar.color + '">' + picked.emoji + ' ' + picked.name + '</b> <span style="color:' + rar.color + '">(' + rar.label + ')</span> — DMG ×' + picked.mult + ' • owned ' + ownedTraitCount() + '/' + TRAITS.length + comp; status.style.color = '#e2e8f0'; }
+      updateTraitUI(); updateMenuPoints();
+    }
+    function equipTrait(id) {
+      if (!ownedTraits[id]) return;
+      equippedTrait = id; localStorage.setItem('sm_equippedTrait', equippedTrait);
+      var t = getTraitById(id); var status = document.getElementById('traitStatus');
+      if (status && t) { var rm = RARITY_META[t.rarity]; status.innerHTML = '✅ Equipped <b style="color:' + rm.color + '">' + t.emoji + ' ' + t.name + '</b> — DMG ×' + t.mult; status.style.color = '#e2e8f0'; }
+      updateTraitUI();
+    }
+    window._equipTrait = equipTrait;
+    function updateTraitUI() {
+      var cur = document.getElementById('traitCurrent');
+      var active = getTraitById(equippedTrait);
+      if (cur) {
+        var count = '<span class="text-[8px] text-slate-500">(' + ownedTraitCount() + '/' + TRAITS.length + ')</span>';
+        if (active) { var rm = RARITY_META[active.rarity]; cur.innerHTML = active.emoji + ' <b style="color:' + rm.color + '">' + active.name + '</b> <span class="text-[9px]" style="color:' + rm.color + '">' + rm.label + '</span> <span class="text-[9px] text-amber-300">DMG ×' + active.mult + '</span> ' + count; }
+        else cur.innerHTML = '<span class="text-slate-500">No trait equipped — roll one!</span> ' + count;
+      }
+      var grid = document.getElementById('traitGrid');
+      if (grid) {
+        grid.innerHTML = TRAITS.map(function (t) {
+          var rm = RARITY_META[t.rarity];
+          var owned = !!ownedTraits[t.id];
+          var on = t.id === equippedTrait;
+          var border = on ? 'border-amber-400' : (owned ? 'border-slate-500' : 'border-slate-700');
+          var bg = on ? '0.14' : (owned ? '0.07' : '0.02');
+          return '<div class="rounded p-0.5 text-center border ' + border + ' ' + (owned ? 'cursor-pointer hover:border-amber-300' : 'cursor-not-allowed') + '" style="background:rgba(255,255,255,' + bg + ');opacity:' + (owned ? '1' : '0.35') + '" '
+            + (owned ? 'onclick="window._equipTrait(\'' + t.id + '\')"' : '') + ' title="' + t.name + ' (' + rm.label + ') ×' + t.mult + (owned ? ' — click to equip' : ' — locked') + '">'
+            + '<div class="text-sm leading-none">' + (owned ? t.emoji : '🔒') + '</div>'
+            + '<div class="text-[7px] font-bold" style="color:' + rm.color + '">' + t.name + '</div>'
+            + '</div>';
+        }).join('');
+      }
+    }
 
     // ==================== SHOP UPGRADES (permanent across runs) ====================
     const SHOP_MAX_LEVELS = { maxHp: 5, damage: 5, speed: 3, atkSpeed: 5, regen: 1, coinBoost: 3, summonHealer: 3, summonAttacker: 3, summonCrossbow: 2, summonGunner: 2, summonTank: 2, summonTitan: 1 };
@@ -875,6 +1018,12 @@
     let hyperLaserDir = null;  // beam direction for laser eyes
     // Cheeser state
     let cheeserThrowCD = 0, cheeserHealCD = 0, cheeserCheeseBullets = [], cheeserMultishot = parseInt(localStorage.getItem('sm_cheeserMultishot')) || 1;
+    // Phantom state
+    let phantomPunchCD = 0, phantomTeleportCD = 0, phantomTeleportWinding = false, phantomTeleportTimer = 0;
+    let phantomPossessCD = 0, phantomPossessProjectiles = [];
+    let phantomExplodeCD = 0, phantomDashCD = 0, phantomDashing = false, phantomDashDist = 0, phantomDashDir = 1;
+    let phantomRainCD = 0, phantomRainTimer = 0, phantomRainTickTimer = 0, phantomRainActive = false;
+    let phantomUltActive = false, phantomUltTimer = 0, phantomUltTickTimer = 0, phantomRealmFade = 0;
     // EXP bar state
     let expKills = 0, expNextLevel = 5;
     let isCharging = false, chargeDist = 0, chargeDmgDealt = false;
@@ -1096,6 +1245,7 @@
       else if (selectedChar === 'bots') performBotBlast();
       else if (selectedChar === 'hyper') performHyperPunch();
       else if (selectedChar === 'cheeser') performCheeserThrow();
+      else if (selectedChar === 'phantom') performPhantomPunch();
       else performPunch();
     });
     document.getElementById('mobBtnKick').addEventListener('touchstart', function(e) {
@@ -1109,6 +1259,7 @@
       else if (selectedChar === 'bots') performBotParry();
       else if (selectedChar === 'hyper') performHyperSmallSlam();
       else if (selectedChar === 'cheeser') performCheeserHeal();
+      else if (selectedChar === 'phantom') performPhantomTeleport();
     });
     function mobAbility1() {
       if (selectedChar === 'soldier') performDash();
@@ -1118,6 +1269,7 @@
       else if (selectedChar === 'ninja') performNinjaFarDash();
       else if (selectedChar === 'bots') performBotJetpack();
       else if (selectedChar === 'hyper') performHyperEarthquake();
+      else if (selectedChar === 'phantom') performPhantomPossess();
     }
     function mobAbility2() {
       if (selectedChar === 'soldier') performGrenade();
@@ -1127,6 +1279,7 @@
       else if (selectedChar === 'ninja') performNinjaInvis();
       else if (selectedChar === 'bots') performBotStrider();
       else if (selectedChar === 'hyper') performHyperLaserEyes();
+      else if (selectedChar === 'phantom') performPhantomExplode();
     }
     function mobAbility3() {
       if (selectedChar === 'soldier') performUltimate();
@@ -1136,6 +1289,7 @@
       else if (selectedChar === 'ninja') performNinjaUlt();
       else if (selectedChar === 'bots') performBotNuclear();
       else if (selectedChar === 'hyper') performHyperSpiritOrb();
+      else if (selectedChar === 'phantom') performPhantomDarkRealm();
     }
     function mobAbilityF() {
       if (selectedChar === 'soldier') spawnAllyGunner();
@@ -1145,12 +1299,14 @@
       else if (selectedChar === 'ninja') performNinjaClones();
       else if (selectedChar === 'bots') performBotLaserCore();
       else if (selectedChar === 'hyper') performHyperGreatSlam();
+      else if (selectedChar === 'phantom') performPhantomShadowDash();
     }
     function mobAbilityE() {
       if (selectedChar === 'super') performSuperShield();
       else if (selectedChar === 'mage') performMageIceShield();
       else if (selectedChar === 'ninja') performNinjaSharin();
       else if (selectedChar === 'hyper') performHyperShield();
+      else if (selectedChar === 'phantom') performPhantomShadowRain();
     }
     document.getElementById('mobBtn1').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') mobAbility1(); });
     document.getElementById('mobBtn2').addEventListener('touchstart', function(e) { e.preventDefault(); if (gameState === 'playing') mobAbility2(); });
@@ -1165,6 +1321,7 @@
       menuScreen.classList.add('hidden');
       document.getElementById('settingsScreen').classList.remove('hidden');
       selectBg(bgMode);
+      updateTraitUI();
     });
     document.getElementById('closeSettings').addEventListener('click', function() {
       document.getElementById('settingsScreen').classList.add('hidden');
@@ -2166,6 +2323,7 @@
       'S0NYPR09929': { points: 20000, bossPts: 50 },
       'CHEESEHOLY': { points: 0, bossPts: 0, bg: 'cheese' },
       'CH33S3NYPR072711': { points: 0, bossPts: 0, cheeser: true },
+      'TRAIT!': { points: 0, bossPts: 5, freeTraitRoll: 1 },
     };
     function redeemCode() {
       var input = document.getElementById('codeInput');
@@ -2196,6 +2354,10 @@
         localStorage.setItem('sm_cheeserUnlocked', 'true');
         updateCharLockUI();
         msg = '✅ 🧀 CHEESER SECRET CHARACTER unlocked! Need 100🏆 to recruit.';
+      } else if (reward.freeTraitRoll) {
+        updateTraitUI();
+        rollTrait(true);
+        msg = '✅ +5 🏆 boss points & 🎲 free trait roll used — check the trait grid!';
       } else {
         if (reward.points > 0) msg += '+' + reward.points + ' pts';
         if (reward.bossPts > 0) msg += (msg ? ' ' : '') + '+' + reward.bossPts + ' 🏆';
@@ -2207,6 +2369,8 @@
     }
     document.getElementById('codeRedeemBtn').addEventListener('click', redeemCode);
     document.getElementById('codeInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') redeemCode(); });
+    document.getElementById('traitRollBtn').addEventListener('click', rollTrait);
+    updateTraitUI();
     document.getElementById('playBtn').addEventListener('click', () => {
       menuScreen.classList.add('hidden'); gameUI.classList.remove('hidden'); gameUI.classList.add('flex');
       document.getElementById('gameoverScreen').classList.add('hidden');
@@ -2255,6 +2419,10 @@
         PLAYER_MAX_HP_CURRENT = CHEESER_HP;
         document.getElementById('charIcon').textContent = '🧀';
         document.getElementById('charName').textContent = 'Cheeser' + modeLabel;
+      } else if (selectedChar === 'phantom') {
+        PLAYER_MAX_HP_CURRENT = PHANTOM_HP;
+        document.getElementById('charIcon').textContent = '🌑';
+        document.getElementById('charName').textContent = 'Phantom' + modeLabel;
       } else {
         PLAYER_MAX_HP_CURRENT = MAGE_HP;
         document.getElementById('charIcon').textContent = '🧙';
@@ -3177,6 +3345,31 @@
           ctx.fillText('x' + cheeserMultishot, x, headY - 20);
           ctx.textAlign = 'start';
         }
+      } else if (selectedChar === 'phantom') {
+        // Black cloak draped over the shoulders
+        var cloY = headY + 14;
+        ctx.fillStyle = 'rgba(15,17,26,0.92)';
+        ctx.beginPath();
+        ctx.moveTo(x - 18, cloY);
+        ctx.quadraticCurveTo(x - 27, cloY + 42, x - 20, y + 28);
+        ctx.lineTo(x + 20, y + 28);
+        ctx.quadraticCurveTo(x + 27, cloY + 42, x + 18, cloY);
+        ctx.closePath(); ctx.fill();
+        // Hood rim
+        ctx.fillStyle = '#0b0d16';
+        ctx.beginPath(); ctx.arc(x, headY - 2, 13, Math.PI, Math.PI * 2); ctx.fill();
+        // Shadow covering the eyes
+        ctx.fillStyle = 'rgba(2,2,8,0.95)';
+        ctx.fillRect(x - 11, headY - 6, 22, 9);
+        // Faint purple glowing eyes inside the shadow
+        ctx.fillStyle = 'rgba(139,92,246,' + (0.5 + Math.sin(time * 0.15) * 0.3) + ')';
+        ctx.fillRect(x - 6 + 4 * facing, headY - 3, 3, 3);
+        ctx.fillRect(x + 3 + 4 * facing, headY - 3, 3, 3);
+        // Shadow aura
+        ctx.globalAlpha = 0.12 + Math.sin(time * 0.1) * 0.06;
+        ctx.fillStyle = '#6d28d9';
+        ctx.beginPath(); ctx.arc(x, y - 30, 34, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
       }
       // Reset line style for body/arms after character-specific drawing
       ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -3710,6 +3903,7 @@
     }
 
     // ==================== DAMAGE ====================
+    function playerHpFloor() { return selectedChar === 'phantom' ? PHANTOM_MIN_HP : 0; }
     function damagePlayer(dmg, color, bypassShield) {
       if (gameMode === 'sandbox') { createTextParticle(stick.x, stick.y - 55, '🛡 SANDBOX!', '#d946ef', 12); return; }
       if (gracePeriod > 0) return;
@@ -3745,15 +3939,15 @@
         createTextParticle(stick.x, stick.y - 65, '🛡 SHIELD -' + shieldAbsorb, '#3b82f6', 12);
         createParticles(stick.x, stick.y - 30, 4, '#3b82f6');
       }
-      playerHP = Math.max(0, playerHP - dmg); stick.hitFlash = 8; updateHPBar();
+      playerHP = Math.max(playerHpFloor(), playerHP - dmg); stick.hitFlash = 8; updateHPBar();
       createTextParticle(stick.x, stick.y - 55, '-' + dmg, color || '#f87171', 16);
       createParticles(stick.x, stick.y - 30, 5, color || '#f87171');
       canvasWrap.classList.add('shake'); setTimeout(() => canvasWrap.classList.remove('shake'), 200);
-      if (playerHP <= 0) { gameState = 'gameover'; createParticles(stick.x, stick.y - 30, 30, '#ef4444'); if (campaignMode) { var gos = document.getElementById('gameoverScreen'); document.getElementById('gameoverMsg').textContent = 'You were defeated in ' + CAMPAIGN_LEVELS[campaignLevel - 1].name; gos.classList.remove('hidden'); } }
+      if (playerHP <= playerHpFloor()) { gameState = 'gameover'; createParticles(stick.x, stick.y - 30, 30, '#ef4444'); if (campaignMode) { var gos = document.getElementById('gameoverScreen'); document.getElementById('gameoverMsg').textContent = 'You were defeated in ' + CAMPAIGN_LEVELS[campaignLevel - 1].name; gos.classList.remove('hidden'); } }
     }
 
     function dealDamageToDummy(d, dmg, source) {
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * (selectedChar === 'cheeser' && bgMode === 'cheese' ? 2 : 1)); d.hp -= dmg; d.hitFlash = 6;
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * (selectedChar === 'cheeser' && bgMode === 'cheese' ? 2 : 1)); d.hp -= dmg; d.hitFlash = 6;
       const c = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : source === 'kick' ? '#fb7185' : '#facc15';
       createTextParticle(d.x, GROUND_Y - 55, '-' + dmg, c, 14);
       createParticles(d.x, GROUND_Y - 30, 6, c);
@@ -3773,7 +3967,7 @@
     }
 
     function dealDamageToBoss(dmg, source, srcX) {
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage'));
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult());
       // Also hit sentinel if source is close
       if (sentinel && sentinel.alive) {
         var sx = srcX !== undefined ? srcX : stick.x;
@@ -3832,7 +4026,7 @@
     }
 
     function dealDamageToMiniBoss(mb, dmg, source) {
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage')); mb.hp -= dmg; mb.hitFlash = 6;
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult()); mb.hp -= dmg; mb.hitFlash = 6;
       const c = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : source === 'kick' ? '#fb7185' : '#facc15';
       createTextParticle(mb.x, GROUND_Y - 55, '-' + dmg, c, 14);
       createParticles(mb.x, GROUND_Y - 30, 6, c);
@@ -4439,7 +4633,7 @@
     // --- FIGHTER abilities ---
     function dealUltraBossDamage(dmg) {
       if (bossRushUltra && bossRushUltra.hp > 0) {
-        dmg = Math.floor(dmg * getShopUpgradeEffect('damage'));
+        dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult());
         bossRushUltra.hp -= dmg; bossRushUltra.hitFlash = 6;
         createTextParticle(bossRushUltra.x, bossRushUltra.y - 60, '-' + dmg, '#a855f7', 14);
         createParticles(bossRushUltra.x, bossRushUltra.y - 40, 4, '#a855f7');
@@ -4449,7 +4643,7 @@
       if (!bossRushColossal || bossRushColossal.hp <= 0) return;
       // Allies can only damage colossal if they are titan_ally
       if (fromAlly && (!bossRushColossal || source !== 'titan')) return;
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * 0.7); // 30% reduction
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * 0.7); // 30% reduction
       bossRushColossal.hp -= dmg; bossRushColossal.hitFlash = 6;
       var c2 = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : '#ef4444';
       createTextParticle(bossRushColossal.x, bossRushColossal.y - 60, '-' + dmg, c2, 14);
@@ -4457,7 +4651,7 @@
     }
     function dealColossalSentinelDamage(sent, dmg, source) {
       if (!sent || !sent.alive) return;
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage'));
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult());
       sent.hp -= dmg; sent.hitFlash = 6;
       var c3 = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : '#06b6d4';
       createTextParticle(sent.x, GROUND_Y - 55, '-' + dmg, c3, 14);
@@ -5086,7 +5280,7 @@
       addUltCharge(10);
       updateEXPBar();
       const tl = Math.min(Math.floor(totalKills / LEVEL_UP_KILLS) + 1, MAX_LEVEL);
-      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
+      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'phantom') { PLAYER_MAX_HP_CURRENT = Math.floor(PHANTOM_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
     }
 
     // ==================== SPAWNING ====================
@@ -5365,7 +5559,7 @@
             bossRushDeathSwing--;
             if (bossRushDeathSwing === 6 && Math.abs(ddx) < 100) {
               playerHP -= 10; createTextParticle(stick.x, stick.y - 80, '-10', '#e5e7eb', 16);
-              if (playerHP <= 0) { gameState = 'gameover'; }
+              if (playerHP <= playerHpFloor()) { gameState = 'gameover'; }
             }
           } else {
             bossRushDeathAtkCd--;
@@ -5405,7 +5599,7 @@
               bh.grabTimer--;
               if (bh.grabTimer % 60 === 0) {
                 playerHP -= 5; createTextParticle(stick.x, stick.y - 80, '-5', '#ef4444', 14);
-                if (playerHP <= 0) { gameState = 'gameover'; }
+                if (playerHP <= playerHpFloor()) { gameState = 'gameover'; }
               }
               return bh.grabTimer > 0;
             }
@@ -5472,7 +5666,7 @@
             if (bossRushUltraAtkCd <= 0 && Math.abs(udx) < 90) {
               bossRushUltraAtkCd = 60;
               playerHP -= 20; createTextParticle(stick.x, stick.y - 80, '-20', '#06b6d4', 16);
-              if (playerHP <= 0) { gameState = 'gameover'; }
+              if (playerHP <= playerHpFloor()) { gameState = 'gameover'; }
             }
           }
           // Long dash
@@ -5483,7 +5677,7 @@
             // Damage player during dash
             if (Math.abs(ud.x - stick.x) < 60) {
               playerHP -= 25; createTextParticle(stick.x, stick.y - 80, '-25', '#06b6d4', 16);
-              if (playerHP <= 0) { gameState = 'gameover'; }
+              if (playerHP <= playerHpFloor()) { gameState = 'gameover'; }
             }
             if (bossRushUltraDashDist <= 0) { bossRushUltraDashing = false; }
           } else {
@@ -5501,7 +5695,7 @@
               var slamR = 200;
               if (Math.abs(ud.x - stick.x) < slamR) {
                 playerHP -= 40; createTextParticle(stick.x, stick.y - 80, '-40', '#f97316', 18);
-                if (playerHP <= 0) { gameState = 'gameover'; }
+                if (playerHP <= playerHpFloor()) { gameState = 'gameover'; }
               }
               createExplosion(ud.x, GROUND_Y, slamR, '#f97316');
               canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 300);
@@ -5532,7 +5726,7 @@
             boltSeg.push({ x1: bx2, y1: by2, x2: lx2, y2: GROUND_Y - 30 });
             lightningBolts.push({ segments: boltSeg, life: 15, x: lx2 });
             playerHP -= 30; createTextParticle(stick.x, stick.y - 80, '-30', '#06b6d4', 16);
-            if (playerHP <= 0) { gameState = 'gameover'; }
+            if (playerHP <= playerHpFloor()) { gameState = 'gameover'; }
             createParticles(lx2, GROUND_Y - 30, 15, '#06b6d4');
           }
           // Spawn 1 boss after 30s
@@ -5791,6 +5985,7 @@
               scoreEl.textContent = score; killsEl.textContent = kills;
               createTextParticle(CW / 2, CH / 2 - 50, '🏆 COLOSSAL DEFEATED!', '#facc15', 28);
               createTextParticle(CW / 2, CH / 2 - 20, '+1000 pts + 5 🏆', '#facc15', 20);
+              if (!phantomUnlocked) { phantomUnlocked = true; localStorage.setItem('sm_phantomUnlocked', 'true'); createTextParticle(CW / 2, CH / 2 + 20, '🌑 SECRET UNLOCKED: PHANTOM!', '#94a3b8', 22); }
               createParticles(CW / 2, CH / 2, 50, '#facc15');
               canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 500);
               bossRushPhase = 'victory'; bossRushActive = false;
@@ -5819,7 +6014,7 @@
       if (isShielded) { shieldTimer--; if (shieldTimer <= 0) { isShielded = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD DOWN', '#94a3b8', 14); } }
       if (shieldCD > 0) shieldCD--;
       updateUltUI(); updateUltimate();
-      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateCheeserAbilities(); updateCampaignSpawns(); checkCampaignWin();
+      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateCheeserAbilities(); updatePhantomAbilities(); updateCampaignSpawns(); checkCampaignWin();
       if (ninjaSlashCD > 0) ninjaSlashCD--;
       if (ninjaKunaiCD > 0) ninjaKunaiCD--;
       if (ninjaDashCD > 0) ninjaDashCD--;
@@ -6325,6 +6520,35 @@
           ctx.globalAlpha = 1;
         });
       }
+      // Phantom effects drawing
+      if (selectedChar === 'phantom') {
+        // Possess projectiles — dark clones
+        phantomPossessProjectiles.forEach(function(p) {
+          ctx.globalAlpha = 0.5; ctx.fillStyle = '#7c3aed';
+          ctx.beginPath(); ctx.arc(p.x, p.y, 16, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+          ctx.fillStyle = '#1e1b4b';
+          ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.stroke();
+          ctx.lineWidth = 5.5;
+        });
+        // Shadow rain streaks
+        if (phantomRainActive) {
+          ctx.strokeStyle = 'rgba(139,92,246,0.55)'; ctx.lineWidth = 2;
+          for (var rd = 0; rd < 26; rd++) {
+            var rx2 = (rd * 97 + Math.floor(time * 7)) % CW;
+            var ry2 = (Math.floor(time * 14) + rd * 53) % CH;
+            ctx.beginPath(); ctx.moveTo(rx2, ry2); ctx.lineTo(rx2 - 3, ry2 + 18); ctx.stroke();
+          }
+          ctx.lineWidth = 5.5;
+        }
+        // Shadow dash trail
+        if (phantomDashing) {
+          ctx.globalAlpha = 0.35; ctx.fillStyle = '#4c1d95';
+          ctx.beginPath(); ctx.arc(stick.x - 20 * phantomDashDir, stick.y - 30, 22, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
       // Hyper effects drawing
       if (selectedChar === 'hyper') {
         // Earthquake spikes
@@ -6639,6 +6863,19 @@
         ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(ast.x, ast.y + 15, 2, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
       });
+      // Phantom DARK REALM — black out the arena, characters drawn on top stay lit
+      if (phantomUltActive && selectedChar === 'phantom') {
+        phantomRealmFade = Math.min(1, phantomRealmFade + 0.06);
+        ctx.globalAlpha = 0.82 * phantomRealmFade;
+        ctx.fillStyle = '#05050d'; ctx.fillRect(0, 0, CW, CH);
+        ctx.globalAlpha = 1;
+        var drg = ctx.createRadialGradient(stick.x, stick.y - 30, 10, stick.x, stick.y - 30, 150);
+        drg.addColorStop(0, 'rgba(139,92,246,0.28)'); drg.addColorStop(1, 'rgba(139,92,246,0)');
+        ctx.fillStyle = drg; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 150, 0, Math.PI * 2); ctx.fill();
+      } else if (phantomRealmFade > 0) {
+        phantomRealmFade = Math.max(0, phantomRealmFade - 0.06);
+        if (phantomRealmFade > 0) { ctx.globalAlpha = 0.82 * phantomRealmFade; ctx.fillStyle = '#05050d'; ctx.fillRect(0, 0, CW, CH); ctx.globalAlpha = 1; }
+      }
       drawStickman(); drawBullets(); drawPlayerBullets(); drawGrenades(); drawEnemyGrenades(); drawSuperBlastOrbs(); drawMageFireballs(); drawMageFrostOrbs(); drawLightningBolts(); drawNinjaKunais(); drawNinjaClones(); drawNinjaSharins();
       if (ninjaIsInvis && gameState === 'playing') { ctx.globalAlpha = 0.15; ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 22, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.fillText('👻 INVIS ' + Math.ceil(ninjaInvisTimer / 60) + 's', stick.x, stick.y - 65); ctx.textAlign = 'start'; }
       if (ninjaUltActive && gameState === 'playing') { ctx.globalAlpha = 0.2 + Math.sin(time * 0.3) * 0.1; ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 80 + Math.sin(time * 0.2) * 10, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
@@ -7156,6 +7393,146 @@
       }
     }
 
+    // ==================== PHANTOM ABILITIES ====================
+    function phantomHitAll(cx, radius, dmg, source) {
+      dummies.forEach(function(d) { if (d.alive && Math.abs(cx - d.x) < radius) dealDamageToDummy(d, dmg, source); });
+      miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(cx - mb.x) < radius) dealDamageToMiniBoss(mb, dmg, source); });
+      if (boss && boss.alive && Math.abs(cx - boss.x) < radius) dealDamageToBoss(dmg, source);
+      if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(cx - bossRushDeath.x) < radius) { bossRushDeath.hp -= dmg; bossRushDeath.hitFlash = 6; }
+      if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(cx - bossRushUltra.x) < radius) dealUltraBossDamage(dmg);
+      if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(cx - bossRushSentinel1.x) < radius) dealColossalSentinelDamage(bossRushSentinel1, dmg, source);
+      if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(cx - bossRushSentinel2.x) < radius) dealColossalSentinelDamage(bossRushSentinel2, dmg, source);
+      if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(cx - bossRushColossal.x) < radius) dealColossalDamage(dmg, source);
+    }
+    function possessEnemy(ex) {
+      createParticles(ex, GROUND_Y - 30, 16, '#7c3aed');
+      createTextParticle(ex, GROUND_Y - 78, '🌑 POSSESSED!', '#a78bfa', 16);
+      allies.push({ x: ex, y: GROUND_Y, type: 'attacker', hp: 200, maxHp: 200, attackCD: ALLY_ATTACKER_CD, life: PHANTOM_POSSESS_DUR, hitFlash: 0, alive: true, facing: -1, speed: 1.0 });
+    }
+    function performPhantomPunch() {
+      if (phantomPunchCD > 0 || stick.state === 'dash') return;
+      phantomPunchCD = PHANTOM_PUNCH_CD;
+      stick.state = 'shoot'; stick.animTime = 0; attackCooldown = PHANTOM_PUNCH_CD;
+      var dmg = PHANTOM_PUNCH_DMG;
+      phantomHitAll(stick.x, PHANTOM_PUNCH_RANGE, dmg, 'shadow');
+      createParticles(stick.x + 40 * stick.facing, stick.y - 30, 8, '#4c1d95');
+    }
+    function performPhantomTeleport() {
+      if (phantomTeleportCD > 0 || phantomTeleportWinding) return;
+      phantomTeleportWinding = true; phantomTeleportTimer = PHANTOM_TELEPORT_WINDUP;
+      phantomTeleportCD = PHANTOM_TELEPORT_CD;
+      createTextParticle(stick.x, stick.y - 80, '🌫 TELEPORT...', '#a78bfa', 14);
+      createParticles(stick.x, stick.y - 20, 12, '#6d28d9');
+    }
+    function performPhantomPossess() {
+      if (phantomPossessCD > 0) return;
+      phantomPossessCD = PHANTOM_POSSESS_CD;
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 20;
+      var dx = mouseX - stick.x, dy = mouseY - (stick.y - 30);
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      phantomPossessProjectiles.push({ x: stick.x, y: stick.y - 30, vx: dx / dist * 12, vy: dy / dist * 12, timer: 90 });
+    }
+    function performPhantomExplode() {
+      if (phantomExplodeCD > 0) return;
+      phantomExplodeCD = PHANTOM_EXPLODE_CD;
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 20;
+      createExplosion(stick.x, GROUND_Y - 10, PHANTOM_EXPLODE_RADIUS, '#7c3aed');
+      phantomHitAll(stick.x, PHANTOM_EXPLODE_RADIUS, PHANTOM_EXPLODE_DMG, 'grenade');
+      createTextParticle(stick.x, stick.y - 80, '💥 DARKNESS! ' + PHANTOM_EXPLODE_DMG, '#c084fc', 18);
+    }
+    function performPhantomShadowDash() {
+      if (phantomDashCD > 0 || phantomDashing) return;
+      phantomDashCD = PHANTOM_DASH_CD;
+      phantomDashing = true; phantomDashDist = 0; phantomDashDir = mouseX >= stick.x ? 1 : -1;
+      createParticles(stick.x, stick.y - 30, 10, '#4c1d95');
+    }
+    function performPhantomShadowRain() {
+      if (phantomRainCD > 0 || phantomRainActive) return;
+      phantomRainCD = PHANTOM_RAIN_CD;
+      phantomRainActive = true; phantomRainTimer = PHANTOM_RAIN_DUR; phantomRainTickTimer = 0;
+      createTextParticle(stick.x, stick.y - 90, '🌧 SHADOW RAIN!', '#a78bfa', 18);
+    }
+    function performPhantomDarkRealm() {
+      if (phantomUltActive || !ultReady) return;
+      ultReady = false; ultCharge = 0; ultBar.style.width = '0%'; ultBarText.textContent = '0%';
+      phantomUltActive = true; phantomUltTimer = PHANTOM_ULT_DUR; phantomUltTickTimer = 0;
+      phantomRealmFade = 0;
+      createTextParticle(CW / 2, CH / 2 - 40, '🌑 DARK REALM!', '#7c3aed', 30);
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 600);
+    }
+    function updatePhantomAbilities() {
+      if (selectedChar !== 'phantom') return;
+      if (phantomPunchCD > 0) phantomPunchCD--;
+      if (phantomTeleportCD > 0) phantomTeleportCD--;
+      if (phantomPossessCD > 0) phantomPossessCD--;
+      if (phantomExplodeCD > 0) phantomExplodeCD--;
+      if (phantomDashCD > 0) phantomDashCD--;
+      if (phantomRainCD > 0) phantomRainCD--;
+      // Teleport windup → blink to mouse with a dark cloud
+      if (phantomTeleportWinding) {
+        phantomTeleportTimer--;
+        createParticles(stick.x, stick.y - 20, 1, '#6d28d9');
+        if (phantomTeleportTimer <= 0) {
+          phantomTeleportWinding = false;
+          var tx = Math.max(30, Math.min(CW - 30, mouseX));
+          createParticles(stick.x, stick.y - 20, 14, '#4c1d95');
+          stick.x = tx;
+          if (mouseY < GROUND_Y - 10) { stick.y = Math.max(80, mouseY); stick.vy = 0; }
+          createParticles(stick.x, stick.y - 20, 14, '#8b5cf6');
+          createTextParticle(stick.x, stick.y - 80, '🌫 SHADOW STEP!', '#a78bfa', 14);
+        }
+      }
+      // Possess projectiles
+      phantomPossessProjectiles.forEach(function(p) {
+        p.x += p.vx; p.y += p.vy; p.timer--;
+        if (p.timer <= 0) return;
+        var hit = false;
+        dummies.forEach(function(d) { if (!hit && d.alive && Math.abs(p.x - d.x) < 26 && Math.abs(p.y - (GROUND_Y - 30)) < 45) { hit = true; d.alive = false; possessEnemy(d.x); } });
+        miniBosses.forEach(function(mb) { if (!hit && mb.alive && Math.abs(p.x - mb.x) < 26 && Math.abs(p.y - (GROUND_Y - 30)) < 50) { hit = true; mb.alive = false; possessEnemy(mb.x); } });
+        if (!hit && boss && boss.alive && Math.abs(p.x - boss.x) < 30) { hit = true; createParticles(p.x, p.y, 12, '#7c3aed'); }
+        if (hit) p.timer = 0;
+      });
+      phantomPossessProjectiles = phantomPossessProjectiles.filter(function(p) { return p.timer > 0; });
+      // Shadow dash
+      if (phantomDashing) {
+        var step = Math.min(PHANTOM_DASH_SPD, PHANTOM_DASH_DIST - phantomDashDist);
+        stick.x += step * phantomDashDir; phantomDashDist += step;
+        if (stick.x < 30) stick.x = 30; if (stick.x > CW - 30) stick.x = CW - 30;
+        phantomHitAll(stick.x, 40, PHANTOM_DASH_DMG, 'dash');
+        createParticles(stick.x, stick.y - 30, 2, '#4c1d95');
+        if (phantomDashDist >= PHANTOM_DASH_DIST) phantomDashing = false;
+      }
+      // Shadow rain — random drops
+      if (phantomRainActive) {
+        phantomRainTimer--;
+        phantomRainTickTimer++;
+        if (phantomRainTickTimer >= PHANTOM_RAIN_TICK) {
+          phantomRainTickTimer = 0;
+          var rx = 20 + Math.random() * (CW - 40);
+          dummies.forEach(function(d) { if (d.alive && Math.abs(rx - d.x) < 50) dealDamageToDummy(d, PHANTOM_RAIN_DMG, 'rain'); });
+          miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(rx - mb.x) < 55) dealDamageToMiniBoss(mb, PHANTOM_RAIN_DMG, 'rain'); });
+          if (boss && boss.alive && Math.abs(rx - boss.x) < 60) dealDamageToBoss(PHANTOM_RAIN_DMG, 'rain');
+        }
+        if (phantomRainTimer <= 0) phantomRainActive = false;
+      }
+      // Dark realm — 7 dmg/s to all enemies for 10s, then a big burst
+      if (phantomUltActive) {
+        phantomUltTimer--;
+        phantomUltTickTimer++;
+        if (phantomUltTickTimer >= PHANTOM_ULT_TICK_INT) {
+          phantomUltTickTimer = 0;
+          phantomHitAll(CW / 2, 99999, PHANTOM_ULT_TICK_DMG, 'dark');
+        }
+        if (phantomUltTimer <= 0) {
+          phantomUltActive = false;
+          createTextParticle(CW / 2, CH / 2 - 20, '💥 DARK BURST! ' + PHANTOM_ULT_EXPLODE_DMG, '#c084fc', 26);
+          createExplosion(CW / 2, GROUND_Y - 30, CW, '#7c3aed');
+          phantomHitAll(CW / 2, 99999, PHANTOM_ULT_EXPLODE_DMG, 'dark');
+          canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 500);
+        }
+      }
+    }
+
     // ==================== CHEESER ABILITIES ====================
     function performCheeserThrow() {
       if (cheeserThrowCD > 0 || stick.state === 'dash') return;
@@ -7272,6 +7649,12 @@
         if (e.key.toLowerCase() === 'e') performHyperShield();
       } else if (selectedChar === 'cheeser') {
         if (e.key === '3') performCheeserUlt();
+      } else if (selectedChar === 'phantom') {
+        if (e.key === '1') performPhantomPossess();
+        if (e.key === '2') performPhantomExplode();
+        if (e.key === '3') performPhantomDarkRealm();
+        if (e.key.toLowerCase() === 'f') performPhantomShadowDash();
+        if (e.key.toLowerCase() === 'e') performPhantomShadowRain();
       }
     });
     window.addEventListener('keyup', (e) => keys.delete(e.key));
@@ -7300,6 +7683,8 @@
         if (e.button === 2) performHyperSmallSlam(); else performHyperPunch();
       } else if (selectedChar === 'cheeser') {
         if (e.button === 2) performCheeserHeal(); else performCheeserThrow();
+      } else if (selectedChar === 'phantom') {
+        if (e.button === 2) performPhantomTeleport(); else performPhantomPunch();
       }
     });
     canvas.addEventListener('mousemove', (e) => {
@@ -7314,7 +7699,7 @@
       mouseX = (t.clientX - rect.left) * (CW / rect.width);
       mouseY = (t.clientY - rect.top) * (CH / rect.height);
       if (mouseX > stick.x) stick.facing = 1; else stick.facing = -1;
-      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else if (selectedChar === 'cheeser') performCheeserThrow(); else performPunch();
+      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else if (selectedChar === 'cheeser') performCheeserThrow(); else if (selectedChar === 'phantom') performPhantomPunch(); else performPunch();
     }, { passive: false });
 
     // ==================== RESET ====================
@@ -7348,6 +7733,11 @@
       hyperGSlamCD = 0; hyperShieldCD = 0; hyperShieldActive = false;
       hyperSpiritLaser = null; hyperLaserDir = null; hyperQuakeSpikes = []; hyperFlyActive = false;
       cheeserThrowCD = 0; cheeserHealCD = 0; cheeserCheeseBullets = []; // cheeserMultishot persists across levels!
+      phantomPunchCD = 0; phantomTeleportCD = 0; phantomTeleportWinding = false; phantomTeleportTimer = 0;
+      phantomPossessCD = 0; phantomPossessProjectiles = []; phantomExplodeCD = 0;
+      phantomDashCD = 0; phantomDashing = false; phantomDashDist = 0; phantomDashDir = 1;
+      phantomRainCD = 0; phantomRainTimer = 0; phantomRainTickTimer = 0; phantomRainActive = false;
+      phantomUltActive = false; phantomUltTimer = 0; phantomUltTickTimer = 0; phantomRealmFade = 0;
       expKills = 0; expNextLevel = 5;
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
@@ -7363,7 +7753,7 @@
       var hasSummonAlly = false;
       for (var k in shopUpgrades) { if (k.indexOf('summon') === 0 && shopUpgrades[k] > 0) { hasSummonAlly = true; break; } }
       if (hasSummonAlly) { allySpawnTimer = ALLY_SPAWN_INTERVAL; }
-      PLAYER_MAX_HP_CURRENT = selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : 100;
+      PLAYER_MAX_HP_CURRENT = selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : 100;
       PLAYER_MAX_HP_CURRENT += getShopUpgradeEffect('maxHp');
       // Knight shield init
       if (selectedChar === 'knight') { knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { knightShieldHP = 0; knightShieldMax = 0; }
@@ -7466,6 +7856,15 @@
         rows.push(['L-CLICK', 'CHEESE 200', 'text-yellow-400']);
         rows.push(['R-CLICK', 'EAT HEAL 100%', 'text-green-400']);
         rows.push(['3', 'MULTI CHEESE +1', 'text-amber-400']);
+      } else if (selectedChar === 'phantom') {
+        rows.push(['L-CLICK', 'SHADOW 9', 'text-slate-300']);
+        rows.push(['R-CLICK', 'TELEPORT (1s)', 'text-purple-400']);
+        rows.push(['1', 'POSSESS 4s', 'text-violet-400']);
+        rows.push(['2', 'DARK EXPLODE 20', 'text-fuchsia-400']);
+        rows.push(['F', 'SHADOW DASH 10', 'text-indigo-400']);
+        rows.push(['E', 'SHADOW RAIN 2/drop', 'text-slate-400']);
+        rows.push(['3', 'DARK REALM 7/s + 20', 'text-purple-300']);
+        rows.push(['3 REQ', 'NEEDS 100% ULT', 'text-amber-400']);
       }
       rows.push(['ESC', 'PAUSE', 'text-slate-500']);
       rows.push(['TAB', 'SHOP', 'text-amber-400']);
@@ -7480,6 +7879,7 @@
       var mb = document.getElementById('menuBossPoints');
       if (mp) mp.textContent = totalPoints;
       if (mb) mb.textContent = bossPoints;
+      updateTraitUI();
     }
     updateMenuPoints(); updateCharLockUI();
     animFrameId = requestAnimationFrame(gameLoop);
