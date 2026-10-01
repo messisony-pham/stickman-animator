@@ -99,7 +99,7 @@
             <div class="text-[9px] text-yellow-500/60">HP:5000 SECRET</div>
           </div>
           <div id="charPhantom" class="char-card bg-slate-800 border border-slate-600 rounded-lg p-2 cursor-pointer hover:border-slate-400 transition-all text-center relative" onclick="buyChar('phantom')">
-            <div id="phantomLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">🔒</span><span class="text-slate-300 text-[9px] font-bold">SECRET</span><span class="text-[7px] text-slate-500 text-center leading-tight">Beat the<br>Colossal</span></div>
+            <div id="phantomLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">🔒</span><span class="text-slate-400 text-[9px] font-bold">???</span></div>
             <div class="text-2xl">🌑</div>
             <div class="font-bold text-slate-300 text-[11px]">PHANTOM</div>
             <div class="text-[9px] text-emerald-400">Shadow 9</div>
@@ -231,6 +231,16 @@
               <div class="text-[10px] text-slate-600">Coming soon...</div>
             </div>
             <div class="text-slate-600">🔒</div>
+          </div>
+        </div>
+        <div id="campSecret" class="bg-slate-900 border border-purple-800/60 rounded-xl p-4 cursor-pointer hover:border-purple-500 transition-all">
+          <div class="flex items-center gap-3">
+            <div class="text-3xl">🌑</div>
+            <div class="flex-1">
+              <div class="font-bold text-purple-300">??? · SECRET MISSION</div>
+              <div class="text-[10px] text-slate-500">Something stirs in the dark universe...</div>
+            </div>
+            <div class="text-purple-400">➤</div>
           </div>
         </div>
       </div>
@@ -591,7 +601,7 @@
         totalPoints -= 100; savePoints(); boughtPhantom = true; localStorage.setItem('sm_boughtPhantom', 'true');
         charUses.phantom = 0; localStorage.setItem('sm_phantomUses', 0);
       } else {
-        if (c === 'phantom' && !phantomUnlocked) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🔒</span><span class="text-red-400 text-[8px] font-bold text-center px-1">Beat the Colossal in Boss Rush to unlock!</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2500); }
+        if (c === 'phantom' && !phantomUnlocked) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🌑</span><span class="text-purple-300 text-[8px] font-bold text-center px-1">A dark secret hides Phantom...</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2500); }
         if (c === 'phantom' && phantomUnlocked && totalPoints < 100) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🪙</span><span class="text-red-400 text-[8px] font-bold">Need 100 points!</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2000); }
         return;
       }
@@ -634,7 +644,7 @@
         if (!phBought) {
           phLock.innerHTML = phantomUnlocked
             ? '<span class="text-lg">🔒</span><span class="text-slate-300 text-[9px] font-bold">100🪙</span>'
-            : '<span class="text-lg">🔒</span><span class="text-slate-300 text-[9px] font-bold">SECRET</span><span class="text-[7px] text-slate-500 text-center leading-tight">Beat the<br>Colossal</span>';
+            : '<span class="text-lg">🔒</span><span class="text-slate-400 text-[9px] font-bold">???</span>';
         }
       }
       s.style.opacity = isCharBought('soldier') ? '1' : '1';
@@ -1024,6 +1034,7 @@
     let phantomExplodeCD = 0, phantomDashCD = 0, phantomDashing = false, phantomDashDist = 0, phantomDashDir = 1;
     let phantomRainCD = 0, phantomRainTimer = 0, phantomRainTickTimer = 0, phantomRainActive = false;
     let phantomUltActive = false, phantomUltTimer = 0, phantomUltTickTimer = 0, phantomRealmFade = 0;
+    let phantomMissionActive = false, darkUniverseTeleportCd = 0;
     // EXP bar state
     let expKills = 0, expNextLevel = 5;
     let isCharging = false, chargeDist = 0, chargeDmgDealt = false;
@@ -3996,8 +4007,23 @@
       const c = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : source === 'kick' ? '#fb7185' : '#facc15';
       createTextParticle(boss.x, GROUND_Y - 55, '-' + dmg, c, 18);
       createParticles(boss.x, GROUND_Y - 30, 8, c);
-      if (boss.hp <= 0) {
+      var bossFloor = boss.type === 'darkuniverse' ? (boss.minHp || -500) : 0;
+      if (boss.hp <= bossFloor) {
         boss.alive = false; kills++; totalKills++;
+        if (boss.type === 'darkuniverse') {
+          phantomUnlocked = true; localStorage.setItem('sm_phantomUnlocked', 'true');
+          phantomMissionActive = false;
+          createTextParticle(CW / 2, CH / 2 - 40, '🌑 DARK UNIVERSE DEFEATED!', '#a78bfa', 30);
+          createParticles(CW / 2, CH / 2, 60, '#8b5cf6');
+          boss = null; updateCharLockUI();
+          victoryMode = true; gameState = 'gameover';
+          scoreEl.textContent = '\u2705 VICTORY!'; killsEl.textContent = '';
+          var gos2 = document.getElementById('gameoverScreen');
+          var gh2 = gos2 ? gos2.querySelector('h2') : null; if (gh2) gh2.textContent = '🏆 YOU WIN!';
+          document.getElementById('gameoverMsg').textContent = 'You defeated Dark Universe... Phantom awakens!';
+          if (gos2) gos2.classList.remove('hidden');
+          return;
+        }
         if (gameMode !== 'sandbox') { bossPoints += 1; savePoints(); }
         scoreEl.textContent = score; killsEl.textContent = kills;
         addUltCharge(10);
@@ -4204,7 +4230,7 @@
     }
 
     function checkBossSpawn() {
-      if (campaignMode) return; // campaign handles its own spawns
+      if (campaignMode || phantomMissionActive) return; // campaign/mission handles its own spawns
       if (boss && boss.alive) return;
       // Titan spawns every 60s
       if (titanTimer >= TITAN_SPAWN_INTERVAL && !boss && gameMode !== 'easy') {
@@ -5475,7 +5501,7 @@
     function gameLoop() {
       if (gameState === 'menu' || gameState === 'paused' || gameState === 'cutscene') { animFrameId = null; return; }
       if (gameState !== 'playing') { if (gameState === 'gameover') drawGameOver(); animFrameId = null; return; }
-      time++; if (gameMode !== 'sandbox' && !campaignMode) { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
+      time++; if (gameMode !== 'sandbox' && !campaignMode && !phantomMissionActive) { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
       if (gracePeriod > 0) gracePeriod--;
       if (gameMode === 'bossrush') {
         // Boss Rush: 3 waves + DEATH
@@ -5985,7 +6011,6 @@
               scoreEl.textContent = score; killsEl.textContent = kills;
               createTextParticle(CW / 2, CH / 2 - 50, '🏆 COLOSSAL DEFEATED!', '#facc15', 28);
               createTextParticle(CW / 2, CH / 2 - 20, '+1000 pts + 5 🏆', '#facc15', 20);
-              if (!phantomUnlocked) { phantomUnlocked = true; localStorage.setItem('sm_phantomUnlocked', 'true'); createTextParticle(CW / 2, CH / 2 + 20, '🌑 SECRET UNLOCKED: PHANTOM!', '#94a3b8', 22); }
               createParticles(CW / 2, CH / 2, 50, '#facc15');
               canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 500);
               bossRushPhase = 'victory'; bossRushActive = false;
@@ -5996,7 +6021,7 @@
         // Update HP bar
         hpBar.style.width = Math.max(0, (playerHP / PLAYER_MAX_HP_CURRENT) * 100) + '%';
         hpText.textContent = Math.max(0, Math.round(playerHP));
-      } else if (!campaignMode) {
+      } else if (!campaignMode && !phantomMissionActive) {
         if (spawnTimer >= SPAWN_INTERVAL) { spawnTimer = 0; spawnWave(); }
         if (kamikazeTimer >= KAMIKAZE_INTERVAL) { kamikazeTimer = 0; spawnKamikazes(); }
         if (grenaderTimer >= GRENADER_INTERVAL && gameMode !== 'easy') { grenaderTimer = 0; spawnGrenaderWave(); }
@@ -6014,7 +6039,7 @@
       if (isShielded) { shieldTimer--; if (shieldTimer <= 0) { isShielded = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD DOWN', '#94a3b8', 14); } }
       if (shieldCD > 0) shieldCD--;
       updateUltUI(); updateUltimate();
-      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateCheeserAbilities(); updatePhantomAbilities(); updateCampaignSpawns(); checkCampaignWin();
+      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateCheeserAbilities(); updatePhantomAbilities(); updateDarkUniverseBoss(); updateCampaignSpawns(); checkCampaignWin();
       if (ninjaSlashCD > 0) ninjaSlashCD--;
       if (ninjaKunaiCD > 0) ninjaKunaiCD--;
       if (ninjaDashCD > 0) ninjaDashCD--;
@@ -6863,6 +6888,16 @@
         ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(ast.x, ast.y + 15, 2, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
       });
+      // Dark Universe boss — swirling shadow aura
+      if (boss && boss.alive && boss.type === 'darkuniverse') {
+        ctx.globalAlpha = 0.45 + Math.sin(time * 0.15) * 0.2;
+        ctx.fillStyle = '#4c1d95';
+        ctx.beginPath(); ctx.arc(boss.x, GROUND_Y - 40, 46, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = '#8b5cf6';
+        ctx.beginPath(); ctx.arc(boss.x, GROUND_Y - 40, 68, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
       // Phantom DARK REALM — black out the arena, characters drawn on top stay lit
       if (phantomUltActive && selectedChar === 'phantom') {
         phantomRealmFade = Math.min(1, phantomRealmFade + 0.06);
@@ -7393,6 +7428,48 @@
       }
     }
 
+    // ==================== PHANTOM SECRET MISSION ====================
+    function startPhantomMission() {
+      document.getElementById('campaignScreen').classList.add('hidden');
+      menuScreen.classList.add('hidden');
+      gameUI.classList.remove('hidden'); gameUI.classList.add('flex');
+      document.getElementById('gameoverScreen').classList.add('hidden');
+      document.getElementById('cutsceneScreen').classList.add('hidden');
+      document.getElementById('cutsceneUI').style.display = '';
+      document.getElementById('sandboxPanel').classList.add('hidden');
+      var instr = document.getElementById('instructions'); if (instr) instr.classList.add('hidden');
+      campaignMode = false; activeCampaignType = 'fighter'; victoryMode = false;
+      if (!isCharBought(selectedChar)) selectedChar = 'fighter';
+      document.getElementById('charIcon').textContent = '🌑';
+      document.getElementById('charName').textContent = 'Dark Universe';
+      ultBarWrap.classList.remove('hidden');
+      trackCharUse(selectedChar);
+      updateControlsList();
+      gameState = 'playing';
+      fullReset();
+      dummies = []; miniBosses = []; bullets = []; enemyGrenades = []; pickups = []; boss = null;
+      phantomMissionActive = true;
+      darkUniverseTeleportCd = 120;
+      boss = { x: CW - 140, y: GROUND_Y, hp: 500, maxHp: 500, minHp: -500, facing: -1, state: 'chase', animTime: 0, attackCD: 90, hitFlash: 0, alive: true, vy: 0, dashDist: 0, dashVx: 0, dashHit: false, type: 'darkuniverse' };
+      createTextParticle(CW / 2, 70, '🌑 DARK UNIVERSE', '#a78bfa', 30);
+      createTextParticle(CW / 2, 104, 'Defeat it to survive!', '#7c3aed', 14);
+      resumeGameLoop();
+    }
+    window.startPhantomMission = startPhantomMission;
+    function updateDarkUniverseBoss() {
+      if (!boss || !boss.alive || boss.type !== 'darkuniverse') return;
+      if (darkUniverseTeleportCd > 0) darkUniverseTeleportCd--;
+      if (darkUniverseTeleportCd <= 0) {
+        darkUniverseTeleportCd = 150 + Math.floor(Math.random() * 90);
+        createParticles(boss.x, GROUND_Y - 30, 16, '#4c1d95');
+        var choices = [stick.x - 220, stick.x + 220, stick.x - 120, stick.x + 120, 80, CW - 80];
+        var nx = choices[Math.floor(Math.random() * choices.length)];
+        boss.x = Math.max(50, Math.min(CW - 50, nx));
+        createParticles(boss.x, GROUND_Y - 30, 16, '#8b5cf6');
+        createTextParticle(boss.x, GROUND_Y - 90, '🌑 TELEPORT!', '#a78bfa', 16);
+      }
+      if (Math.random() < 0.3) createParticles(boss.x, GROUND_Y - 40, 1, '#6d28d9');
+    }
     // ==================== PHANTOM ABILITIES ====================
     function phantomHitAll(cx, radius, dmg, source) {
       dummies.forEach(function(d) { if (d.alive && Math.abs(cx - d.x) < radius) dealDamageToDummy(d, dmg, source); });
@@ -7704,7 +7781,8 @@
 
     // ==================== RESET ====================
     function fullReset() {
-      victoryMode = false;
+      victoryMode = false; phantomMissionActive = false; darkUniverseTeleportCd = 0;
+      var ghReset = document.querySelector('#gameoverScreen h2'); if (ghReset) ghReset.textContent = '💀 GAME OVER';
       document.getElementById('cutsceneUI').style.display = '';
       stick.x = 150; stick.y = GROUND_Y; stick.vx = 0; stick.vy = 0;
       stick.facing = 1; stick.state = 'idle'; stick.animTime = 0; stick.hitFlash = 0;
@@ -7765,6 +7843,7 @@
     }
 
     document.getElementById('resetBtn').addEventListener('click', () => { document.getElementById('cutsceneUI').style.display = ''; fullReset(); gameState = 'playing'; resumeGameLoop(); });
+    document.getElementById('campSecret').addEventListener('click', function() { startPhantomMission(); });
     document.getElementById('closeInstructions').addEventListener('click', () => { showInstructions = false; instructionsEl.style.display = 'none'; });
     ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
     ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : performSlam(); });
