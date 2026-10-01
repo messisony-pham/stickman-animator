@@ -3620,9 +3620,10 @@
       if (!boss || !boss.alive) return;
       const dx = boss.x;
       const isTitan = boss.type === 'titan';
-      const bc = boss.hitFlash > 0 ? '#fbbf24' : isTitan ? '#b45309' : '#a855f7';
-      const hc = boss.hitFlash > 0 ? '#fde68a' : isTitan ? '#fbbf24' : '#c084fc';
-      const auraColor = isTitan ? '#d97706' : '#a855f7';
+      const isDU = boss.type === 'darkuniverse';
+      const bc = boss.hitFlash > 0 ? '#fbbf24' : isTitan ? '#b45309' : isDU ? '#0a0a12' : '#a855f7';
+      const hc = boss.hitFlash > 0 ? '#fde68a' : isTitan ? '#fbbf24' : isDU ? '#7c3aed' : '#c084fc';
+      const auraColor = isTitan ? '#d97706' : isDU ? '#4c1d95' : '#a855f7';
       const scale = isTitan ? 1.3 : 1;
       ctx.globalAlpha = 0.12 + Math.sin(time * 0.05) * 0.06; ctx.fillStyle = auraColor;
       ctx.beginPath(); ctx.arc(dx, GROUND_Y - 30, 50 * scale, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
@@ -3657,6 +3658,32 @@
         // Label
         ctx.fillStyle = '#d97706'; ctx.font = '12px serif'; ctx.textAlign = 'center';
         ctx.fillText('⛏', dx, GROUND_Y - 100); ctx.textAlign = 'start';
+      } else if (isDU) {
+        // Dark Universe: pitch-black figure, glowing violet eyes, obsidian crown
+        if (boss.state === 'slamWindup') {
+          ctx.globalAlpha = 0.25 + Math.sin(time * 0.25) * 0.18;
+          ctx.fillStyle = '#4c1d95';
+          ctx.beginPath(); ctx.arc(dx, GROUND_Y, BOSS_SLAM_RADIUS, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+        if (boss.state === 'dash') {
+          ctx.globalAlpha = 0.35; ctx.strokeStyle = '#7c3aed'; ctx.lineWidth = 3;
+          for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(dx - i * 20 * boss.facing, GROUND_Y - 55); ctx.lineTo(dx - i * 20 * boss.facing, GROUND_Y + 5); ctx.stroke(); }
+          ctx.globalAlpha = 1; ctx.strokeStyle = bc; ctx.lineWidth = 5.5;
+        }
+        // Glowing violet eyes
+        ctx.fillStyle = '#a855f7';
+        ctx.beginPath(); ctx.arc(dx - 6, GROUND_Y - 55, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 6, GROUND_Y - 55, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.45; ctx.beginPath(); ctx.arc(dx, GROUND_Y - 55, 9, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        // Obsidian crown
+        ctx.fillStyle = '#05050d';
+        ctx.beginPath(); ctx.moveTo(dx - 12, GROUND_Y - 75); ctx.lineTo(dx - 8, GROUND_Y - 86); ctx.lineTo(dx - 2, GROUND_Y - 79); ctx.lineTo(dx + 2, GROUND_Y - 89); ctx.lineTo(dx + 8, GROUND_Y - 79); ctx.lineTo(dx + 12, GROUND_Y - 86); ctx.lineTo(dx + 14, GROUND_Y - 75); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#a855f7';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 89, 2.5, 0, Math.PI * 2); ctx.fill();
+        // Label
+        ctx.fillStyle = '#a78bfa'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('🌑 DARK UNIVERSE', dx, GROUND_Y - 100); ctx.textAlign = 'start';
       } else {
         // Regular boss: gold crown
         ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.moveTo(dx - 12, GROUND_Y - 75); ctx.lineTo(dx - 8, GROUND_Y - 85); ctx.lineTo(dx - 2, GROUND_Y - 78); ctx.lineTo(dx + 2, GROUND_Y - 88); ctx.lineTo(dx + 8, GROUND_Y - 78); ctx.lineTo(dx + 12, GROUND_Y - 85); ctx.lineTo(dx + 14, GROUND_Y - 75); ctx.closePath(); ctx.fill();
@@ -3678,10 +3705,10 @@
       }
       const bw = isTitan ? 80 : 70, bh = isTitan ? 9 : 7, bx = dx - bw / 2, by = GROUND_Y - (isTitan ? 110 : 98), pct = boss.hp / boss.maxHp;
       ctx.fillStyle = '#1e293b'; ctx.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
-      ctx.fillStyle = isTitan ? (pct > 0.5 ? '#d97706' : pct > 0.25 ? '#facc15' : '#f87171') : (pct > 0.5 ? '#a855f7' : pct > 0.25 ? '#facc15' : '#f87171');
+      ctx.fillStyle = isTitan ? (pct > 0.5 ? '#d97706' : pct > 0.25 ? '#facc15' : '#f87171') : isDU ? (pct > 0.5 ? '#7c3aed' : pct > 0.25 ? '#facc15' : '#f87171') : (pct > 0.5 ? '#a855f7' : pct > 0.25 ? '#facc15' : '#f87171');
       ctx.fillRect(bx, by, bw * Math.max(0, pct), bh);
       ctx.fillStyle = '#fff'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
-      ctx.fillText((isTitan ? '⛏ TITAN ' : '🟣 BOSS ') + boss.hp + '/' + boss.maxHp, dx, by - 4); ctx.textAlign = 'start';
+      ctx.fillText((isTitan ? '⛏ TITAN ' : isDU ? '🌑 DARK UNIVERSE ' : '🟣 BOSS ') + boss.hp + '/' + boss.maxHp, dx, by - 4); ctx.textAlign = 'start';
     }
 
     function drawMiniBoss(mb) {
