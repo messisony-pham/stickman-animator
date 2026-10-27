@@ -116,6 +116,10 @@
       #gamePoints { white-space: nowrap; font-size: 10px; }
       #gameBossPoints { display: none; }
       #shopOpenBtn { padding: 0 4px; }
+      /* The CONTROLS card is 224px wide, which is two thirds of a phone's arena. Trim it
+         into a corner card so the fight is readable while it is up. */
+      #instructions { width: 150px; padding: 6px; font-size: 8px; top: 4px; right: 4px; max-height: 46%; overflow-y: auto; }
+      #instructions #controlsList { font-size: 8px; }
     }
     @media (max-width: 400px) {
       #dpadArea { width: 104px; }
@@ -2562,6 +2566,18 @@
     }
     // The thumb pad only belongs on screen while a level is actually running: it used
     // to sit on top of the menu / minigames and eat their taps.
+    // On a phone the CONTROLS card covers most of the arena, and it used to sit there for the
+    // whole first round unless the player found the tiny ✕. Let it dismiss itself once the
+    // round has actually been running for a moment.
+    var instrAutoHide = null, wasInGame = false;
+    function scheduleInstructionsAutoHide() {
+      if (instrAutoHide) { clearTimeout(instrAutoHide); instrAutoHide = null; }
+      if (!mobileMode || !instructionsEl || instructionsEl.style.display === 'none') return;
+      instrAutoHide = setTimeout(function () {
+        instrAutoHide = null;
+        instructionsEl.style.display = 'none';
+      }, 6000);
+    }
     function syncMobileControls() {
       var mc = document.getElementById('mobileControls');
       if (!mc) return;
@@ -2574,6 +2590,8 @@
       var show = mobileMode && inGame && !miniOpen;
       mc.classList.toggle('hidden', !show);
       document.body.classList.toggle('mob-hud', mobileMode && inGame && !miniOpen);
+      if (mobileMode && inGame && !wasInGame) scheduleInstructionsAutoHide();
+      wasInGame = inGame;
       // The header only has a real height once the game is on screen, so re-fit the
       // canvas as the level starts instead of trusting the menu-time measurement.
       resizeCanvas();
@@ -9330,6 +9348,8 @@
           if (gh2) gh2.textContent = victoryMode ? '🏆 YOU WIN!' : '💀 GAME OVER';
           var gm2 = document.getElementById('gameoverMsg');
           if (gm2) gm2.textContent = 'Score: ' + score + '  |  Kills: ' + kills + '  |  LV ' + playerLevel;
+          // The tutorial card has no business floating over the death screen.
+          if (instructionsEl) instructionsEl.style.display = 'none';
           gosScreen.classList.remove('hidden');
         }
       }
