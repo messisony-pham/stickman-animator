@@ -268,19 +268,9 @@ function run(file) {
     S.launchSoulStorm();
     let warningsSeen = 0, movedOff = 0;
     const release = () => { S.soulStormSetHeld('left', false); S.soulStormSetHeld('right', false); };
-    // A zone can land on the track edge, where the escape on its far side is off the
-    // track: the open way out is back through the near side. "Always move away from the
-    // centre" walked the point into the clamp and took an unavoidable hit, so pick the
-    // side a player would actually take.
-    const edgeMin = S.SOUL_STORM_POINT_R + S.SOUL_STORM_ZONE_EDGE;
-    const edgeMax = S.SOUL_STORM_ARENA_W - S.SOUL_STORM_POINT_R - S.SOUL_STORM_ZONE_EDGE;
-    const escapeHeld = (zoneX) => {
-      const half = S.SOUL_STORM_ZONE_W / 2;
-      const leftOpen = zoneX - half - 2 >= edgeMin;
-      const rightOpen = zoneX + half + 2 <= edgeMax;
-      if (S.soulStormPointX < zoneX) return leftOpen ? 'left' : 'right';
-      return rightOpen ? 'right' : 'left';
-    };
+    // Hold exactly the direction the on-screen hint names, so this asserts the HINT is
+    // safe to follow — including at a wall, where the only way out is the inner side.
+    const escapeHeld = (zoneX) => (S.soulStormEscapeDir(zoneX) < 0 ? 'left' : 'right');
     for (let i = 0; i < 6000 && !S.soulStormEnded && S.soulStormSurvived < S.SOUL_STORM_SURVIVE; i++) {
       const w = S.soulStormWarning;
       if (w) {
@@ -297,6 +287,22 @@ function run(file) {
         release();
       }
       frame(16);
+    }
+    // A zone hugging a wall can only be escaped on the inner side: the hint has to say so.
+    {
+      const minX = S.SOUL_STORM_POINT_R + S.SOUL_STORM_ZONE_EDGE;
+      S.soulStormPointX = minX;
+      const leftZone = S.SOUL_STORM_ZONE_W / 2 + S.SOUL_STORM_ZONE_EDGE;
+      check('a zone against the left wall hints RIGHT, not into the wall',
+        S.soulStormEscapeDir(leftZone) === 1, 'dir=' + S.soulStormEscapeDir(leftZone));
+      S.soulStormPointX = S.SOUL_STORM_ARENA_W - minX;
+      const rightZone = S.SOUL_STORM_ARENA_W - (S.SOUL_STORM_ZONE_W / 2 + S.SOUL_STORM_ZONE_EDGE);
+      check('a zone against the right wall hints LEFT, not into the wall',
+        S.soulStormEscapeDir(rightZone) === -1, 'dir=' + S.soulStormEscapeDir(rightZone));
+      S.soulStormPointX = S.SOUL_STORM_ARENA_W / 2;
+      check('a mid-track zone hints away from its own centre',
+        S.soulStormEscapeDir(S.SOUL_STORM_ARENA_W / 2 - 20) === 1 &&
+        S.soulStormEscapeDir(S.SOUL_STORM_ARENA_W / 2 + 20) === -1);
     }
     check('warnings were shown', warningsSeen > 0);
     check('blasts were fired', S.soulStormBlastsFired > 0);
@@ -331,7 +337,18 @@ function run(file) {
     let firstMissEnded = null, firstMissHits = null;
     // The point never moves here, but the zones are random, so a miss can take a while to
     // happen: step until one does (a 60s cap) instead of assuming a fixed number of frames.
+    // Steering INTO the warned zone makes every blast land, so the heart count is down to
+    // the player being careless rather than to where the random zone happened to fall.
+    const missInto = () => {
+      const w = S3.soulStormWarning;
+      if (!w) {
+        S3.soulStormSetHeld('left', false); S3.soulStormSetHeld('right', false);
+        return;
+      }
+      S3.soulStormSetHeld(S3.soulStormPointX < w.zone ? 'right' : 'left', true);
+    };
     for (let i = 0; i < 1200 && !S3.soulStormEnded; i++) {
+      missInto();
       f3(50);
       if (S3.soulStormHits === 1 && firstMissEnded === null) {
         firstMissEnded = S3.soulStormEnded;
@@ -343,7 +360,7 @@ function run(file) {
     check('hits counter tracked', firstMissHits === 1, 'hits=' + firstMissHits);
 
     // keep missing until the hearts run out
-    for (let i = 0; i < 2000 && !S3.soulStormEnded; i++) { f3(50); }
+    for (let i = 0; i < 2000 && !S3.soulStormEnded; i++) { missInto(); f3(50); }
     check('running out of hearts fails the run', S3.soulStormEnded === true && S3.soulStormWin === false);
     check('exactly SOUL_STORM_HITS_ALLOWED misses were taken', S3.soulStormHits === S3.SOUL_STORM_HITS_ALLOWED,
       'hits=' + S3.soulStormHits + ' allowed=' + S3.SOUL_STORM_HITS_ALLOWED);
@@ -717,7 +734,7 @@ function run(file) {
 
     // Drive the whole survival phase: the arrow must be re-aimed at every warned zone,
     // must never linger between warnings, and must be gone for the E gauntlet and after.
-    let tracked = 0, mismatch = 0, stale = 0;
+    let tracked = 0, mismatch = 0, stale = 0, hintMismatch = 0;
     for (let i = 0; i < 2600 && !S.soulStormEActive && !S.soulStormEnded; i++) {
       const w = S.soulStormWarning;
       const visible = shown();
@@ -725,8 +742,13 @@ function run(file) {
         tracked++;
         if (visible.length !== 1 || Math.abs(arrowZone(visible[0]) - w.zone) > 1) mismatch++;
         const inside = Math.abs(S.soulStormPointX - w.zone) <= S.SOUL_STORM_ZONE_W / 2;
-        if (inside) S.soulStormSetHeld(S.soulStormPointX < w.zone ? 'left' : 'right', true);
-        else { S.soulStormSetHeld('left', false); S.soulStormSetHeld('right', false); }
+        if (inside) {
+          const dir = S.soulStormEscapeDir(w.zone);
+          // The on-screen hint must name the same way out that actually works.
+          const hint = S.soulStormMoveHint();
+          if (hint.indexOf(dir < 0 ? 'LEFT' : 'RIGHT') < 0) hintMismatch++;
+          S.soulStormSetHeld(dir < 0 ? 'left' : 'right', true);
+        } else { S.soulStormSetHeld('left', false); S.soulStormSetHeld('right', false); }
       } else if (S.soulStormSurvived >= S.SOUL_STORM_START_GRACE && visible.length) {
         stale++;
       }
@@ -734,6 +756,7 @@ function run(file) {
     }
     check('the arrow followed every warned zone', tracked > 0 && mismatch === 0, 'tracked=' + tracked + ' mismatches=' + mismatch);
     check('no arrow lingers between warnings', stale === 0, 'stale frames=' + stale);
+    check('the hint always names the escape that actually works', hintMismatch === 0, 'wrong hints=' + hintMismatch);
     check('escaping every zone kept every heart', S.soulStormHits === 0, 'hits=' + S.soulStormHits);
     check('the survival phase reached the E gauntlet', S.soulStormEActive === true);
     check('no arrow during the E gauntlet', shown().length === 0, 'shown=' + shown().length);
@@ -1243,6 +1266,14 @@ function run(file) {
       /c === 'taoist' && totalPoints >= 1200 && bossPoints >= 5/.test(html));
     check(file + ': the taoist unlock is permanent, not a rental',
       /if \(c === 'taoist'\) return; \/\/ permanent/.test(html));
+
+    // Dying outside a campaign used to freeze the canvas with no game-over screen, which
+    // left a phone player with no way out (there is no ESC key).
+    check(file + ': a normal-mode death reveals the game-over screen',
+      /if \(gameState === 'gameover'\) \{\s*var gosScreen = document\.getElementById\('gameoverScreen'\)/.test(html) &&
+      /if \(gosScreen && gosScreen\.classList\.contains\('hidden'\)\)/.test(html));
+    check(file + ': RETRY restarts a non-campaign round instead of sitting on a dead screen',
+      /if \(campaignMode\) \{ launchCampaignLevel\(campaignLevel\); return; \}[\s\S]{0,220}fullReset\(\); gameState = 'playing'; resumeGameLoop\(\);/.test(html));
   });
 }
 

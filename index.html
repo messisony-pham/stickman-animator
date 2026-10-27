@@ -9318,6 +9318,21 @@
       // A taoist with his revival intact never stays dead: this catches every damage path
       // that sets 'gameover' directly (boss auras, airstrikes, bone hands, campaign deaths).
       if (gameState === 'gameover' && selectedChar === 'taoist' && !taoistReviveUsed) { gameState = 'playing'; reviveTaoist(); }
+      // A death has to END the round on screen. gameLoop only re-arms itself while the
+      // state is 'playing', so whichever frame flipped the state to 'gameover' was the
+      // last one ever painted: until now a normal-mode death left the canvas frozen on
+      // the fight with no RETRY button — unrecoverable on a phone, which has no ESC.
+      // Campaign and victory paths show their own wording, so only fill in the blank.
+      if (gameState === 'gameover') {
+        var gosScreen = document.getElementById('gameoverScreen');
+        if (gosScreen && gosScreen.classList.contains('hidden')) {
+          var gh2 = gosScreen.querySelector('h2');
+          if (gh2) gh2.textContent = victoryMode ? '🏆 YOU WIN!' : '💀 GAME OVER';
+          var gm2 = document.getElementById('gameoverMsg');
+          if (gm2) gm2.textContent = 'Score: ' + score + '  |  Kills: ' + kills + '  |  LV ' + playerLevel;
+          gosScreen.classList.remove('hidden');
+        }
+      }
       if (ninjaSlashCD > 0) ninjaSlashCD--;
       if (ninjaKunaiCD > 0) ninjaKunaiCD--;
       if (ninjaDashCD > 0) ninjaDashCD--;
@@ -11638,11 +11653,29 @@
       soulStormShowWarning(soulStormPendingBlasts[0]);
     }
 
+    // Which way is actually OUT of a warned zone. Walking away from the zone centre is
+    // only right in open track: a zone against the left wall leaves no room to its left,
+    // so the old hint pointed straight into the wall and the player was pinned there
+    // with no way to clear the blast. Pick a side that has room to clear it.
+    function soulStormEscapeDir(zoneX) {
+      var min = SOUL_STORM_POINT_R + SOUL_STORM_ZONE_EDGE;
+      var max = SOUL_STORM_ARENA_W - SOUL_STORM_POINT_R - SOUL_STORM_ZONE_EDGE;
+      // The point is safe once it sits more than half a zone away from the centre.
+      var leftRoom = (zoneX - SOUL_STORM_ZONE_W / 2 - SOUL_STORM_POINT_R) >= min;
+      var rightRoom = (zoneX + SOUL_STORM_ZONE_W / 2 + SOUL_STORM_POINT_R) <= max;
+      if (leftRoom && rightRoom) return soulStormPointX <= zoneX ? -1 : 1;
+      if (leftRoom) return -1;
+      if (rightRoom) return 1;
+      return soulStormPointX <= zoneX ? -1 : 1;
+    }
+
     // The one thing the player must know: which way is out of the warned zone.
     function soulStormMoveHint() {
       if (!soulStormWarning) return 'MOVE WITH ◀ ▶ — STAY OFF THE RED ZONE';
       if (soulStormPointInZone(soulStormWarning.zone)) {
-        return soulStormPointX <= soulStormWarning.zone ? '⚠ IN THE BLAST ZONE — MOVE LEFT ◀' : '⚠ IN THE BLAST ZONE — MOVE RIGHT ▶';
+        return soulStormEscapeDir(soulStormWarning.zone) < 0
+          ? '⚠ IN THE BLAST ZONE — MOVE LEFT ◀'
+          : '⚠ IN THE BLAST ZONE — MOVE RIGHT ▶';
       }
       return '⚠ RED ZONE BLASTING — STAY CLEAR';
     }
@@ -12917,7 +12950,10 @@
     // Gameover screen buttons
     document.getElementById('retryBtn').addEventListener('click', function() {
       document.getElementById('gameoverScreen').classList.add('hidden');
-      if (campaignMode) { launchCampaignLevel(campaignLevel); }
+      if (campaignMode) { launchCampaignLevel(campaignLevel); return; }
+      // RETRY used to be campaign-only, so dying anywhere else dropped the player on a
+      // dead screen. Restart the same character and mode, exactly like the HUD's ↺.
+      fullReset(); gameState = 'playing'; resumeGameLoop();
     });
     document.getElementById('rhythmRetryBtn').addEventListener('click', function() { startSoulTest(); });
     document.getElementById('rhythmMenuBtn').addEventListener('click', function() { exitSoulTest(); });
