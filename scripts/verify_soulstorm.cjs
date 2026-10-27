@@ -59,6 +59,48 @@ function matches(el, sel) {
 function findSel(el, sel) { return findSelAll(el, sel)[0] || null; }
 function findSelAll(el, sel) { return (el.children || []).filter((c) => matches(c, sel)); }
 
+// Records the canvas draw calls the warning arrow makes, so the harness can prove
+// the arrow is really painted (direction, length, on-canvas) instead of trusting
+// that the code that draws it exists.
+const pxOf = (v) => Number(String(v || '0').replace('px', ''));
+
+function mkRecCtx() {
+  const rec = { x: 0, y: 0, a: 0, stack: [], rot: [], paths: [], arcs: [], fills: 0, texts: [], _path: null };
+  const abs = (px, py) => ({
+    x: rec.x + px * Math.cos(rec.a) - py * Math.sin(rec.a),
+    y: rec.y + px * Math.sin(rec.a) + py * Math.cos(rec.a)
+  });
+  const ctx = {
+    save() { rec.stack.push({ x: rec.x, y: rec.y, a: rec.a }); },
+    restore() { const s = rec.stack.pop(); if (s) { rec.x = s.x; rec.y = s.y; rec.a = s.a; } },
+    translate(x, y) { rec.x += x; rec.y += y; },
+    rotate(a) { rec.a += a; rec.rot.push(a); },
+    beginPath() { rec._path = []; },
+    moveTo(x, y) { if (rec._path) rec._path.push(abs(x, y)); },
+    lineTo(x, y) { if (rec._path) rec._path.push(abs(x, y)); },
+    closePath() { if (rec._path) { rec.paths.push(rec._path); rec._path = null; } },
+    arc(x, y, r) { rec.arcs.push({ p: abs(x, y), r: r }); },
+    fill() { rec.fills++; },
+    stroke() {},
+    fillRect() {},
+    fillText(t, x, y) { rec.texts.push({ t: t, p: abs(x, y) }); },
+    measureText: () => ({ width: 10 }),
+    setLineDash() {},
+    reset() { rec.x = 0; rec.y = 0; rec.a = 0; rec.stack.length = 0; rec.rot.length = 0; rec.paths.length = 0; rec.arcs.length = 0; rec.texts.length = 0; rec.fills = 0; rec._path = null; }
+  };
+  Object.defineProperties(ctx, {
+    globalAlpha: { set() {}, get() { return 1; } },
+    fillStyle: { set(v) { rec.fillStyle = v; }, get() { return rec.fillStyle; } },
+    strokeStyle: { set() {}, get() { return '#000'; } },
+    lineWidth: { set() {}, get() { return 1; } },
+    font: { set() {}, get() { return '10px monospace'; } },
+    textAlign: { set() {}, get() { return 'start'; } },
+    globalCompositeOperation: { set() {}, get() { return 'source-over'; } }
+  });
+  ctx.__rec = rec;
+  return ctx;
+}
+
 function makeCtx() {
   Object.keys(REG).forEach((k) => delete REG[k]);
   const ids = ['soulStormArena', 'soulStormHud', 'soulStormTime', 'soulStormSurvive', 'soulStormBlasts',
@@ -170,31 +212,55 @@ function run(file) {
       'survived=' + S2.soulStormSurvived);
   }
 
-  // --- B: dodging the warned lane survives -------------------------------
+  // --- B: holding a direction out of the warned zone survives -------------
+  // The point slides while ◀/▶ is held, so the harness holds the way OUT of the
+  // warned zone, exactly like a player would, and must lose no hearts doing it.
   {
     const { S, frame, errors } = makeRunner(src);
     S.launchSoulStorm();
-    let warningsSeen = 0, blastsResolved = 0;
-    const lanes = S.SOUL_STORM_LANES;
-    for (let i = 0; i < 4000 && !S.soulStormEnded; i++) {
-      if (S.soulStormWarning) {
+    let warningsSeen = 0, movedOff = 0;
+    const release = () => { S.soulStormSetHeld('left', false); S.soulStormSetHeld('right', false); };
+    // A zone can land on the track edge, where the escape on its far side is off the
+    // track: the open way out is back through the near side. "Always move away from the
+    // centre" walked the point into the clamp and took an unavoidable hit, so pick the
+    // side a player would actually take.
+    const edgeMin = S.SOUL_STORM_POINT_R + S.SOUL_STORM_ZONE_EDGE;
+    const edgeMax = S.SOUL_STORM_ARENA_W - S.SOUL_STORM_POINT_R - S.SOUL_STORM_ZONE_EDGE;
+    const escapeHeld = (zoneX) => {
+      const half = S.SOUL_STORM_ZONE_W / 2;
+      const leftOpen = zoneX - half - 2 >= edgeMin;
+      const rightOpen = zoneX + half + 2 <= edgeMax;
+      if (S.soulStormPointX < zoneX) return leftOpen ? 'left' : 'right';
+      return rightOpen ? 'right' : 'left';
+    };
+    for (let i = 0; i < 6000 && !S.soulStormEnded && S.soulStormSurvived < S.SOUL_STORM_SURVIVE; i++) {
+      const w = S.soulStormWarning;
+      if (w) {
         warningsSeen++;
-        const other = lanes.find((l) => l !== S.soulStormWarning.lane);
-        S.soulStormDodge(other);
+        if (Math.abs(S.soulStormPointX - w.zone) <= S.SOUL_STORM_ZONE_W / 2) {
+          const dir = escapeHeld(w.zone);
+          S.soulStormSetHeld(dir, true);
+          S.soulStormSetHeld(dir === 'left' ? 'right' : 'left', false);
+          movedOff++;
+        } else {
+          release();
+        }
+      } else {
+        release();
       }
-      const fired = S.soulStormBlastsFired;
-      frame(50);
-      if (S.soulStormBlastsFired > fired) { /* new blast queued */ }
-      if (S.soulStormSurvived >= S.SOUL_STORM_SURVIVE) break;
+      frame(16);
     }
-    blastsResolved = S.soulStormBlastsFired;
     check('warnings were shown', warningsSeen > 0);
-    check('blasts were fired', blastsResolved > 0);
-    check('dodging into a safe lane does not lose', S.soulStormEnded === false || S.soulStormWin === true);
+    check('blasts were fired', S.soulStormBlastsFired > 0);
+    check('the point really had to move out of a zone', movedOff > 0, 'moved=' + movedOff);
+    check('holding the way out costs no hearts', S.soulStormHits === 0, 'hits=' + S.soulStormHits);
     check('survived the full window', S.soulStormSurvived >= S.SOUL_STORM_SURVIVE - 0.06, 'survived=' + S.soulStormSurvived.toFixed(2));
     check('reached the E gauntlet', S.soulStormEActive === true);
     check('E button is shown in the arena', !!REG.soulStormArena.querySelector('button[data-lane="e"]') &&
       REG.soulStormArena.querySelector('button[data-lane="e"]').style.display === 'flex');
+    check('the ◀ ▶ pads are hidden during the E gauntlet',
+      REG.soulStormArena.querySelectorAll('.soulStormPad').every((p) => p.style.display === 'none'),
+      REG.soulStormArena.querySelectorAll('.soulStormPad').map((p) => p.dataset.pad + ':' + p.style.display).join(','));
     check('no runtime errors during survival', errors.length === 0, errors.join('; '));
   }
 
@@ -215,7 +281,9 @@ function run(file) {
     const { S: S3, frame: f3 } = makeRunner(src);
     S3.launchSoulStorm();
     let firstMissEnded = null, firstMissHits = null;
-    for (let i = 0; i < 400 && !S3.soulStormEnded; i++) {
+    // The point never moves here, but the zones are random, so a miss can take a while to
+    // happen: step until one does (a 60s cap) instead of assuming a fixed number of frames.
+    for (let i = 0; i < 1200 && !S3.soulStormEnded; i++) {
       f3(50);
       if (S3.soulStormHits === 1 && firstMissEnded === null) {
         firstMissEnded = S3.soulStormEnded;
@@ -398,38 +466,98 @@ function run(file) {
     check('MENU returns to menu reset', S.exitSoulTestCalls === 1);
   }
 
-  // --- H: real boss -> minigame handoff --------------------------------
-  {
-    const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    const kStart = s.indexOf('function killPumpkinBoss(mb)');
-    const kEnd = s.indexOf('function updateMiniBosses()');
-    if (kStart < 0 || kEnd < 0) throw new Error('boss slice markers missing in ' + file);
-    const bossSlice = s.slice(kStart, s.lastIndexOf('\n', kEnd));
-
-    const { S, ctx, frame, errors } = makeRunner(src + '\n' + bossSlice);
+  // --- H: real soul form -> minigame handoff ------------------------------
+  // The soul form is an ATTACKABLE 5,000 HP phase now: it must be killed with damage
+  // to reach Soul Storm. The old 20s auto-death must be gone (it decided the fight
+  // for the player) and only the stall safety net may advance the fight.
+  function wireBoss(S, C) {
     Object.assign(S, {
       GROUND_Y: 400, CW: 800, time: 0, CH: 500, stick: { x: 100, y: 400 },
       bullets: [], dummies: [], miniBosses: [], PUMPKIN_BLAST_DMG: 20, PUMPKIN_ORB_DMG: 8,
-      PUMPKIN_ORB_TIME: 1200, PUMPKIN_HEAL_INTERVAL: 420, PUMPKIN_PHASE_HP: 2500,
-      PUMPKIN_PHASES: 5, spawnPumpkinMinion() {}, createParticles() {}, createTextParticle() {},
-      createExplosion() {}, damagePlayer() {}, stopPumpkinMusic() {}, startPumpkinMusic() {}
+      PUMPKIN_ORB_TIME: 1200, PUMPKIN_HEAL_INTERVAL: 420, PUMPKIN_PHASE_HP: C.phaseHp,
+      PUMPKIN_PHASES: C.phases, PUMPKIN_SOUL_HP: C.soulHp, PUMPKIN_SOUL_TIMEOUT: C.soulTimeout,
+      PUMPKIN_ORB_SHOT_CD: C.orbShotCd,
+      spawnPumpkinMinion() {}, createParticles() {}, createTextParticle() {}, createExplosion() {},
+      damagePlayer() {}, stopPumpkinMusic() {}, startPumpkinMusic() {}, bumpPumpkinMusic() {},
+      getShopUpgradeEffect() { return 1; }, getTraitMult() { return 1; }, pickupDmgMult() { return 1; },
+      vampireHeal() {}
     });
-    const mb = {
-      x: 300, y: 400, baseY: 400, hp: 0, maxHp: 2500, alive: true, type: 'pumpkin',
-      phase: 5, orbMode: true, orbTimer: 1, orbShootCD: 0, orbShootCDSet: 0,
-      hitFlash: 0, speed: 1.2, attackCD: 60, healCD: 420, minionCD: 180,
-      slamCD: 260, slamActive: false, slamVy: 0, phaseFlash: 0, facing: -1, animTime: 0
+  }
+  const mkPumpkin = (C, over) => Object.assign({
+    x: 300, y: 400, baseY: 400, hp: C.phaseHp, maxHp: C.phaseHp, alive: true, type: 'pumpkin',
+    phase: C.phases, orbMode: false, orbTimer: 0, orbShootCD: 0, soulTimer: 0,
+    hitFlash: 0, speed: 1.2, attackCD: 60, healCD: 420, minionCD: 180,
+    slamCD: 260, slamActive: false, slamVy: 0, phaseFlash: 0, facing: -1, animTime: 0
+  }, over || {});
+  {
+    const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const kStart = s.indexOf('function dealDamageToMiniBoss(mb, dmg, source)');
+    const kEnd = s.indexOf('function updateMiniBosses()');
+    if (kStart < 0 || kEnd < 0) throw new Error('boss slice markers missing in ' + file);
+    const bossSlice = s.slice(kStart, s.lastIndexOf('\n', kEnd));
+    const num = (re, fallback) => { const m = re.exec(s); return m ? Number(m[1]) : fallback; };
+    const C = {
+      soulHp: num(/PUMPKIN_SOUL_HP\s*=\s*(\d+)/, 0),
+      soulTimeout: num(/PUMPKIN_SOUL_TIMEOUT\s*=\s*(\d+)/, 0),
+      phaseHp: num(/PUMPKIN_PHASE_HP\s*=\s*(\d+)/, 2500),
+      phases: num(/PUMPKIN_PHASES\s*=\s*(\d+)/, 5),
+      orbShotCd: num(/PUMPKIN_ORB_SHOT_CD\s*=\s*(\d+)/, 16)
     };
-    S.updatePumpkinBoss(mb, 200);
-    check('orb form fires an 8-damage orb', S.bullets.length === 1 && S.bullets[0].dmg === 8,
-      'bullets=' + JSON.stringify(S.bullets.map((b) => b.dmg)));
-    check('orb timer expiring kills the boss', mb.alive === false);
-    check('boss death launches Soul Storm', S.soulStormActive === true && S.gameState === 'minigame');
+    check('PUMPKIN_SOUL_HP ships as 5000', C.soulHp === 5000, 'got ' + C.soulHp);
+    check('PUMPKIN_ORB_SHOT_CD ships a usable blast cadence',
+      C.orbShotCd > 0 && C.orbShotCd <= 60, 'got ' + C.orbShotCd);
+    check('the soul form is no longer flagged invulnerable in the damage path',
+      !/orbMode\)\s*\{\s*createTextParticle\(mb\.x, mb\.y - 20, '[^']*IMMUNE/.test(s));
+    check('the old "orbTimer expiring kills the boss" rule is gone',
+      !/if \(mb\.orbTimer <= 0\) killPumpkinBoss\(mb\);/.test(s));
+    check('a stall safety net exists for the soul fight',
+      /PUMPKIN_SOUL_TIMEOUT/.test(s) && /mb\.soulTimer >= PUMPKIN_SOUL_TIMEOUT\) killPumpkinBoss\(mb\)/.test(s));
+    // The soul form's blasts must be telegraphed by a LONG arrow that charges over
+    // the real blast cooldown and is clamped so it can never run off the canvas.
+    check('the soul form telegraphs its blasts with a long charge arrow',
+      /var warnAim = Math\.atan2\(\(stick\.y - 30\) - gy, stick\.x - dx\)/.test(s) &&
+      /ctx\.rotate\(warnAim\)/.test(s) && /ctx\.moveTo\(34, -7\)/.test(s));
+    check('the warning arrow charges over the real blast cooldown',
+      /PUMPKIN_ORB_SHOT_CD\s*=\s*(\d+)/.test(s) && /mb\.orbShootCD = PUMPKIN_ORB_SHOT_CD;/.test(s));
+    check('the warning arrow is clamped to the canvas', /var warnEdge = 620/.test(s));
+
+    // A) damaging the last physical phase turns the boss into the 5,000 HP soul form
+    const { S, frame, errors } = makeRunner(src + '\n' + bossSlice);
+    wireBoss(S, C);
+    const soul = mkPumpkin(C);
+    S.dealDamageToMiniBoss(soul, C.phaseHp, 'test');
+    check('clearing the last phase enters the soul form', soul.orbMode === true, 'orb=' + soul.orbMode);
+    check('the soul form starts at 5,000 HP', soul.hp === 5000 && soul.maxHp === 5000,
+      'hp=' + soul.hp + ' maxHp=' + soul.maxHp);
+
+    // B) attacks land on the soul form instead of bouncing off as IMMUNE
+    const hpBefore = soul.hp;
+    S.dealDamageToMiniBoss(soul, 500, 'shoot');
+    check('the soul form takes real damage', soul.hp === hpBefore - 500, 'hp=' + soul.hp);
+    check('hits still flash the soul form', soul.hitFlash === 6, 'hitFlash=' + soul.hitFlash);
+
+    // C) finishing its 5,000 HP is what sends the player into the minigame
+    S.dealDamageToMiniBoss(soul, soul.hp, 'test');
+    check('defeating the soul form kills the boss', soul.alive === false, 'alive=' + soul.alive);
+    check('defeating the soul form launches Soul Storm', S.soulStormActive === true && S.gameState === 'minigame');
     check('previous game state replaced', S.gameState !== 'playing');
     frame(50); frame(50);
     check('minigame timer runs after the handoff', S.soulStormSurvived > 0, 'got ' + S.soulStormSurvived);
     check('handoff has no runtime errors', errors.length === 0, errors.join('; '));
     check('pending reward deferred, not paid', S.pendingPumpkinReward !== null);
+
+    // D) an untouched soul form must NOT auto-die on the old 20s timer
+    const { S: S2 } = makeRunner(src + '\n' + bossSlice);
+    wireBoss(S2, C);
+    const lazy = mkPumpkin(C, { orbMode: true, hp: C.soulHp, maxHp: C.soulHp, orbTimer: 1, orbShootCD: 0 });
+    for (let i = 0; i < 40; i++) S2.updatePumpkinBoss(lazy, 200);
+    check('orb form fires an 8-damage orb', S2.bullets.length > 0 && S2.bullets.every((b) => b.dmg === 8),
+      'bullets=' + JSON.stringify(S2.bullets.map((b) => b.dmg).slice(0, 3)));
+    check('an unkilled soul form survives its old 20s timer', lazy.alive === true && lazy.orbMode === true,
+      'alive=' + lazy.alive + ' frame=' + lazy.orbTimer);
+    check('the soul form keeps its 5,000 HP pool while it fights', lazy.hp === 5000, 'hp=' + lazy.hp);
+    for (let i = 0; i < C.soulTimeout + 5; i++) S2.updatePumpkinBoss(lazy, 200);
+    check('the stall safety net eventually advances the fight', lazy.alive === false, 'alive=' + lazy.alive);
   }
 
   // --- G: soul-orb damage ------------------------------------------------
@@ -443,9 +571,238 @@ function run(file) {
     check('normal pumpkin shots keep PUMPKIN_BLAST_DMG', otherShots === 1, 'found ' + otherShots);
     check('boss death path still calls launchSoulStorm', /killPumpkinBoss[\s\S]{0,900}launchSoulStorm\(\)/.test(s));
   }
+
+  // --- J: the long warning arrow really draws, aimed at the player -----------
+  // drawMiniBoss is run against a recording canvas so the painted polygon (not the
+  // source text) is what gets asserted: it must start at the orb, point at the
+  // player, stay on the canvas, and grow as the next blast charges.
+  {
+    const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const ds = s.indexOf('function drawMiniBoss(mb)');
+    const de = s.indexOf('function updatePumpkinBoss');
+    if (ds < 0 || de < 0) throw new Error('drawMiniBoss markers missing in ' + file);
+    const num = (re, fallback) => { const m = re.exec(s); return m ? Number(m[1]) : fallback; };
+    const rec = mkRecCtx();
+    const { S } = makeRunner(src + '\n' + s.slice(ds, s.lastIndexOf('\n', de)));
+    const C2 = {
+      phaseHp: num(/PUMPKIN_PHASE_HP\s*=\s*(\d+)/, 2500), phases: num(/PUMPKIN_PHASES\s*=\s*(\d+)/, 5),
+      soulHp: num(/PUMPKIN_SOUL_HP\s*=\s*(\d+)/, 5000), soulTimeout: num(/PUMPKIN_SOUL_TIMEOUT\s*=\s*(\d+)/, 7200),
+      orbShotCd: num(/PUMPKIN_ORB_SHOT_CD\s*=\s*(\d+)/, 16)
+    };
+    wireBoss(S, C2);
+    S.PUMPKIN_SOUL_HP = C2.soulHp;
+    S.PUMPKIN_ORB_SHOT_CD = C2.orbShotCd;
+    S.CW = 900; S.CH = 500; S.time = 12;
+    S.ctx = rec;
+    S.stick = { x: 700, y: 400 };
+    const orb = mkPumpkin(C2, {
+      x: 300, y: 210, baseY: 210, orbMode: true, hp: C2.soulHp, maxHp: C2.soulHp
+    });
+    const paint = (cd) => {
+      orb.orbShootCD = cd;
+      rec.reset();
+      S.drawMiniBoss(orb);
+      const p = rec.__rec.paths[0];
+      return p && p.length === 7 ? p : null;   // 7 points == the arrow polygon
+    };
+    const charged = paint(0);
+    const idle = paint(S.PUMPKIN_ORB_SHOT_CD);
+    check('the warning arrow paints a 7-point arrow polygon', !!charged && !!idle);
+    if (charged) {
+      const toPlayer = Math.atan2(370 - 210, 700 - 300);
+      const tip = charged[3];
+      const tail = charged[0];
+      const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+      const tipAngle = Math.atan2(tip.y - 210, tip.x - 300);
+      const offAxis = Math.abs(Math.atan2(Math.sin(tipAngle - toPlayer), Math.cos(tipAngle - toPlayer)));
+      check('the arrow emanates from the soul form (tail sits just outside the orb)',
+        dist(tail, { x: 300, y: 210 }) > 30 && dist(tail, { x: 300, y: 210 }) < 40, 'tail dist=' + dist(tail, { x: 300, y: 210 }).toFixed(1));
+      check('the arrow points straight at the player', offAxis < 0.02, 'off-axis=' + offAxis.toFixed(4));
+      check('the arrow is long (>250px)', dist(tip, { x: 300, y: 210 }) > 250, 'len=' + dist(tip, { x: 300, y: 210 }).toFixed(1));
+      check('the arrow stays on the canvas', tip.x >= 0 && tip.x <= S.CW && tip.y >= 0 && tip.y <= S.CH,
+        'tip=' + tip.x.toFixed(1) + ',' + tip.y.toFixed(1));
+      check('the arrow grows as the next blast charges',
+        dist(charged[3], { x: 300, y: 210 }) > dist(idle[3], { x: 300, y: 210 }) + 100,
+        'charged=' + dist(charged[3], { x: 300, y: 210 }).toFixed(1) + ' idle=' + dist(idle[3], { x: 300, y: 210 }).toFixed(1));
+    }
+  }
+
+  // --- K: the minigame's LONG warning arrow ------------------------------
+  // The Soul Storm warning used to be colour + text only. Every lane now owns a
+  // long arrow that appears for the warning window, charges amber -> red as the
+  // blast closes in, and puts its head on the lane button that is about to go off.
+  {
+    const raw = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    check('the source ships a long minigame warning arrow',
+      /soulStormArrow absolute pointer-events-none/.test(raw) && /a\.wrap\.style\.left = \(w\.zone - 30\)/.test(raw));
+
+    const { S, frame, errors } = makeRunner(src);
+    S.buildSoulStormArena();
+    S.launchSoulStorm();
+    const arrows = () => REG.soulStormArena.querySelectorAll('.soulStormArrow');
+    const shown = () => arrows().filter((a) => a.style.display === 'block');
+    const px = (v) => Number(String(v || '0').replace('px', ''));
+    const arrowZone = (a) => px(a.style.left) + 30;      // 60px wide wrap, centred on the zone
+    frame(16);
+    check('exactly one long warning arrow is built', arrows().length === 1, 'found ' + arrows().length);
+    check('no arrow is up during GET READY', shown().length === 0, 'shown=' + shown().length);
+    let warned = null;
+    for (let i = 0; i < 120 && !warned; i++) { frame(50); if (S.soulStormWarning) warned = S.soulStormWarning.zone; }
+    check('a zone gets warned', typeof warned === 'number', 'warned=' + warned);
+    const up = shown();
+    check('exactly one long arrow is on screen', up.length === 1, 'shown=' + up.length);
+    check('the arrow is aimed at the warned zone', up.length === 1 && Math.abs(arrowZone(up[0]) - warned) <= 1,
+      'arrow=' + (up[0] && arrowZone(up[0])) + ' warned=' + warned);
+    const a = up[0] || mkEl();
+    const kids = (a.children || []).map((c) => c.className);
+    check('the arrow has a shaft and an arrow head', a.children.length === 2 &&
+      /soulStormArrowShaft/.test(kids[0]) && /soulStormArrowHead/.test(kids[1]), kids.join('|'));
+    check('the head points DOWN at the track (CSS triangle)',
+      /^30px solid #/.test(a.children[1] && a.children[1].style.borderTop || ''), a.children[1] && a.children[1].style.borderTop);
+    check('the arrow is long, not a stub', px(a.style.height) >= 200, 'height=' + a.style.height);
+    check('the head lands inside the track', px(a.style.top) + px(a.style.height) >= S.SOUL_STORM_TRACK_Y &&
+      px(a.style.top) + px(a.style.height) <= S.SOUL_STORM_TRACK_Y + S.SOUL_STORM_TRACK_H,
+      'bottom=' + (px(a.style.top) + px(a.style.height)) + ' track=' + S.SOUL_STORM_TRACK_Y + '..' + (S.SOUL_STORM_TRACK_Y + S.SOUL_STORM_TRACK_H));
+    check('the arrow charges as the warning counts down', /^scaleY\(/.test(a.style.transform || ''), 'transform=' + a.style.transform);
+    check('the arrow shaft deepens toward the head',
+      /^linear-gradient\(to bottom/.test(a.children[0].style.background || ''), a.children[0].style.background);
+
+    // Drive the whole survival phase: the arrow must be re-aimed at every warned zone,
+    // must never linger between warnings, and must be gone for the E gauntlet and after.
+    let tracked = 0, mismatch = 0, stale = 0;
+    for (let i = 0; i < 2600 && !S.soulStormEActive && !S.soulStormEnded; i++) {
+      const w = S.soulStormWarning;
+      const visible = shown();
+      if (w) {
+        tracked++;
+        if (visible.length !== 1 || Math.abs(arrowZone(visible[0]) - w.zone) > 1) mismatch++;
+        const inside = Math.abs(S.soulStormPointX - w.zone) <= S.SOUL_STORM_ZONE_W / 2;
+        if (inside) S.soulStormSetHeld(S.soulStormPointX < w.zone ? 'left' : 'right', true);
+        else { S.soulStormSetHeld('left', false); S.soulStormSetHeld('right', false); }
+      } else if (S.soulStormSurvived >= S.SOUL_STORM_START_GRACE && visible.length) {
+        stale++;
+      }
+      frame(16);
+    }
+    check('the arrow followed every warned zone', tracked > 0 && mismatch === 0, 'tracked=' + tracked + ' mismatches=' + mismatch);
+    check('no arrow lingers between warnings', stale === 0, 'stale frames=' + stale);
+    check('escaping every zone kept every heart', S.soulStormHits === 0, 'hits=' + S.soulStormHits);
+    check('the survival phase reached the E gauntlet', S.soulStormEActive === true);
+    check('no arrow during the E gauntlet', shown().length === 0, 'shown=' + shown().length);
+    for (let i = 0; i < S.SOUL_STORM_END_E_TARGET; i++) S.soulStormPressE();
+    for (let i = 0; i < 40; i++) frame(50);
+    check('the run was won', S.soulStormWin === true);
+    check('no arrow left on the result pane', shown().length === 0, 'shown=' + shown().length);
+    check('the arrow run has no runtime errors', errors.length === 0 && S.loopErrors.length === 0,
+      errors.concat(S.loopErrors).join('; '));
+  }
+
+  // --- L: the point moves with ◀/▶ and the blast hit-rule follows it -------
+  {
+    const { S, frame, errors } = makeRunner(src);
+    S.buildSoulStormArena();
+    S.launchSoulStorm();
+    const startX = S.soulStormPointX;
+    const margin = S.SOUL_STORM_POINT_R + S.SOUL_STORM_ZONE_EDGE;
+    check('the point starts centred on the track', Math.abs(startX - S.SOUL_STORM_ARENA_W / 2) < 0.001, 'x=' + startX);
+    S.soulStormSetHeld('right', true);
+    for (let i = 0; i < 20; i++) frame(16);
+    check('holding ▶ slides the point right', S.soulStormPointX > startX + 20, 'x=' + S.soulStormPointX.toFixed(1));
+    S.soulStormSetHeld('right', false);
+    const released = S.soulStormPointX;
+    for (let i = 0; i < 10; i++) frame(16);
+    check('the point stops when the key is released', S.soulStormPointX === released, 'x=' + S.soulStormPointX.toFixed(1));
+    S.soulStormSetHeld('left', true);
+    for (let i = 0; i < 300; i++) frame(16);
+    S.soulStormSetHeld('left', false);
+    check('the point cannot leave the track', Math.abs(S.soulStormPointX - margin) < 0.001, 'x=' + S.soulStormPointX);
+    check('the point is drawn where the model says it is',
+      REG.soulStormPoint && pxOf(REG.soulStormPoint.style.left) === S.soulStormPointX - S.SOUL_STORM_POINT_R,
+      'dotLeft=' + (REG.soulStormPoint && REG.soulStormPoint.style.left) + ' x=' + S.soulStormPointX);
+
+    // Standing in the warned zone must cost a heart; being clear of it must not.
+    const hitRun = (leave) => {
+      const r = makeRunner(src);
+      const T = r.S;
+      T.launchSoulStorm();
+      let seen = false;
+      for (let i = 0; i < 400 && !seen && !T.soulStormEnded; i++) {
+        if (T.soulStormWarning && T.soulStormSurvived >= T.SOUL_STORM_START_GRACE) {
+          seen = true;
+          T.soulStormPointX = leave ? T.soulStormWarning.zone + T.SOUL_STORM_ZONE_W : T.soulStormWarning.zone;
+        }
+        r.frame(16);
+      }
+      if (!seen) return null;
+      for (let i = 0; i < 400 && !T.soulStormEnded; i++) {
+        if (T.soulStormWarning) {
+          T.soulStormPointX = leave ? T.soulStormWarning.zone + T.SOUL_STORM_ZONE_W : T.soulStormWarning.zone;
+        }
+        r.frame(16);
+        if (!leave && T.soulStormHits >= 1) break;
+      }
+      return T.soulStormHits;
+    };
+    check('standing in the warned zone costs a heart', hitRun(false) === 1);
+    check('being clear of the warned zone is safe', hitRun(true) === 0);
+    check('movement run has no runtime errors', errors.length === 0, errors.join('; '));
+  }
+
+  // --- M: the pumpkin boss is OPT-IN — only the 🎃 Fight Boss button ------------
+  // The boss used to arrive on a Halloween-gated timer, which (depending on tuning)
+  // either never showed up in a normal run or crashed into every mode. The shipped
+  // contract is now the opposite: EASY / NORMAL / HARD, sandbox, boss rush, campaign
+  // and phantom missions never spawn it — only the menu's 🎃 Fight Boss button asks
+  // for it by setting `pumpkinBossRequested`, and the boss walks in on the next
+  // frame. The main loop sits outside the extracted region, so these are
+  // source-level guards (a live browser run covers the behaviour).
+  {
+    const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    check('the opt-in request flag exists', /let pumpkinBossRequested = false;/.test(s));
+    check('the old timed spawn interval is gone', !/PUMPKIN_SPAWN_INTERVAL/.test(s));
+    check('the old frame-timer arrival is gone', !/pumpkinTimer/.test(s));
+    check('the single spawn sink waits on the request flag',
+      /if \(pumpkinBossRequested && !pumpkinSpawned\) \{\s*\n\s*pumpkinBossRequested = false; pumpkinSpawned = true; miniBosses\.push\(\{/.test(s));
+    const sinks = (s.match(/pumpkinSpawned = true/g) || []).length;
+    check('the boss can only be spawned from that one sink', sinks === 1, 'found ' + sinks);
+    check('the spawned boss is the pumpkin', /type: 'pumpkin', animTime: 0/.test(s));
+    check('the 🎃 Fight Boss button asks for the boss',
+      /getElementById\('pumpkinBossBtn'\)\.addEventListener\('click'/.test(s) &&
+      /pumpkinBossRequested = true; \/\/ the boss walks in on the very next frame/.test(s));
+    const setters = (s.match(/pumpkinBossRequested = true/g) || []).length;
+    check('only the 🎃 Fight Boss button can request the boss', setters === 1, 'found ' + setters);
+    check('the button is kept visible all year round',
+      /var pbb = document\.getElementById\('pumpkinBossBtn'\); if \(pbb\) pbb\.classList\.remove\('hidden'\);/.test(s));
+  }
 }
 
 ['index.html', 'index.standalone.html'].forEach(run);
+
+// --- I: the minigame overlay must be reachable in BOTH shipped files ---------
+// Regression: index.standalone.html shipped with #soulStormScreen nested INSIDE the
+// hidden #rhythmScreen (one </div> was missing and a stray one closed rhythmScreen
+// later). The parent's `hidden` (display:none) meant the arena never rendered while
+// the main game loop was parked for the minigame — the "boss fight minigame freezes"
+// bug, which only ever happened in the standalone file the game is played from.
+{
+  console.log('\n===== overlay reachability =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const re = /<(\/?)div\b[^>]*>/g;
+    let depth = 0, rhythm = null, soul = null, m;
+    while ((m = re.exec(html))) {
+      if (m[1] === '/') { depth--; continue; }
+      const id = (/\sid="([^"]+)"/.exec(m[0]) || [])[1];
+      if (id === 'rhythmScreen') rhythm = depth + 1;
+      if (id === 'soulStormScreen') soul = depth + 1;
+      depth++;
+    }
+    check(file + ': #soulStormScreen exists', soul !== null);
+    check(file + ': #rhythmScreen exists', rhythm !== null);
+    check(file + ': #soulStormScreen is a SIBLING of #rhythmScreen (not trapped inside the hidden one)',
+      soul !== null && soul === rhythm, 'soulDepth=' + soul + ' rhythmDepth=' + rhythm);
+  });
+}
 
 // --- H: the two shipped files must carry an IDENTICAL Soul Storm region ----
 {
@@ -464,6 +821,369 @@ function run(file) {
   check('mirror Soul Storm region matches index.html', norm(mirrorAsMain) === norm(mainBlock));
   check('grace window present in both', /SOUL_STORM_START_GRACE/.test(mainBlock) && /SOUL_STORM_START_GRACE/.test(mirrorRaw));
   check('hearts present in both', /SOUL_STORM_HITS_ALLOWED/.test(mainBlock) && /SOUL_STORM_HITS_ALLOWED/.test(mirrorRaw));
+
+  // The warning arrow block must be byte-identical in the two shipped files, or the
+  // file the game is actually played from can drift from the published one again.
+  const arrowOf = (f) => {
+    const html = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    const a = html.indexOf('---- LONG WARNING ARROW');
+    const b = html.indexOf('var orbP = 1 + Math.sin(time * 0.3) * 0.15;', a);
+    return a < 0 || b < 0 ? null : html.slice(a, b).split('\n').map((l) => l.trim()).join('\n');
+  };
+  const arrowMain = arrowOf('index.html');
+  check('warning arrow present in both files', arrowMain !== null && arrowOf('index.standalone.html') !== null);
+  check('warning arrow is identical in both files', arrowMain === arrowOf('index.standalone.html'));
+}
+
+// --- N: the mobile layer — the game has to be playable on a phone -----------
+// Regression: the touch pads needed a hidden Settings toggle, sat on top of the
+// menus/minigames eating their taps, laid five 48px ability buttons plus a 120px
+// d-pad across one row (wider than a phone), never released the JUMP key, and the
+// canvas was sized from innerHeight so mobile toolbars clipped the ground away.
+{
+  console.log('\n===== mobile playability =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    check(file + ': the viewport opts into safe areas', /name="viewport"[^>]*viewport-fit=cover/.test(html));
+    check(file + ': touch pads auto-enable on touch devices and are remembered',
+      /var TOUCH_DEVICE = /.test(html) && /storedMobileMode === null \? TOUCH_DEVICE/.test(html));
+    check(file + ': the canvas is sized from the visual viewport',
+      /function viewportSize\(\)/.test(html) && /window\.visualViewport/.test(html));
+    // Landscape hands the arena the height (the thumb clusters hug the side edges there
+    // instead of sitting under it), portrait reserves room for the pads below it, and the
+    // scale is capped at 1 so the 900x500 bitmap is never stretched and blurred.
+    const reserved = (/var reserved = mobileMode \? \(landscape \? (\d+) : (\d+)\) : (\d+);/.exec(html) || []).slice(1).map(Number);
+    check(file + ': the canvas fills the play area but never upscales (no blur)',
+      reserved.length === 3 && reserved[0] <= 40 && reserved[1] >= 120 && reserved[2] >= 120 &&
+      /var s = Math\.min\(maxW \/ CW, maxH \/ CH, 1\);/.test(html),
+      'reserved=' + reserved.join('/'));
+    check(file + ': in portrait the arena centres above the pads, not under them',
+      /body\.mob-hud #playArea \{ align-items: center; padding-bottom: calc\(128px \+ env\(safe-area-inset-bottom\)\); \}/.test(html));
+    // 120Hz phones ran the whole fight at double speed until the loop became fixed-step.
+    check(file + ': the game runs on a fixed 60Hz step instead of one step per frame',
+      /var FRAME = \{ last: 0, acc: 0, step: 1000 \/ 60, maxSteps: 3 \};/.test(html) &&
+      /function gameStep\(\) \{/.test(html) &&
+      /while \(FRAME\.acc >= FRAME\.step && steps < FRAME\.maxSteps\)/.test(html) &&
+      !/function gameStep\(\)[\s\S]{0,200}?requestAnimationFrame\(gameLoop\)[\s\S]{0,40}?loopFrameArmed = true/.test(html));
+    check(file + ': a backgrounded tab pauses instead of losing the run',
+      /addEventListener\('visibilitychange'/.test(html) && /if \(document\.hidden && gameState === 'playing'\)/.test(html));
+    check(file + ': the canvas is not re-fitted on every URL-bar twitch',
+      /lastCanvasBox/.test(html) && /if \(box === lastCanvasBox\)/.test(html));
+    check(file + ': thumb pads keep their hold when the finger slides off',
+      /lostpointercapture/.test(html) && /setPointerCapture/.test(html) &&
+      !/addEventListener\('pointerleave', release\)/.test(html));
+    check(file + ': a lift anywhere releases the pad it belongs to',
+      /window\.addEventListener\('pointerup', function \(e\) \{ releaseMobPointer\(e\.pointerId\); \}\)/.test(html));
+    check(file + ': the fixed-size minigame boards scale to the screen', /function fitMiniArenas/.test(html));
+    check(file + ': pads use pointer events (touch and mouse)', /addEventListener\('pointerdown', press\)/.test(html));
+    check(file + ': the old touch-only handlers are gone',
+      !/getElementById\('mobBtnAtk'\)\.addEventListener\('touchstart'/.test(html));
+    check(file + ': JUMP is released when the thumb lifts', /function\(\) \{ keys\.delete\(' '\); \}/.test(html));
+    check(file + ': the pads are hidden over menus and minigames', /function syncMobileControls\(\)/.test(html));
+    check(file + ': the HUD collapses on narrow screens',
+      /\.hud-lbl, #expWrap, #ultBtnRow \{ display: none !important; \}/.test(html));
+    check(file + ': the touch pad shrinks on tiny screens',
+      /\.mob-ability \{ width: 34px; height: 34px;/.test(html) && /\.mob-dir \{ width: 46px; height: 46px; \}/.test(html));
+    check(file + ': the cutscene stacks instead of clipping on a phone', /#cutsceneScreen \{ flex-direction: column;/.test(html));
+    check(file + ': short menu screens scroll instead of hiding PLAY',
+      /#menuScreen, #campaignScreen, #settingsScreen \{\s*\n\s*overflow-y: auto;/.test(html));
+    check(file + ': the menu is capped to the screen and the character grid reflows',
+      /#menuScreen > div \{ width: 100%; \}/.test(html) &&
+      /#charGrid \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/.test(html));
+    check(file + ': the mode row wraps instead of stretching the menu',
+      /flex gap-3 justify-center mb-4 flex-wrap/.test(html));
+    check(file + ': the settings and campaign cards stay inside a narrow screen',
+      /w-96 max-w-\[92vw\]/.test(html) && /w-80 max-w-\[92vw\]/.test(html));
+  });
+  // The published build and the standalone build must carry the same pads.
+  const mobOf = (f) => {
+    const html = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    const a = html.indexOf('<!-- Mobile Controls Overlay');
+    const b = html.indexOf('<!-- Game UI -->');
+    return a < 0 || b < 0 ? null : html.slice(a, b).split('\n').map((l) => l.trim()).join('\n');
+  };
+  const pads = mobOf('index.html');
+  check('the touch pad markup exists in both files', pads !== null && mobOf('index.standalone.html') !== null);
+  check('the touch pad markup is identical in both files', pads === mobOf('index.standalone.html'));
+  // Both thumb clusters must fit side by side on a 320px-wide phone: the narrow-screen
+  // breakpoint shrinks the pad to 104px and the five ability keys to 34px/gap 4.
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const narrow = /#dpadArea \{ width: 104px; \}/.test(html) && /#mobAbilityRow \{ gap: 4px; \}/.test(html);
+  const dpadW = 104, rowW = 5 * 34 + 4 * 4, margins = 20;
+  check('both thumb clusters fit a 320px phone without overlapping', narrow && dpadW + rowW + margins <= 320,
+    'dpad=' + dpadW + ' row=' + rowW);
+}
+
+// --- O: animation rig, sprint, werewolf skin, pumpkin HP, cross-device saves ---
+{
+  console.log('\n===== animation / content / saves =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    // One shared pose solver drives the player AND the grunts.
+    check(file + ': a shared stick-figure rig exists',
+      /function stickRig\(o\) \{/.test(html) && /function strokeLimb\(ox, oy, jx, jy, ex, ey\)/.test(html));
+    check(file + ': the rig bends knees and elbows (two segments per limb)',
+      /legs\.push\(\{ kx: kneeX, ky: kneeY, fx: footX, fy: footY \}\)/.test(html) &&
+      /arms\.push\(\{ ex: elbowX, ey: elbowY, hx: handX, hy: handY \}\)/.test(html));
+    check(file + ': the player is drawn from the rig, with joints visible',
+      /const rig = stickRig\(\{ x: x, y: y, facing: facing, state: state, vy: vy/.test(html) &&
+      /strokeLimb\(x, bbY, lg\.kx, lg\.ky, lg\.fx, lg\.fy\)/.test(html));
+    check(file + ': ground enemies walk on the same rig',
+      /var erg = stickRig\(\{[\s\S]{0,200}?legLen: 13/.test(html) && /strokeLimb\(dx, wHip, elg\.kx, elg\.ky, elg\.fx, elg\.fy\)/.test(html));
+    check(file + ': idle / walk / sprint / jump all have their own pose',
+      /var sprint = state === 'sprint';/.test(html) && /if \(state === 'jump'\) \{\n\s*\/\/ Rising/.test(html));
+    check(file + ': sprint is reachable without an extra button (hold a direction)',
+      /const SPRINT_HOLD_FRAMES = 27, SPRINT_SPEED_MULT = 1.3;/.test(html) &&
+      /var sprinting = wantsMove && \(sprintHold > SPRINT_HOLD_FRAMES \|\| shiftHeld\)/.test(html));
+    check(file + ': sprint is a real state, entered from the movement state machine',
+      /stick\.state = sprinting \? 'sprint' : 'walk'/.test(html));
+    check(file + ': landing squashes the knees then recovers',
+      /let landSquash = 0;/.test(html) && /landSquash = Math\.min\(9, 3 \+ stick\.vy \* 0\.6\)/.test(html) &&
+      /if \(landSquash > 0\) landSquash = Math\.max\(0, landSquash - 1\.6\)/.test(html));
+
+    // Halloween werewolf skin
+    check(file + ': the werewolf skin is in the Halloween skin list',
+      /id: 'fighter_werewolf', char: 'fighter', name: 'Werewolf'/.test(html));
+    check(file + ': the werewolf skin is drawn (ears, snout, claws, tail)',
+      /selectedSkin === 'fighter_werewolf'/.test(html) &&
+      /\/\/ Snout/.test(html) && /\/\/ Claws on both hands/.test(html) && /\/\/ Ears/.test(html));
+    check(file + ': the werewolf perk is wired to real damage',
+      /selectedSkin === 'fighter_werewolf'\) \{\s*\n\s*return \(typeof playerHP === 'number'/.test(html));
+
+    // Pumpkin boss tuning
+    const phaseHp = Number((/const PUMPKIN_PHASE_HP = (\d+);/.exec(html) || [])[1]);
+    const soulHp = Number((/const PUMPKIN_SOUL_HP = (\d+);/.exec(html) || [])[1]);
+    const phases = Number((/const PUMPKIN_PHASES = (\d+);/.exec(html) || [])[1]);
+    check(file + ': the pumpkin boss has 500 HP per phase', phaseHp === 500, 'found ' + phaseHp);
+    check(file + ': every phase refills to that same 500 HP',
+      /mb\.phase\+\+; mb\.hp = PUMPKIN_PHASE_HP;/.test(html), 'phases=' + phases);
+    check(file + ': the soul form is untouched at 5,000 HP', soulHp === 5000, 'found ' + soulHp);
+    check(file + ': the total is 5 x 500 = 2,500', phaseHp * phases === 2500, 'total=' + phaseHp * phases);
+
+    // Cross-device / cross-account saves
+    check(file + ': storage is wrapped so a blocked localStorage cannot kill the game',
+      /var localStorage = \(function \(\) \{/.test(html) && /getItem: get, setItem: set, removeItem: del/.test(html));
+    check(file + ': numeric saves are healed instead of loading as NaN',
+      /function loadNum\(key, fallback\)/.test(html) && /let totalPoints = loadNum\('sm_totalPoints'\)/.test(html));
+    check(file + ': saves carry a version that migrates old data',
+      /const SAVE_VERSION = 3, BUILD = '3\.0\.0';/.test(html) && /function migrateSave\(\)/.test(html) &&
+      /localStorage\.setItem\('sm_saveVersion', SAVE_VERSION\)/.test(html));
+    check(file + ': the menu shows the build so a second device can be checked',
+      /id="buildStamp"/.test(html));
+    // Regression: a round started after a death kept the previous round's empty HP bar
+    // until the first hit, because fullReset() set playerHP without refreshing the HUD.
+    check(file + ': a fresh round refreshes the HP / EXP HUD',
+      /playerHP = PLAYER_MAX_HP_CURRENT; attackCooldown = 0;\n(?:\s*\/\/[^\n]*\n)+\s*updateHPBar\(\); updateEXPBar\(\); updateShieldBar\(\);/.test(html));
+    check(file + ': a fresh round clears the sprint and landing timers',
+      /landSquash = 0; sprintHold = 0;/.test(html));
+  });
+  // Both shipped files must stay identical — they are the same game.
+  const a1 = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const a2 = fs.readFileSync(path.join(ROOT, 'index.standalone.html'), 'utf8');
+  check('index.html and index.standalone.html are the same build', a1 === a2);
+}
+
+// --- P: the frame clock must be refresh-rate independent ---------------------
+// A 90/120Hz phone used to run the whole fight at 1.5-2x speed because the game advanced
+// one step per animation frame. The real scheduler is lifted out of the shipped file and
+// driven with fake timestamps at 120Hz, 60Hz and 30Hz.
+{
+  console.log('\n===== frame clock =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const frameDecl = (/var FRAME = \{[^}]*\};/.exec(html) || [])[0];
+    const start = html.indexOf('function gameLoop(ts) {');
+    const end = start < 0 ? -1 : html.indexOf('\n    }\n', start);
+    check(file + ': the fixed-step scheduler is present', !!frameDecl && start >= 0 && end > start);
+    if (!frameDecl || start < 0 || end < 0) return;
+    const loopSrc = html.slice(start, end + 7);
+    const make = new Function([
+      "var gameState = 'playing', animFrameId = null, steps = 0;",
+      'var pending = [], nextId = 1;',
+      'function requestAnimationFrame(fn) { pending.push(fn); return nextId++; }',
+      'function gameStep() { steps++; }',
+      frameDecl,
+      loopSrc,
+      // the real build arms the first frame at startup, so do the same here
+      'requestAnimationFrame(gameLoop);',
+      'return {',
+      '  tick: function (ts) { var f = pending; pending = []; for (var i = 0; i < f.length; i++) f[i](ts); },',
+      '  steps: function () { return steps; },',
+      '  raf: function () { return animFrameId; },',
+      '  setState: function (s) { gameState = s; },',
+      '  reset: function () { steps = 0; }',
+      '};'
+    ].join('\n'));
+    const run = (hz, seconds) => {
+      const T = make();
+      const dt = 1000 / hz;
+      const frames = Math.round(hz * seconds);
+      for (let i = 1; i <= frames; i++) T.tick(i * dt);
+      return T;
+    };
+    const at120 = run(120, 1);
+    check(file + ': 120Hz advances ~60 steps per second (not 120)',
+      Math.abs(at120.steps() - 60) <= 1, 'steps=' + at120.steps());
+    const at60 = run(60, 1);
+    check(file + ': 60Hz advances ~60 steps per second',
+      Math.abs(at60.steps() - 60) <= 1, 'steps=' + at60.steps());
+    // At 30Hz two steps land per frame; the accumulator quantises a little, so allow 3.
+    const at30 = run(30, 1);
+    check(file + ': 30Hz catches up to ~60 steps per second',
+      Math.abs(at30.steps() - 60) <= 3, 'steps=' + at30.steps());
+    check(file + ': a running game keeps its next frame armed', at60.raf() !== null);
+    // A long stall (tab switch, GC) must not fast-forward dozens of frames at once.
+    const stall = make();
+    stall.tick(16.7); stall.tick(5000);
+    check(file + ': a 5s stall advances at most the 3 catch-up steps',
+      stall.steps() <= 1 + 3, 'steps=' + stall.steps());
+    // Pausing stops the chain entirely; the wrapper must not keep spinning.
+    const paused = make();
+    paused.tick(16.7);
+    paused.setState('paused');
+    paused.tick(33.4);
+    check(file + ': pausing stops the scheduler', paused.raf() === null);
+  });
+}
+
+// --- Q: the shared rig hands out sane joints in every state ------------------
+{
+  console.log('\n===== rig joints =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const g = html.indexOf('function stickRig(o) {');
+    const h = html.indexOf('// A two-segment limb');
+    if (g < 0 || h < 0) { check(file + ': rig source found', false); return; }
+    const rigSrc = html.slice(g, h);
+    const at = (state, speed, vy, t, crouch) => {
+      const mm = { exports: {} };
+      new Function('module', 'exports', 'var time=' + t + ';' + rigSrc + ';module.exports={stickRig};')(mm, mm.exports);
+      const r = mm.exports.stickRig({ x: 100, y: 380, facing: 1, state, speed: speed || 0, vy: vy || 0, crouch: crouch || 0, animTime: 6 });
+      return r;
+    };
+    let bad = 0, detail = '';
+    ['idle', 'walk', 'sprint', 'jump', 'kick', 'shoot', 'dash', 'grenade'].forEach((st) => {
+      for (let t = 0; t < 80; t++) {
+        const r = at(st, 6.5, (t % 20) - 10, t, 0);
+        const vals = [r.headY, r.shoulderY, r.hipY, r.legs[0].fx, r.legs[0].fy, r.legs[1].fx, r.legs[1].fy, r.arms[0].hx, r.arms[1].hy];
+        if (vals.some((v) => !isFinite(v))) { bad++; detail = st + '@' + t + ' NaN'; }
+        if (!(r.headY < r.hipY)) { bad++; detail = st + '@' + t + ' head below hip'; }
+      }
+    });
+    check(file + ': every state produces finite, connected joints', bad === 0, detail);
+    const walkA = at('walk', 5, 0, 20, 0), walkB = at('walk', 5, 0, 40, 0);
+    check(file + ': the walk cycle actually moves the feet',
+      Math.abs(walkA.legs[0].fx - walkB.legs[0].fx) > 4 && Math.abs(walkA.legs[1].fx - walkB.legs[1].fx) > 4,
+      'A=' + walkA.legs[0].fx.toFixed(1) + ' B=' + walkB.legs[0].fx.toFixed(1));
+    check(file + ': one foot lifts while the other is planted',
+      Math.abs(walkA.legs[0].fy - walkA.legs[1].fy) > 3,
+      'feet=' + walkA.legs[0].fy.toFixed(1) + '/' + walkA.legs[1].fy.toFixed(1));
+    const up = at('jump', 5, -14, 17, 0), down = at('jump', 5, 9, 17, 0);
+    check(file + ': the jump tucks on the way up and reaches on the way down',
+      up.legs[0].fy < down.legs[0].fy - 8, 'up=' + up.legs[0].fy.toFixed(1) + ' down=' + down.legs[0].fy.toFixed(1));
+    const idle = at('idle', 0, 0, 30, 0), squash = at('idle', 0, 0, 30, 8);
+    check(file + ': a landing squash drops the hips but keeps the feet planted',
+      squash.hipY > idle.hipY + 2 && Math.abs(squash.legs[0].fy - idle.legs[0].fy) < 0.01,
+      'hip ' + idle.hipY.toFixed(1) + '->' + squash.hipY.toFixed(1));
+    const sprint = at('sprint', 6.5, 0, 20, 0);
+    check(file + ': sprinting leans the body in without moving the feet line',
+      sprint.lean > 0.05 && Math.abs(sprint.legs[0].fy - idle.legs[0].fy) < 12, 'lean=' + sprint.lean);
+    const kick = at('kick', 0, 0, 17, 0);
+    check(file + ': the kick throws the front foot far ahead of the hips',
+      kick.legs[1].fx > 120, 'foot=' + kick.legs[1].fx.toFixed(1));
+  });
+}
+
+// --- Q: the Taoist — the newest playable character ---------------------------
+// The character card promises 120 HP, one half-health revival, 20% softer zombie hits
+// and six abilities; every one of those is pinned here so a later edit cannot quietly
+// drop an input, a damage number or the amulet's five blessings / five curses.
+{
+  console.log('\n===== taoist =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const num = (re) => Number((re.exec(html) || [])[1]);
+
+    check(file + ': the taoist has 120 HP', num(/const TAOIST_HP = (\d+);/) === 120,
+      'hp=' + num(/const TAOIST_HP = (\d+);/));
+    check(file + ': he revives once at half health',
+      num(/const TAOIST_REVIVE_PCT = ([\d.]+)/) === 0.5 && /function reviveTaoist\(\)/.test(html) &&
+      /playerHP = Math\.max\(1, Math\.floor\(PLAYER_MAX_HP_CURRENT \* TAOIST_REVIVE_PCT\)\)/.test(html));
+    check(file + ': the revival is spent, and only a new round restores it',
+      /taoistReviveUsed = true;/.test(html) && /taoistReviveUsed = false;/.test(html) &&
+      /gameState === 'gameover' && selectedChar === 'taoist' && !taoistReviveUsed/.test(html));
+    check(file + ': zombies hit him 20% softer',
+      num(/TAOIST_ZOMBIE_DMG_MULT = ([\d.]+)/) === 0.8 &&
+      /selectedChar === 'taoist' \? Math\.max\(1, Math\.round\(ZOMBIE_DMG \* TAOIST_ZOMBIE_DMG_MULT\)\)/.test(html));
+
+    // M1 — the thrown wooden sword has to actually reach the enemies.
+    check(file + ': M1 throws a wooden sword that damages what it crosses',
+      num(/TAOIST_SWORD_DMG = (\d+)/) === 14 && /function performTaoistSword\(\)/.test(html) &&
+      /dealDamageToDummy\(d, s\.dmg, 'taoist'\)/.test(html) &&
+      /dealDamageToMiniBoss\(m, s\.dmg, 'taoist'\)/.test(html));
+    // Right click — a 2% heal for the taoist and every ally inside the ring.
+    check(file + ': right click is a 2% heal pulse for him and nearby allies',
+      num(/TAOIST_PULSE_HEAL_PCT = ([\d.]+)/) === 0.02 && /function performTaoistPulse\(\)/.test(html) &&
+      /playerHP = Math\.min\(PLAYER_MAX_HP_CURRENT, playerHP \+ heal\)/.test(html) &&
+      /Math\.abs\(a\.x - stick\.x\) > TAOIST_PULSE_RADIUS/.test(html));
+ 
+    // 1 / 2 / 3 / E / F
+    check(file + ': 1 raises three zombie allies',
+      num(/TAOIST_ZOMBIE_COUNT = (\d+)/) === 3 && /function performTaoistZombies\(\)/.test(html));
+    check(file + ': 2 seals three enemies so they cannot move or attack',
+      num(/TAOIST_SEAL_TARGETS = (\d+)/) === 3 && /function performTaoistSeal\(\)/.test(html) &&
+      /\.sealTimer = TAOIST_SEAL_DUR/.test(html));
+    const amulets = (/const TAOIST_AMULETS = \[([\s\S]*?)\n    \];/.exec(html) || [])[1] || '';
+    const blessings = (amulets.match(/good: true/g) || []).length;
+    const curses = (amulets.match(/good: false/g) || []).length;
+    check(file + ': E draws from five blessings and five curses',
+      blessings === 5 && curses === 5 && /function performTaoistAmulet\(\)/.test(html),
+      'good=' + blessings + ' bad=' + curses);
+    check(file + ': the amulet really moves damage, speed and damage taken',
+      /pickupDmgMult\(\)[\s\S]{0,90}taoistDmgMult\(\)/.test(html) &&
+      /skinSpeedMult\(\)[^\n]*taoistSpdMult\(\)/.test(html) &&
+      /dmg \* taoistTakenMult\(\)/.test(html));
+    check(file + ': F spawns the big zombie',
+      /function performTaoistBigZombie\(\)/.test(html) && /big_zombie_ally/.test(html));
+    check(file + ': 3 is the 250-damage amulet, every 3s for 9s',
+      num(/TAOIST_ULT_DMG = (\d+)/) === 250 && num(/TAOIST_ULT_TICK = (\d+)/) === 180 &&
+      num(/TAOIST_ULT_DUR = (\d+)/) === 540, 'tick=' + num(/TAOIST_ULT_TICK = (\d+)/) +
+      ' dur=' + num(/TAOIST_ULT_DUR = (\d+)/));
+    check(file + ': the heaven amulet hits every enemy around it',
+      /phantomHitAll\(taoistUltAmulet\.x, TAOIST_ULT_RADIUS, TAOIST_ULT_DMG, 'taoist'\)/.test(html));
+
+    // Every input has to be wired on desktop AND on the phone pads.
+    // Anchored on the key-1 line so the drawing / damage blocks of the same character
+    // cannot be mistaken for the input handler.
+    const taoistKeys = /\} else if \(selectedChar === 'taoist'\) \{\n\s*if \(e\.key === '1'\) performTaoistZombies\(\);\n(?:[^\n]*\n){4}/.exec(html);
+    check(file + ': keyboard 1/2/3/E/F all reach the taoist kit',
+      !!taoistKeys && /performTaoistZombies/.test(taoistKeys[0]) && /performTaoistSeal/.test(taoistKeys[0]) &&
+      /performTaoistUlt/.test(taoistKeys[0]) && /performTaoistBigZombie/.test(taoistKeys[0]) &&
+      /performTaoistAmulet/.test(taoistKeys[0]));
+    check(file + ': left click / right click are sword and pulse',
+      /if \(e\.button === 2\) performTaoistPulse\(\); else performTaoistSword\(\);/.test(html));
+    check(file + ': the phone pads drive the same six abilities',
+      /mobTap\('mobBtnAtk'[\s\S]{0,900}performTaoistSword/.test(html) &&
+      /mobTap\('mobBtnKick'[\s\S]{0,900}performTaoistPulse/.test(html) &&
+      /function mobAbility1\(\)[\s\S]{0,700}performTaoistZombies/.test(html) &&
+      /function mobAbility2\(\)[\s\S]{0,700}performTaoistSeal/.test(html) &&
+      /function mobAbility3\(\)[\s\S]{0,700}performTaoistUlt/.test(html) &&
+      /function mobAbilityF\(\)[\s\S]{0,700}performTaoistBigZombie/.test(html) &&
+      /function mobAbilityE\(\)[\s\S]{0,900}performTaoistAmulet/.test(html));
+
+    // The look: yin-yang hat, amulet over the left eye, wooden sword in hand.
+    check(file + ': he wears the yin-yang hat and the left-eye amulet',
+      /Yin-yang hat/.test(html) && /Talisman paper over the left eye/.test(html) &&
+      /Spinning yin-yang disc/.test(html));
+    check(file + ': he carries a wooden sword', /Wooden sword held in the front hand/.test(html));
+
+    // Menu entry + unlock gate (1,200 points and 5 boss points, permanent).
+    check(file + ': the menu offers the taoist for 1,200 pts + 5 boss pts',
+      /id="charTaoist"/.test(html) && /1200🪙\+5🏆/.test(html) &&
+      /c === 'taoist' && totalPoints >= 1200 && bossPoints >= 5/.test(html));
+    check(file + ': the taoist unlock is permanent, not a rental',
+      /if \(c === 'taoist'\) return; \/\/ permanent/.test(html));
+  });
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
