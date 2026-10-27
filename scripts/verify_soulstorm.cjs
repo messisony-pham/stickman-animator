@@ -178,6 +178,54 @@ function makeRunner(regionSource) {
   return { S, ctx, frame, errors };
 }
 
+// --------------------------------------------------------------------- lint
+// Finds names used before their own `const`/`let` declaration inside a function.
+// This is the bug class that froze the taoist fight: drawStickman's draw blocks
+// reference shared locals (`armY`) that are declared further down the function,
+// which is a ReferenceError at run time but perfectly valid-looking source.
+function stripSourceNoise(s) {
+  // Blank out comments and string literals *in place* (same length, newlines kept)
+  // so the offset math still lines up and prose like "the shared armY const" is
+  // not mistaken for code.
+  const blank = (m) => m.replace(/[^\n]/g, ' ');
+  return s
+    .replace(/\/\*[\s\S]*?\*\//g, blank)
+    .replace(/\/\/[^\n]*/g, blank)
+    .replace(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g, blank);
+}
+function tdzOffenders(html) {
+  const start = html.indexOf('function drawStickman');
+  let from = start, body = html;
+  if (start >= 0) {
+    let depth = 0, end = html.length;
+    for (let i = html.indexOf('{', start); i < html.length; i++) {
+      if (html[i] === '{') depth++;
+      else if (html[i] === '}') { depth--; if (!depth) { end = i + 1; break; } }
+    }
+    body = stripSourceNoise(html.slice(start, end));
+    from = 0;
+  } else {
+    from = 0;
+  }
+  // `var` counts too: it is hoisted, so a later var is never a use-before-init bug.
+  const declRe = /(?:^|[;{}\n])\s*(?:var|const|let)\s+([A-Za-z_$][\w$]*)\s*=/g;
+  const firstDecl = {};
+  let m;
+  while ((m = declRe.exec(body))) {
+    if (!(m[1] in firstDecl)) firstDecl[m[1]] = m.index + m[0].indexOf(m[1]);
+  }
+  const bad = [];
+  Object.keys(firstDecl).forEach((name) => {
+    const useRe = new RegExp('(^|[^\\w$.:\'"])' + name + '\\b', 'g');
+    let u;
+    while ((u = useRe.exec(body))) {
+      const at = u.index + u[1].length;
+      if (at < firstDecl[name]) { bad.push(name); break; }
+    }
+  });
+  return bad;
+}
+
 // ------------------------------------------------------------------- asserts
 let pass = 0, fail = 0;
 function check(name, cond, extra) {
@@ -1176,6 +1224,18 @@ function run(file) {
       /Yin-yang hat/.test(html) && /Talisman paper over the left eye/.test(html) &&
       /Spinning yin-yang disc/.test(html));
     check(file + ': he carries a wooden sword', /Wooden sword held in the front hand/.test(html));
+
+    // The character draw blocks all sit ABOVE the shared `armY` const inside
+    // drawStickman. Reading a declaration that comes later in the same function
+    // throws a temporal-dead-zone ReferenceError on EVERY frame; the loop guard
+    // swallows it, so the round silently freezes with a frozen canvas. Source-text
+    // checks cannot see that, so lint the function for use-before-declaration.
+    const tdzProbe = 'function f() {\n  var a = armY + 18;\n  const armY = 1;\n  return a;\n}\n';
+    check(file + ': the TDZ guard really detects a use before declaration',
+      tdzOffenders(tdzProbe).includes('armY'), JSON.stringify(tdzOffenders(tdzProbe)));
+    const offenders = tdzOffenders(html);
+    check(file + ': drawStickman never reads a declaration before it exists',
+      offenders.length === 0, 'reads-before-declaration: ' + offenders.join(', '));
 
     // Menu entry + unlock gate (1,200 points and 5 boss points, permanent).
     check(file + ': the menu offers the taoist for 1,200 pts + 5 boss pts',

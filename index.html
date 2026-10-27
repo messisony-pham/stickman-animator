@@ -110,6 +110,12 @@
       #ultBarWrap > div { width: 46px; }
       #ultBarWrap #ultProgress { display: none; }
       #gameUI > div:first-child .max-w-6xl { padding-left: 4px; padding-right: 4px; gap: 3px; }
+      /* "99999🪙 50🏆" used to wrap onto three lines and spill out of a 37px header, so
+         the coin count got clipped and the trophy landed on top of the pause button.
+         One line, and the boss-point half is menu-only on a phone. */
+      #gamePoints { white-space: nowrap; font-size: 10px; }
+      #gameBossPoints { display: none; }
+      #shopOpenBtn { padding: 0 4px; }
     }
     @media (max-width: 400px) {
       #dpadArea { width: 104px; }
@@ -697,7 +703,7 @@
           <span class="hud-lbl text-slate-400 text-[9px]">KIL</span>
           <span id="kills" class="font-mono text-xs font-bold tabular-nums text-rose-400">0</span>
           <span class="hud-lbl text-slate-400 text-[9px]">PTS</span>
-          <span id="gamePoints" class="font-mono text-xs font-bold tabular-nums text-amber-400">0</span>
+          <span id="gamePoints" class="font-mono text-xs font-bold tabular-nums text-amber-400"><span id="gameCoins">0</span>🪙 <span id="gameBossPoints">0🏆</span></span>
           <button id="shopOpenBtn" class="px-1.5 py-0.5 rounded bg-amber-700 hover:bg-amber-600 transition-colors text-[10px] font-bold border border-amber-600 text-amber-200">🛒</button>
           <button id="resetBtn" class="px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-[10px] font-medium border border-slate-600">↺</button>
         </div>
@@ -1200,7 +1206,7 @@
     }
     let totalPoints = loadNum('sm_totalPoints');
     let bossPoints = loadNum('sm_bossPoints');
-    function savePoints() { localStorage.setItem('sm_totalPoints', totalPoints); localStorage.setItem('sm_bossPoints', bossPoints); var gp = document.getElementById('gamePoints'); if (gp) gp.textContent = totalPoints + '🪙 ' + bossPoints + '🏆'; }
+    function savePoints() { localStorage.setItem('sm_totalPoints', totalPoints); localStorage.setItem('sm_bossPoints', bossPoints); var gp = document.getElementById('gamePoints'); if (gp) { var gc = document.getElementById('gameCoins'), gb = document.getElementById('gameBossPoints'); if (gc && gb) { gc.textContent = totalPoints; gb.textContent = bossPoints + '🏆'; } else gp.textContent = totalPoints + '🪙 ' + bossPoints + '🏆'; } }
 
     // ==================== HALLOWEEN EVENT (active every October, ends Nov 1) ====================
     let candy = loadNum('sm_candy');
@@ -5790,7 +5796,10 @@
         ctx.restore();
         // Wooden sword held in the front hand
         ctx.save();
-        var taSwordX = x + 22 * facing, taSwordY = armY + 18;
+        // The shared `armY` is a const declared further down this function, so this
+        // block has to derive the shoulder line itself (touching `armY` here threw a
+        // temporal-dead-zone ReferenceError on every frame and froze the whole fight).
+        var taSwordX = x + 22 * facing, taSwordY = btY + 28;
         var taAng = stick.state === 'shoot' ? -0.9 + Math.min(animTime / 8, 1) * 1.5 : 0.35;
         ctx.translate(taSwordX, taSwordY); ctx.rotate(taAng * facing);
         ctx.fillStyle = '#a16207';
