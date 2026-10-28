@@ -42,6 +42,11 @@
     html { -webkit-text-size-adjust: 100%; }
     body { height: 100dvh; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
     #gameUI { height: 100dvh; }
+    /* Flip/smaller screen when mobile mode is on */
+    body.mob-mode-flip { transform: none; }
+    @media (orientation: portrait) and (max-width: 900px) {
+      body.mob-hud.mobile-flipped #gameUI { transform: rotate(90deg) translateY(-100%); transform-origin: left top; width: 100vh; height: 100vw; position: fixed; top: 0; left: 100%; }
+    }
     /* Menu-style overlays carry a lot of content: scroll them instead of clipping
        the PLAY button off a short phone screen. */
     #menuScreen, #campaignScreen, #settingsScreen {
@@ -262,6 +267,9 @@
         <button id="pumpkinBossBtn" class="hidden px-4 py-1.5 rounded-lg bg-red-900 border-2 border-orange-500 text-orange-100 font-bold text-sm transition-all hover:border-orange-300">🎃 Fight Boss</button>
         <button id="campaignBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-500 text-purple-400 font-bold text-sm transition-all hover:border-purple-400 hover:text-purple-300">📖 Campaign</button>
         <button id="musicBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-cyan-400 text-cyan-300 font-bold text-sm transition-all hover:border-cyan-300 hover:text-cyan-100">🎵 Music</button>
+        <button id="rankListBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-amber-400 text-amber-300 font-bold text-sm transition-all hover:border-amber-300 hover:text-amber-100">🎖️ Rank</button>
+        <button id="dailyQuestBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-400 text-emerald-300 font-bold text-sm transition-all hover:border-emerald-300 hover:text-emerald-100">📅 Daily</button>
+        <button id="taoistQuestBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-lime-400 text-lime-300 font-bold text-sm transition-all hover:border-lime-300 hover:text-lime-100">☯️ Taoist Quest</button>
       </div>
       <button id="playBtn" class="px-10 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-orange-500/30 mb-4">
         ▶ PLAY
@@ -468,6 +476,51 @@
       <p class="text-[10px] text-slate-400 text-center mb-3">Click a song to play it — <span id="musicNow" class="text-cyan-400 font-bold">nothing playing</span></p>
       <div id="musicList" class="space-y-1.5"></div>
       <button id="musicClose" class="w-full mt-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-colors">✅ Done</button>
+    </div>
+  </div>
+
+  <!-- Rank List Screen -->
+  <div id="rankScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
+    <div class="bg-slate-800 border-2 border-amber-500 rounded-2xl p-6 w-[420px] max-w-[95vw] shadow-2xl max-h-[92vh] overflow-y-auto">
+      <h2 class="text-white font-bold text-xl mb-1 text-center">🎖️ RANK LIST</h2>
+      <p class="text-[10px] text-slate-400 text-center mb-2">Earn rank points by playing and defeating enemies. Higher rank = better prestige.</p>
+      <div class="text-center mb-3 text-sm"><span class="text-amber-400 font-bold">🎖️ Your Rank:</span> <span id="rankScreenCurrent" class="text-white font-bold ml-1">🪵 WOOD</span> <span class="text-slate-400 text-xs ml-2">(<span id="rankScreenPoints" class="text-amber-300">0</span> pts)</span></div>
+      <div class="mb-3 text-xs text-slate-300 bg-slate-900/60 rounded-lg p-2 border border-slate-600">
+        <div class="font-bold text-amber-300 mb-1">💡 How to get rank points:</div>
+        <div class="space-y-0.5 text-[10px]">
+          <div>• Kill enemies in any mode (awarded as points)</div>
+          <div>• Complete rounds and defeat bosses</div>
+          <div>• Earn coins/points throughout gameplay</div>
+          <div>• Rank is calculated from total points earned</div>
+        </div>
+      </div>
+      <div class="space-y-1.5 mb-4" id="rankListItems"></div>
+      <button id="rankClose" class="w-full py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-colors">✅ Done</button>
+    </div>
+  </div>
+
+  <!-- Daily Quest Screen -->
+  <div id="dailyQuestScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
+    <div class="bg-slate-800 border-2 border-emerald-500 rounded-2xl p-6 w-[380px] max-w-[95vw] shadow-2xl max-h-[92vh] overflow-y-auto">
+      <h2 class="text-white font-bold text-xl mb-1 text-center">📅 DAILY QUEST</h2>
+      <p class="text-[10px] text-slate-400 text-center mb-3">Complete daily tasks for rewards!</p>
+      <div class="text-center mb-3 text-xs"><span class="text-emerald-400 font-bold">Streak:</span> <span id="dailyStreak" class="text-white font-bold">0</span> days</div>
+      <div id="dailyQuestList" class="space-y-2 mb-4"></div>
+      <button id="dailyQuestClose" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors">✅ Done</button>
+    </div>
+  </div>
+
+  <!-- Taoist Quest Screen -->
+  <div id="taoistQuestScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
+    <div class="bg-slate-800 border-2 border-lime-500 rounded-2xl p-6 w-[380px] max-w-[95vw] shadow-2xl max-h-[92vh] overflow-y-auto">
+      <h2 class="text-white font-bold text-xl mb-1 text-center">☯️ TAOIST QUEST</h2>
+      <p class="text-[10px] text-slate-400 text-center mb-3">Master the Way of Taoism</p>
+      <div class="mb-3 text-xs bg-slate-900/60 rounded-lg p-2 border border-lime-600/40">
+        <div class="font-bold text-lime-300 mb-1">☯️ Taoist Path</div>
+        <div class="text-[10px] text-slate-300">Complete these challenges as the Taoist to prove your mastery of balance and harmony.</div>
+      </div>
+      <div id="taoistQuestList" class="space-y-2 mb-4"></div>
+      <button id="taoistQuestClose" class="w-full py-2 rounded-lg bg-lime-600 hover:bg-lime-500 text-white font-bold text-sm transition-colors">✅ Done</button>
     </div>
   </div>
 
@@ -2544,15 +2597,18 @@
       var headerH = header ? header.getBoundingClientRect().height : 46;
       if (!headerH) headerH = 46;
       var landscape = vp.w > vp.h;
-      var pad = mobileMode ? 6 : 40;
+      var pad = mobileMode ? 4 : 40;
       // Room for the two thumb clusters. In portrait they sit BELOW the canvas, so only
       // their height is reserved. In landscape they hug the left/right edges, so the canvas
       // only has to stay BETWEEN them (280px) and gets nearly the full height.
-      var reserved = mobileMode ? (landscape ? 12 : 148) : 150;
-      var maxW = Math.max(200, vp.w - (mobileMode && landscape ? 280 : pad * 2));
+      var reserved = mobileMode ? (landscape ? 8 : 120) : 150;
+      var maxW = Math.max(200, vp.w - (mobileMode && landscape ? 240 : pad * 2));
       var maxH = Math.max(120, vp.h - headerH - reserved);
       // Never upscale: the canvas is a 900x500 bitmap and stretching it only blurs.
       var s = Math.min(maxW / CW, maxH / CH, 1);
+      if (mobileMode) {
+        s = Math.min(s * 0.88, 0.92); // make screen smaller on mobile for easier play
+      }
       var w = Math.round(CW * s), h = Math.round(CH * s);
       // Mobile browsers fire visualViewport resize while the URL bar slides away. Re-fitting
       // the canvas on every one of those made the whole scene jump mid-fight, so only
@@ -2691,10 +2747,12 @@
         toggle.classList.remove('bg-slate-600'); toggle.classList.add('bg-emerald-500');
         dot.style.transform = 'translateX(24px)';
         label.textContent = 'ON'; label.classList.remove('text-slate-400'); label.classList.add('text-emerald-400');
+        document.body.classList.add('mob-hud');
       } else {
         toggle.classList.add('bg-slate-600'); toggle.classList.remove('bg-emerald-500');
         dot.style.transform = 'translateX(0)';
         label.textContent = 'OFF'; label.classList.add('text-slate-400'); label.classList.remove('text-emerald-400');
+        document.body.classList.remove('mob-hud');
       }
       syncMobileControls();
       resizeCanvas();
@@ -2703,7 +2761,24 @@
     document.getElementById('mobileModeToggle').addEventListener('click', function() {
       mobileMode = !mobileMode;
       localStorage.setItem('sm_mobileMode', mobileMode);
+      if (mobileMode) {
+        try {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function(){ });
+          }
+        } catch(e) {}
+        // Make canvas smaller on mobile for easier play
+        try { document.documentElement.style.setProperty('--mobile-scale', '0.85'); } catch(e) {}
+      } else {
+        try {
+          if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+          }
+        } catch(e) {}
+        try { document.documentElement.style.removeProperty('--mobile-scale'); } catch(e) {}
+      }
       updateMobileModeUI();
+      setTimeout(function(){ resizeCanvas(); }, 100);
     });
     // Mobile button handlers — pointer events cover touch *and* mouse, keep the
     // highlight while a thumb is down, and always release the held key (the old
@@ -13229,6 +13304,127 @@
     });
     document.getElementById('musicClose').addEventListener('click', function() {
       document.getElementById('musicScreen').classList.add('hidden');
+      document.getElementById('menuScreen').classList.remove('hidden');
+    });
+
+    // Rank List
+    function renderRankList() {
+      var cur = currentRank(totalPoints);
+      var rc = document.getElementById('rankScreenCurrent');
+      if (rc) rc.innerHTML = cur.rank.icon + ' ' + cur.rank.name;
+      var rp = document.getElementById('rankScreenPoints');
+      if (rp) rp.textContent = totalPoints;
+      var list = document.getElementById('rankListItems');
+      if (!list) return;
+      list.innerHTML = '';
+      RANKS.forEach(function(rk, idx) {
+        var isCurrent = cur.rank.name === rk.name;
+        var div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-2 rounded-lg border ' + (isCurrent ? 'border-amber-400 bg-amber-900/30' : 'border-slate-600 bg-slate-700/40');
+        div.innerHTML = '<div class="flex items-center gap-2"><span class="text-lg">' + rk.icon + '</span><span class="font-bold ' + (isCurrent ? 'text-amber-300' : 'text-white') + '">' + rk.name + '</span>' + (isCurrent ? ' <span class="text-[9px] text-amber-400">CURRENT</span>' : '') + '</div><div class="text-xs text-slate-400">' + rk.min + '+ pts</div>';
+        list.appendChild(div);
+      });
+    }
+    document.getElementById('rankListBtn').addEventListener('click', function() {
+      document.getElementById('menuScreen').classList.add('hidden');
+      document.getElementById('rankScreen').classList.remove('hidden');
+      renderRankList();
+    });
+    document.getElementById('rankClose').addEventListener('click', function() {
+      document.getElementById('rankScreen').classList.add('hidden');
+      document.getElementById('menuScreen').classList.remove('hidden');
+    });
+
+    // Daily Quest
+    function getDailyQuestKey() {
+      var d = new Date();
+      return 'sm_daily_' + d.getFullYear() + '_' + (d.getMonth()+1) + '_' + d.getDate();
+    }
+    function loadDailyQuests() {
+      var key = getDailyQuestKey();
+      try {
+        var saved = localStorage.getItem(key);
+        if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      var quests = [
+        { id: 1, text: 'Kill 10 enemies', goal: 10, progress: 0, reward: 50, done: false },
+        { id: 2, text: 'Earn 100 points', goal: 100, progress: 0, reward: 75, done: false },
+        { id: 3, text: 'Defeat 3 bosses/waves', goal: 3, progress: 0, reward: 100, done: false }
+      ];
+      try { localStorage.setItem(key, JSON.stringify(quests)); } catch(e) {}
+      return quests;
+    }
+    function saveDailyQuests(q) {
+      var key = getDailyQuestKey();
+      try { localStorage.setItem(key, JSON.stringify(q)); } catch(e) {}
+    }
+    function renderDailyQuests() {
+      var list = document.getElementById('dailyQuestList');
+      if (!list) return;
+      var quests = loadDailyQuests();
+      var streakEl = document.getElementById('dailyStreak');
+      if (streakEl) {
+        var s = parseInt(localStorage.getItem('sm_daily_streak') || '0', 10);
+        streakEl.textContent = s;
+      }
+      list.innerHTML = '';
+      quests.forEach(function(q) {
+        var pct = Math.min(100, Math.floor((q.progress / q.goal) * 100));
+        var div = document.createElement('div');
+        div.className = 'p-2 rounded-lg border ' + (q.done ? 'border-emerald-400 bg-emerald-900/20' : 'border-slate-600 bg-slate-700/40');
+        div.innerHTML = '<div class="flex items-center justify-between mb-1"><div class="text-xs font-bold ' + (q.done ? 'text-emerald-300' : 'text-white') + '">' + (q.done ? '✅ ' : '📌 ') + q.text + '</div><div class="text-[10px] text-amber-400">+' + q.reward + ' pts</div></div><div class="w-full bg-slate-900 rounded-full h-1.5 mb-1"><div class="bg-emerald-500 h-1.5 rounded-full" style="width:' + pct + '%"></div></div><div class="text-[9px] text-slate-400">' + q.progress + '/' + q.goal + ' (' + pct + '%)</div>';
+        list.appendChild(div);
+      });
+    }
+    document.getElementById('dailyQuestBtn').addEventListener('click', function() {
+      document.getElementById('menuScreen').classList.add('hidden');
+      document.getElementById('dailyQuestScreen').classList.remove('hidden');
+      renderDailyQuests();
+    });
+    document.getElementById('dailyQuestClose').addEventListener('click', function() {
+      document.getElementById('dailyQuestScreen').classList.add('hidden');
+      document.getElementById('menuScreen').classList.remove('hidden');
+    });
+
+    // Taoist Quest
+    function loadTaoistQuests() {
+      try {
+        var saved = localStorage.getItem('sm_taoist_quests');
+        if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      var quests = [
+        { id: 1, text: 'Play as Taoist 3 times', goal: 3, progress: 0, reward: 150, done: false },
+        { id: 2, text: 'Use Taoist revival once', goal: 1, progress: 0, reward: 200, done: false },
+        { id: 3, text: 'Kill 50 enemies as Taoist', goal: 50, progress: 0, reward: 300, done: false }
+      ];
+      try { localStorage.setItem('sm_taoist_quests', JSON.stringify(quests)); } catch(e) {}
+      return quests;
+    }
+    function saveTaoistQuests(q) {
+      try { localStorage.setItem('sm_taoist_quests', JSON.stringify(q)); } catch(e) {}
+    }
+    function renderTaoistQuests() {
+      var list = document.getElementById('taoistQuestList');
+      if (!list) return;
+      var quests = loadTaoistQuests();
+      list.innerHTML = '';
+      quests.forEach(function(q) {
+        var pct = Math.min(100, Math.floor((q.progress / q.goal) * 100));
+        var div = document.createElement('div');
+        div.className = 'p-2 rounded-lg border ' + (q.done ? 'border-lime-400 bg-lime-900/20' : 'border-slate-600 bg-slate-700/40');
+        div.innerHTML = '<div class="flex items-center justify-between mb-1"><div class="text-xs font-bold ' + (q.done ? 'text-lime-300' : 'text-white') + '">' + (q.done ? '✅ ' : '☯️ ') + q.text + '</div><div class="text-[10px] text-amber-400">+' + q.reward + ' pts</div></div><div class="w-full bg-slate-900 rounded-full h-1.5 mb-1"><div class="bg-lime-500 h-1.5 rounded-full" style="width:' + pct + '%"></div></div><div class="text-[9px] text-slate-400">' + q.progress + '/' + q.goal + ' (' + pct + '%)</div>';
+        list.appendChild(div);
+      });
+    }
+    document.getElementById('taoistQuestBtn').addEventListener('click', function() {
+      document.getElementById('menuScreen').classList.add('hidden');
+      document.getElementById('taoistQuestScreen').classList.remove('hidden');
+      renderTaoistQuests();
+    });
+    document.getElementById('taoistQuestClose').addEventListener('click', function() {
+      document.getElementById('taoistQuestScreen').classList.add('hidden');
+      document.getElementById('menuScreen').classList.remove('hidden');
+    });
       document.getElementById('menuScreen').classList.remove('hidden');
     });
     document.getElementById('halloweenClose').addEventListener('click', function() { document.getElementById('halloweenScreen').classList.add('hidden'); document.getElementById('menuScreen').classList.remove('hidden'); });
