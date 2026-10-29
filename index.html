@@ -2727,7 +2727,7 @@
         btn.classList.remove('ring-2', 'ring-amber-400');
         btn.classList.add('border-slate-600');
       });
-      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween' };
+      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', desert: 'bgSetDesert', cave: 'bgSetCave', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween' };
       var el = document.getElementById(map[b]);
       if (el) { el.classList.add('ring-2', 'ring-amber-400'); el.classList.remove('border-slate-600'); }
     }
@@ -2954,6 +2954,8 @@
     document.getElementById('bgSetBoss').addEventListener('click', function() { selectBg('boss'); });
     document.getElementById('bgSetRain').addEventListener('click', function() { selectBg('rain'); });
     document.getElementById('bgSetHouse').addEventListener('click', function() { selectBg('house'); });
+    document.getElementById('bgSetDesert').addEventListener('click', function() { selectBg('desert'); });
+    document.getElementById('bgSetCave').addEventListener('click', function() { selectBg('cave'); });
     document.getElementById('bgSetVolcano').addEventListener('click', function() { selectBg('volcano'); });
     document.getElementById('bgSetFlamePit').addEventListener('click', function() { selectBg('flame_pit'); });
     document.getElementById('bgSetDarkGrave').addEventListener('click', function() { selectBg('dark_grave'); });
@@ -7117,7 +7119,7 @@
         createParticles(d.x, GROUND_Y - 30, 20, d.isZombie ? '#22c55e' : '#4ade80');
         if (gameMode !== 'sandbox') {
           score += d.isKamikaze ? 15 : d.isGunner ? 15 : d.isSummoner ? 20 : d.isSummon ? 5 : d.isCrossbow ? 15 : d.isZombie ? 10 : 10;
-          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
+          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); rankPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
           createTextParticle(d.x, GROUND_Y - 75, (d.isNecroZombie ? '🧟 NECRO ZOMBIE' : d.isZombie ? '🧟 ZOMBIE' : '') + ' +10 🪙', '#fbbf24', 11);
           if (!d.isKamikaze && !d.isSummon && !d.isZombie && Math.random() < 0.15) pickups.push(createPickup(d.x, GROUND_Y));
         } else {
@@ -13309,7 +13311,7 @@
 
     // Rank List
     function renderRankList() {
-      var cur = currentRank(totalPoints);
+      var cur = currentRank(rankPoints);
       var rc = document.getElementById('rankScreenCurrent');
       if (rc) rc.innerHTML = cur.rank.icon + ' ' + cur.rank.name;
       var rp = document.getElementById('rankScreenPoints');
