@@ -300,6 +300,8 @@
           <button id="bgSetBoss" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🔥 Boss</button>
           <button id="bgSetRain" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🌧 Rain</button>
           <button id="bgSetHouse" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🏠 House</button>
+          <button id="bgSetDesert" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🏜️ Desert</button>
+          <button id="bgSetCave" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🦇 Cave</button>
           <button id="bgSetVolcano" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🌋 Volcano</button>
           <button id="bgSetFlamePit" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🔥 Flame Pit</button>
           <button id="bgSetDarkGrave" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🪦 Grave</button>
@@ -1263,7 +1265,11 @@
     }
     let totalPoints = loadNum('sm_totalPoints');
     let bossPoints = loadNum('sm_bossPoints');
-    function savePoints() { localStorage.setItem('sm_totalPoints', totalPoints); localStorage.setItem('sm_bossPoints', bossPoints); var gp = document.getElementById('gamePoints'); if (gp) { var gc = document.getElementById('gameCoins'), gb = document.getElementById('gameBossPoints'); if (gc && gb) { gc.textContent = totalPoints; gb.textContent = bossPoints + '🏆'; } else gp.textContent = totalPoints + '🪙 ' + bossPoints + '🏆'; } }
+    // Rank points are a SEPARATE currency: they only ever rank you up, so spending
+    // coins in the shop can never drop your rank. Existing saves seed it from the
+    // coins they already have so nobody starts back at Recruit.
+    let rankPoints = loadNum('sm_rankPoints', totalPoints);
+    function savePoints() { localStorage.setItem('sm_totalPoints', totalPoints); localStorage.setItem('sm_bossPoints', bossPoints); localStorage.setItem('sm_rankPoints', rankPoints); var gp = document.getElementById('gamePoints'); if (gp) { var gc = document.getElementById('gameCoins'), gb = document.getElementById('gameBossPoints'); if (gc && gb) { gc.textContent = totalPoints; gb.textContent = bossPoints + '🏆'; } else gp.textContent = totalPoints + '🪙 ' + bossPoints + '🏆'; } }
 
     // ==================== HALLOWEEN EVENT (active every October, ends Nov 1) ====================
     let candy = loadNum('sm_candy');
@@ -1322,7 +1328,7 @@
       { name: 'IMMORTAL', icon: '🔥', min: 25000, color: '#ef4444' }
     ];
     function currentRank(points) {
-      var p = (typeof points === 'number') ? points : totalPoints;
+      var p = (typeof points === 'number') ? points : rankPoints;
       var idx = 0;
       for (var i = 0; i < RANKS.length; i++) { if (p >= RANKS[i].min) idx = i; }
       var next = RANKS[idx + 1] || null;
@@ -2727,7 +2733,7 @@
         btn.classList.remove('ring-2', 'ring-amber-400');
         btn.classList.add('border-slate-600');
       });
-      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween' };
+      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', desert: 'bgSetDesert', cave: 'bgSetCave', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween' };
       var el = document.getElementById(map[b]);
       if (el) { el.classList.add('ring-2', 'ring-amber-400'); el.classList.remove('border-slate-600'); }
     }
@@ -2954,6 +2960,8 @@
     document.getElementById('bgSetBoss').addEventListener('click', function() { selectBg('boss'); });
     document.getElementById('bgSetRain').addEventListener('click', function() { selectBg('rain'); });
     document.getElementById('bgSetHouse').addEventListener('click', function() { selectBg('house'); });
+    var bgDesertBtn = document.getElementById('bgSetDesert'); if (bgDesertBtn) bgDesertBtn.addEventListener('click', function() { selectBg('desert'); });
+    var bgCaveBtn = document.getElementById('bgSetCave'); if (bgCaveBtn) bgCaveBtn.addEventListener('click', function() { selectBg('cave'); });
     document.getElementById('bgSetVolcano').addEventListener('click', function() { selectBg('volcano'); });
     document.getElementById('bgSetFlamePit').addEventListener('click', function() { selectBg('flame_pit'); });
     document.getElementById('bgSetDarkGrave').addEventListener('click', function() { selectBg('dark_grave'); });
@@ -7117,7 +7125,7 @@
         createParticles(d.x, GROUND_Y - 30, 20, d.isZombie ? '#22c55e' : '#4ade80');
         if (gameMode !== 'sandbox') {
           score += d.isKamikaze ? 15 : d.isGunner ? 15 : d.isSummoner ? 20 : d.isSummon ? 5 : d.isCrossbow ? 15 : d.isZombie ? 10 : 10;
-          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
+          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); rankPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
           createTextParticle(d.x, GROUND_Y - 75, (d.isNecroZombie ? '🧟 NECRO ZOMBIE' : d.isZombie ? '🧟 ZOMBIE' : '') + ' +10 🪙', '#fbbf24', 11);
           if (!d.isKamikaze && !d.isSummon && !d.isZombie && Math.random() < 0.15) pickups.push(createPickup(d.x, GROUND_Y));
         } else {
@@ -9576,10 +9584,126 @@
         // Grass tufts
         ctx.fillStyle = '#22c55e'; ctx.globalAlpha = 0.4;
         for (var gi = 0; gi < 15; gi++) {
-          var gx = gi * 62 + 20;
-          ctx.fillRect(gx, GROUND_Y + 10, 3, 8);
-          ctx.fillRect(gx + 6, GROUND_Y + 12, 3, 6);
+          var gx = gi * 62 + 20;        ctx.fillRect(gx, GROUND_Y + 10, 3, 8);
+        ctx.fillRect(gx + 6, GROUND_Y + 12, 3, 6);
+      }
+      ctx.globalAlpha = 1;
+      }
+      // ===== DESERT =====
+      if (activeBg === 'desert') {
+        var dSky = ctx.createLinearGradient(0, 0, 0, GROUND_Y + 15);
+        dSky.addColorStop(0, 'rgba(253,224,71,0.35)');
+        dSky.addColorStop(0.55, 'rgba(251,146,60,0.18)');
+        dSky.addColorStop(1, 'rgba(180,83,9,0.16)');
+        ctx.fillStyle = dSky; ctx.fillRect(0, 0, CW, GROUND_Y + 15);
+        // Low sun with haze
+        ctx.fillStyle = 'rgba(253,224,71,0.45)';
+        ctx.beginPath(); ctx.arc(730, 68, 46, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fde68a';
+        ctx.beginPath(); ctx.arc(730, 68, 26, 0, Math.PI * 2); ctx.fill();
+        // Dune layers, back to front
+        var dLayers = ['#92400e', '#b45309', '#c2410c', '#d97706'];
+        for (var dl = 0; dl < dLayers.length; dl++) {
+          var dOff = dl * 26;
+          ctx.fillStyle = dLayers[dl];
+          ctx.globalAlpha = 0.35 + dl * 0.16;
+          ctx.beginPath();
+          ctx.moveTo(-120, GROUND_Y + 18);
+          ctx.quadraticCurveTo(140 + dOff, GROUND_Y - 40 - dOff * 0.9, 400 + dOff, GROUND_Y + 18);
+          ctx.quadraticCurveTo(640 + dOff, GROUND_Y - 66 - dOff * 0.7, 980, GROUND_Y + 18);
+          ctx.closePath(); ctx.fill();
         }
+        ctx.globalAlpha = 1;
+        // Sand ripple lines
+        ctx.strokeStyle = 'rgba(120,53,15,0.35)'; ctx.lineWidth = 1.5;
+        for (var sr = 0; sr < 7; sr++) {
+          var sry = GROUND_Y + 6 + sr * 5;
+          ctx.beginPath();
+          ctx.moveTo(20, sry);
+          ctx.quadraticCurveTo(240 + sr * 20, sry - 5, 500, sry);
+          ctx.stroke();
+        }
+        // Saguaro cacti with arms
+        function drawCactus(cx, scale, col) {
+          ctx.fillStyle = col;
+          ctx.fillRect(cx - 5 * scale, GROUND_Y - 62 * scale, 10 * scale, 62 * scale);
+          ctx.beginPath(); ctx.arc(cx, GROUND_Y - 62 * scale, 5 * scale, 0, Math.PI * 2); ctx.fill();
+          ctx.fillRect(cx - 24 * scale, GROUND_Y - 44 * scale, 8 * scale, 20 * scale);
+          ctx.fillRect(cx - 24 * scale, GROUND_Y - 24 * scale, 20 * scale, 7 * scale);
+          ctx.fillRect(cx + 16 * scale, GROUND_Y - 52 * scale, 8 * scale, 22 * scale);
+          ctx.fillRect(cx + 4 * scale, GROUND_Y - 30 * scale, 20 * scale, 7 * scale);
+        }
+        drawCactus(140, 1.15, '#16a34a');
+        drawCactus(300, 0.8, '#15803d');
+        drawCactus(700, 1.0, '#16a34a');
+        // Rocks
+        ctx.fillStyle = '#78716c';
+        ctx.beginPath(); ctx.arc(430, GROUND_Y + 6, 11, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(456, GROUND_Y + 9, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#a8a29e';
+        ctx.beginPath(); ctx.arc(240, GROUND_Y + 10, 8, 0, Math.PI * 2); ctx.fill();
+        // Dry shrubs
+        ctx.fillStyle = '#65a30d';
+        ctx.beginPath(); ctx.arc(560, GROUND_Y - 6, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(576, GROUND_Y - 9, 9, 0, Math.PI * 2); ctx.fill();
+        // Drifting sand specks
+        ctx.fillStyle = 'rgba(254,243,199,0.5)';
+        for (var ds = 0; ds < 26; ds++) {
+          var dsx = (ds * 71 + time * 2.2) % (CW + 60) - 30;
+          var dsy = 60 + ((ds * 37) % (GROUND_Y - 80));
+          ctx.fillRect(dsx, dsy, 2, 2);
+        }
+      }
+      // ===== CAVE =====
+      if (activeBg === 'cave') {
+        var cvSky = ctx.createLinearGradient(0, 0, 0, GROUND_Y + 15);
+        cvSky.addColorStop(0, '#0c0a09');
+        cvSky.addColorStop(0.55, '#1c1917');
+        cvSky.addColorStop(1, '#292524');
+        ctx.fillStyle = cvSky; ctx.fillRect(0, 0, CW, GROUND_Y + 15);
+        // Stalactites
+        ctx.fillStyle = '#44403c';
+        for (var st = 0; st < 11; st++) {
+          var stx = st * 88 + 24;
+          var sth = 52 + (st % 3) * 26;
+          ctx.beginPath(); ctx.moveTo(stx, -2); ctx.lineTo(stx - 20, sth); ctx.lineTo(stx + 20, sth); ctx.closePath(); ctx.fill();
+        }
+        // Stalagmites
+        ctx.fillStyle = '#57534e';
+        for (var sg = 0; sg < 8; sg++) {
+          var sgx = sg * 116 + 54;
+          var sgh = 32 + (sg % 2) * 18;
+          ctx.beginPath(); ctx.moveTo(sgx - 15, GROUND_Y + 16); ctx.lineTo(sgx, GROUND_Y - sgh); ctx.lineTo(sgx + 15, GROUND_Y + 16); ctx.closePath(); ctx.fill();
+        }
+        // Glowing crystals
+        var crystals = [
+          { x: 150, h: 44, c: '#a855f7' }, { x: 335, h: 52, c: '#06b6d4' },
+          { x: 540, h: 38, c: '#10b981' }, { x: 760, h: 46, c: '#f59e0b' }
+        ];
+        crystals.forEach(function (cr) {
+          ctx.globalAlpha = 0.28;
+          var cg = ctx.createRadialGradient(cr.x, GROUND_Y - 24, 4, cr.x, GROUND_Y - 24, 52);
+          cg.addColorStop(0, cr.c); cg.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(cr.x, GROUND_Y - 24, 52, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 0.85;
+          ctx.fillStyle = cr.c;
+          ctx.beginPath();
+          ctx.moveTo(cr.x - 12, GROUND_Y - 12);
+          ctx.lineTo(cr.x, GROUND_Y - 12 - cr.h);
+          ctx.lineTo(cr.x + 12, GROUND_Y - 12);
+          ctx.closePath(); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        // Cool ambient wash + haze
+        var cvGlow = ctx.createRadialGradient(CW / 2, 200, 60, CW / 2, 230, 340);
+        cvGlow.addColorStop(0, 'rgba(168,85,247,0.14)');
+        cvGlow.addColorStop(0.5, 'rgba(6,182,212,0.08)');
+        cvGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = cvGlow; ctx.fillRect(0, 0, CW, GROUND_Y);
+        // Mossy rocks
+        ctx.fillStyle = '#14532d'; ctx.globalAlpha = 0.4;
+        ctx.beginPath(); ctx.arc(96, GROUND_Y + 10, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(660, GROUND_Y + 12, 18, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
       }
       if (activeBg === 'moist_hill') {
@@ -13309,7 +13433,7 @@
 
     // Rank List
     function renderRankList() {
-      var cur = currentRank(totalPoints);
+      var cur = currentRank(rankPoints);
       var rc = document.getElementById('rankScreenCurrent');
       if (rc) rc.innerHTML = cur.rank.icon + ' ' + cur.rank.name;
       var rp = document.getElementById('rankScreenPoints');
@@ -13423,8 +13547,6 @@
     });
     document.getElementById('taoistQuestClose').addEventListener('click', function() {
       document.getElementById('taoistQuestScreen').classList.add('hidden');
-      document.getElementById('menuScreen').classList.remove('hidden');
-    });
       document.getElementById('menuScreen').classList.remove('hidden');
     });
     document.getElementById('halloweenClose').addEventListener('click', function() { document.getElementById('halloweenScreen').classList.add('hidden'); document.getElementById('menuScreen').classList.remove('hidden'); });
