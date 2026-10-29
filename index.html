@@ -302,6 +302,7 @@
           <button id="bgSetHouse" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🏠 House</button>
           <button id="bgSetDesert" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🏜️ Desert</button>
           <button id="bgSetCave" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🦇 Cave</button>
+          <button id="bgSetLandscape" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🏞️ Landscape</button>
           <button id="bgSetVolcano" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🌋 Volcano</button>
           <button id="bgSetFlamePit" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🔥 Flame Pit</button>
           <button id="bgSetDarkGrave" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🪦 Grave</button>
@@ -2286,8 +2287,80 @@
         _mNote(ac, dest, 1174.66, 'sawtooth', 0.07, t0 + step * 14, step * 2);
       }
     }
+    // ===== DESERT — Phrygian-dominant caravan groove =====
+    // The raised 2nd (Eb over D) is what makes it read as "desert" rather than plain minor.
+    var DESERT_SCALE = [146.83, 155.56, 185.00, 196.00, 220.00, 233.08, 261.63, 293.66];
+    function desertBar(ac, dest, t0, bar, step) {
+      // Low D pedal drone, opened up through a lowpass so it breathes
+      var o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 73.42;
+      var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 680;
+      var g = ac.createGain(); g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(0.085, t0 + 0.45);
+      g.gain.linearRampToValueAtTime(0.0001, t0 + step * 16);
+      o.connect(lp); lp.connect(g); g.connect(dest);
+      o.start(t0); o.stop(t0 + step * 16 + 0.1);
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        // Darbuka-flavoured hand pattern
+        if (s === 0 || s === 3 || s === 6 || s === 10 || s === 12) _mKick(ac, dest, t, 0.34);
+        if (s === 4 || s === 12) _mTom(ac, dest, t, 0.2);
+        if (s === 2 || s === 7 || s === 9 || s === 15) _mSnare(ac, dest, t, 0.09);
+        if (s % 2 === 0) _mHat(ac, dest, t, 0.045);
+        // Oud-ish plucked melody riding the scale
+        if (s % 2 === 0) {
+          _mNote(ac, dest, DESERT_SCALE[(s / 2 + bar * 3) % DESERT_SCALE.length], 'triangle', 0.07, t, step * 0.85);
+        }
+        // Breathy ney flute accents
+        if (s === 1 || s === 11) _mNoise(ac, dest, t, 0.18, 1800, 0.045);
+      }
+    }
+    // ===== CAVE — dripping, echoing, almost no rhythm =====
+    var CAVE_DRIPS = [587.33, 880.00, 698.46, 1046.50, 783.99];
+    function caveBar(ac, dest, t0, bar, step) {
+      // Two-oscillator sub pedal with a long swell
+      var o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = 49.00;
+      var o2 = ac.createOscillator(); o2.type = 'triangle'; o2.frequency.value = 98.00;
+      var g = ac.createGain(); g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(0.105, t0 + step * 4);
+      g.gain.linearRampToValueAtTime(0.0001, t0 + step * 16);
+      o.connect(g); o2.connect(g); g.connect(dest);
+      o.start(t0); o2.start(t0); o.stop(t0 + step * 16 + 0.1); o2.stop(t0 + step * 16 + 0.1);
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        // Long-decay water drips
+        if (s === 2 || s === 5 || s === 11 || s === 14) {
+          _mNote(ac, dest, CAVE_DRIPS[(s + bar) % CAVE_DRIPS.length], 'sine', 0.05, t, step * 2.6);
+        }
+        // Distant double heartbeat
+        if (s === 0) { _mKick(ac, dest, t, 0.32); _mKick(ac, dest, t + step * 0.5, 0.2); }
+        // Rumble and eerie air
+        if (s === 8) _mNoise(ac, dest, t, 0.5, 250, 0.055);
+        if (s === 3 || s === 12) _mNote(ac, dest, 233.08, 'triangle', 0.03, t, step * 3);
+      }
+    }
+    // ===== LANDSCAPE — bright, open, pastoral =====
+    var LANDSCAPE_CHORDS = [[261.63, 329.63, 392.00], [196.00, 246.94, 392.00], [220.00, 261.63, 329.63], [174.61, 261.63, 349.23]];
+    var LANDSCAPE_MEL = [523.25, 587.33, 659.25, 783.99, 880.00, 783.99, 659.25, 587.33];
+    function landscapeBar(ac, dest, t0, bar, step) {
+      var chord = LANDSCAPE_CHORDS[bar % LANDSCAPE_CHORDS.length];
+      // Soft sustained pad
+      chord.forEach(function(f) { _mNote(ac, dest, f, 'sine', 0.028, t0, step * 15); });
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        if (s % 4 === 0) _mNote(ac, dest, chord[0] / 2, 'triangle', 0.085, t, step * 1.6);
+        if (s % 2 === 0) _mNote(ac, dest, LANDSCAPE_MEL[(s / 2 + bar * 2) % LANDSCAPE_MEL.length], 'triangle', 0.055, t, step * 0.9);
+        if (s % 4 === 0) _mKick(ac, dest, t, 0.18);
+        if (s % 4 === 2) _mSnare(ac, dest, t, 0.07);
+        if (s % 2 === 1) _mHat(ac, dest, t, 0.03);
+        // Birdsong flourishes
+        if (s === 7 || s === 13) _mNote(ac, dest, 1318.51, 'sine', 0.028, t, step * 0.4);
+      }
+    }
     var THEME_TRACKS = {
       chill: { bpm: 84, vol: 0.3, rain: false, bar: chillBar },
+      desert: { bpm: 108, vol: 0.3, rain: false, bar: desertBar },
+      cave: { bpm: 64, vol: 0.34, rain: false, bar: caveBar },
+      landscape: { bpm: 96, vol: 0.28, rain: false, bar: landscapeBar },
       rain: { bpm: 84, vol: 0.28, rain: true, bar: chillBar },
       boss: { bpm: 170, vol: 0.3, rain: false, bar: bossBar },
       destructive: { bpm: 200, vol: 0.26, rain: false, bar: destructiveBar },
@@ -2354,6 +2427,9 @@
         case 'moist_hill': return 'water';
         case 'shocky_road': return 'rock';
         case 'cheese': return 'cheese';
+        case 'desert': return 'desert';
+        case 'cave': return 'cave';
+        case 'landscape': return 'landscape';
         default: return 'chill'; // plain + house
       }
     }
@@ -2733,7 +2809,7 @@
         btn.classList.remove('ring-2', 'ring-amber-400');
         btn.classList.add('border-slate-600');
       });
-      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', desert: 'bgSetDesert', cave: 'bgSetCave', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween' };
+      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', desert: 'bgSetDesert', cave: 'bgSetCave', landscape: 'bgSetLandscape', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween' };
       var el = document.getElementById(map[b]);
       if (el) { el.classList.add('ring-2', 'ring-amber-400'); el.classList.remove('border-slate-600'); }
     }
@@ -2962,6 +3038,7 @@
     document.getElementById('bgSetHouse').addEventListener('click', function() { selectBg('house'); });
     var bgDesertBtn = document.getElementById('bgSetDesert'); if (bgDesertBtn) bgDesertBtn.addEventListener('click', function() { selectBg('desert'); });
     var bgCaveBtn = document.getElementById('bgSetCave'); if (bgCaveBtn) bgCaveBtn.addEventListener('click', function() { selectBg('cave'); });
+    var bgLandscapeBtn = document.getElementById('bgSetLandscape'); if (bgLandscapeBtn) bgLandscapeBtn.addEventListener('click', function() { selectBg('landscape'); });
     document.getElementById('bgSetVolcano').addEventListener('click', function() { selectBg('volcano'); });
     document.getElementById('bgSetFlamePit').addEventListener('click', function() { selectBg('flame_pit'); });
     document.getElementById('bgSetDarkGrave').addEventListener('click', function() { selectBg('dark_grave'); });
@@ -9705,6 +9782,102 @@
         ctx.beginPath(); ctx.arc(96, GROUND_Y + 10, 15, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath(); ctx.arc(660, GROUND_Y + 12, 18, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
+      }
+      // ===== LANDSCAPE — sunny valley: mountains, lake, meadow =====
+      if (activeBg === 'landscape') {
+        // Open blue sky, lighter near the horizon
+        var lsSky = ctx.createLinearGradient(0, 0, 0, GROUND_Y + 15);
+        lsSky.addColorStop(0, '#7dd3fc');
+        lsSky.addColorStop(0.55, '#bae6fd');
+        lsSky.addColorStop(1, '#e0f2fe');
+        ctx.fillStyle = lsSky; ctx.fillRect(0, 0, CW, GROUND_Y + 15);
+        // Sun + haze
+        ctx.fillStyle = 'rgba(254,240,138,0.55)';
+        ctx.beginPath(); ctx.arc(760, 78, 52, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath(); ctx.arc(760, 78, 30, 0, Math.PI * 2); ctx.fill();
+        // Drifting clouds
+        for (var lc = 0; lc < 4; lc++) {
+          var lcx = ((lc * 260 + time * 0.35) % (CW + 220)) - 110;
+          var lcy = 46 + lc * 30;
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          ctx.beginPath();
+          ctx.arc(lcx, lcy, 17, 0, Math.PI * 2);
+          ctx.arc(lcx + 22, lcy + 5, 22, 0, Math.PI * 2);
+          ctx.arc(lcx + 52, lcy, 16, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Far mountain range with snow caps
+        ctx.fillStyle = '#64748b';
+        ctx.beginPath();
+        ctx.moveTo(-60, GROUND_Y + 15);
+        ctx.lineTo(110, GROUND_Y - 175);
+        ctx.lineTo(250, GROUND_Y - 20);
+        ctx.lineTo(360, GROUND_Y - 120);
+        ctx.lineTo(520, GROUND_Y + 15);
+        ctx.closePath(); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(430, GROUND_Y + 15);
+        ctx.lineTo(640, GROUND_Y - 195);
+        ctx.lineTo(830, GROUND_Y - 30);
+        ctx.lineTo(980, GROUND_Y + 15);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.moveTo(110, GROUND_Y - 175); ctx.lineTo(70, GROUND_Y - 120);
+        ctx.lineTo(100, GROUND_Y - 132); ctx.lineTo(120, GROUND_Y - 112);
+        ctx.lineTo(150, GROUND_Y - 130); ctx.closePath(); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(640, GROUND_Y - 195); ctx.lineTo(596, GROUND_Y - 132);
+        ctx.lineTo(626, GROUND_Y - 146); ctx.lineTo(648, GROUND_Y - 124);
+        ctx.lineTo(684, GROUND_Y - 144); ctx.closePath(); ctx.fill();
+        // Nearer green hills
+        ctx.fillStyle = '#15803d';
+        ctx.beginPath(); ctx.moveTo(-80, GROUND_Y + 15); ctx.quadraticCurveTo(220, GROUND_Y - 105, 520, GROUND_Y + 15); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#16a34a';
+        ctx.beginPath(); ctx.moveTo(380, GROUND_Y + 15); ctx.quadraticCurveTo(660, GROUND_Y - 90, 980, GROUND_Y + 15); ctx.closePath(); ctx.fill();
+        // Lake in the middle distance
+        ctx.fillStyle = '#38bdf8'; ctx.globalAlpha = 0.9;
+        ctx.beginPath(); ctx.ellipse(470, GROUND_Y + 4, 120, 20, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.beginPath(); ctx.ellipse(430, GROUND_Y - 1, 44, 5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(508, GROUND_Y + 7, 30, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Tree line
+        for (var lt = 0; lt < 5; lt++) {
+          var ltx = 60 + lt * 190;
+          var lth = 52 + (lt % 3) * 16;
+          ctx.fillStyle = '#5b3a1a'; ctx.fillRect(ltx - 3, GROUND_Y - lth, 6, lth);
+          ctx.fillStyle = lt % 2 ? '#166534' : '#15803d';
+          ctx.beginPath(); ctx.arc(ltx, GROUND_Y - lth - 10, 22, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(ltx - 16, GROUND_Y - lth + 4, 15, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(ltx + 16, GROUND_Y - lth + 4, 15, 0, Math.PI * 2); ctx.fill();
+        }
+        // Meadow flowers
+        var lsCols = ['#f472b6', '#facc15', '#fb7185', '#a78bfa', '#34d399'];
+        for (var lf = 0; lf < 26; lf++) {
+          var lfx = (lf * 37 + 14) % CW;
+          var lfy = GROUND_Y + 6 + (lf % 4) * 8;
+          ctx.fillStyle = '#166534'; ctx.fillRect(lfx, lfy, 1.5, 5);
+          ctx.fillStyle = lsCols[lf % lsCols.length];
+          ctx.beginPath(); ctx.arc(lfx, lfy, 2.4, 0, Math.PI * 2); ctx.fill();
+        }
+        // Grass tufts
+        ctx.fillStyle = '#22c55e'; ctx.globalAlpha = 0.5;
+        for (var lg = 0; lg < 18; lg++) {
+          var lgx = lg * 51 + 18;
+          ctx.fillRect(lgx, GROUND_Y + 10, 2.5, 7);
+          ctx.fillRect(lgx + 5, GROUND_Y + 13, 2.5, 5);
+        }
+        ctx.globalAlpha = 1;
+        // Butterflies
+        for (var lb = 0; lb < 3; lb++) {
+          var lbx = 180 + lb * 250 + Math.sin(time * 0.03 + lb) * 34;
+          var lby = 190 + Math.cos(time * 0.05 + lb * 2) * 22;
+          ctx.fillStyle = ['#fbbf24', '#f472b6', '#60a5fa'][lb];
+          ctx.beginPath(); ctx.ellipse(lbx - 3, lby, 3.5, 2.2, -0.5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(lbx + 3, lby, 3.5, 2.2, 0.5, 0, Math.PI * 2); ctx.fill();
+        }
       }
       if (activeBg === 'moist_hill') {
         // Lush humid haze
