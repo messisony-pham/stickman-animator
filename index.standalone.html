@@ -244,11 +244,11 @@
             <div class="text-[9px] text-yellow-500/70">HP:350 ULT 200%</div>
           </div>
           <div id="charTaoist" class="char-card bg-slate-800 border border-slate-600 rounded-lg p-2 cursor-pointer hover:border-lime-400 transition-all text-center relative" onclick="buyChar('taoist')">
-            <div id="taoistLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">🔒</span><span class="text-lime-400 text-[9px] font-bold">1200🪙+5🏆</span></div>
+            <div id="taoistLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">☯️</span><span class="text-lime-300 text-[8px] font-bold text-center px-1 leading-tight">QUEST 1<br>0/5</span></div>
             <div class="text-2xl">☯️</div>
             <div class="font-bold text-lime-400 text-[11px]">TAOIST</div>
             <div class="text-[9px] text-emerald-400">Sword 14</div>
-            <div class="text-[9px] text-lime-500/60">HP:120 ☯ REVIVE</div>
+            <div id="taoistCardInfo" class="text-[9px] text-lime-500/60">HP:120 ☯ REVIVE</div>
           </div>
         </div>
       </div>
@@ -509,6 +509,7 @@
       <p class="text-[10px] text-slate-400 text-center mb-3">Complete daily tasks for rewards!</p>
       <div class="text-center mb-3 text-xs"><span class="text-emerald-400 font-bold">Streak:</span> <span id="dailyStreak" class="text-white font-bold">0</span> days</div>
       <div id="dailyQuestList" class="space-y-2 mb-4"></div>
+      <div id="dailySummary" class="text-[9px] text-slate-400 text-center mb-3"></div>
       <button id="dailyQuestClose" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors">✅ Done</button>
     </div>
   </div>
@@ -520,7 +521,9 @@
       <p class="text-[10px] text-slate-400 text-center mb-3">Master the Way of Taoism</p>
       <div class="mb-3 text-xs bg-slate-900/60 rounded-lg p-2 border border-lime-600/40">
         <div class="font-bold text-lime-300 mb-1">☯️ Taoist Path</div>
-        <div class="text-[10px] text-slate-300">Complete these challenges as the Taoist to prove your mastery of balance and harmony.</div>
+        <div class="text-[10px] text-slate-300">Clear <b class="text-lime-300">Quest 1</b> to unlock the Taoist — free, no points. Clear all <b class="text-lime-300">5</b> to ascend him.</div>
+        <div id="taoistQuestProgress" class="text-[10px] text-amber-300 font-bold mt-1">0 / 5 COMPLETE</div>
+        <div id="taoistBuffStatus" class="text-[9px] text-slate-400 mt-1"></div>
       </div>
       <div id="taoistQuestList" class="space-y-2 mb-4"></div>
       <button id="taoistQuestClose" class="w-full py-2 rounded-lg bg-lime-600 hover:bg-lime-500 text-white font-bold text-sm transition-colors">✅ Done</button>
@@ -939,6 +942,21 @@
     }
     window.buyChar = function(c) {
       if (isCharBought(c)) { selectChar(c); return; }
+      // The Taoist is not for sale any more: clearing Taoist Quest 1 is his unlock.
+      if (c === 'taoist') {
+        if (!taoistQuestUnlocked()) {
+          var taLockEl = document.getElementById('taoistLock');
+          if (taLockEl) {
+            taLockEl.innerHTML = '<span class="text-lg">☯️</span><span class="text-lime-300 text-[8px] font-bold text-center px-1 leading-tight">FINISH QUEST 1</span>';
+            setTimeout(function() { updateTaoistCardUI(); }, 2500);
+          }
+          return;
+        }
+        boughtTaoist = true;
+        try { localStorage.setItem('sm_boughtTaoist', 'true'); } catch (e) {}
+        updateCharLockUI(); updateMenuPoints(); selectChar(c);
+        return;
+      }
       if (c === 'soldier' && totalPoints >= 100) {
         totalPoints -= 100; savePoints(); boughtSoldier = true; localStorage.setItem('sm_boughtSoldier', 'true');
         charUses.soldier = 0; localStorage.setItem('sm_soldierUses', 0);
@@ -967,8 +985,6 @@
         charUses.phantom = 0; localStorage.setItem('sm_phantomUses', 0);
       } else if (c === 'slayer' && totalPoints >= 3500 && bossPoints >= 10) {
         totalPoints -= 3500; bossPoints -= 10; savePoints(); boughtSlayer = true; localStorage.setItem('sm_boughtSlayer', 'true');
-      } else if (c === 'taoist' && totalPoints >= 1200 && bossPoints >= 5) {
-        totalPoints -= 1200; bossPoints -= 5; savePoints(); boughtTaoist = true; localStorage.setItem('sm_boughtTaoist', 'true');
       } else {
         if (c === 'phantom' && !phantomUnlocked) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🌑</span><span class="text-purple-300 text-[8px] font-bold text-center px-1">A dark secret hides Phantom...</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2500); }
         if (c === 'phantom' && phantomUnlocked && totalPoints < 100) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🪙</span><span class="text-red-400 text-[8px] font-bold">Need 100 points!</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2000); }
@@ -1019,6 +1035,9 @@
       var slEl = document.getElementById('charSlayer');
       var slLock = document.getElementById('slayerLock');
       if (slLock) slLock.classList.toggle('hidden', isCharBought('slayer'));
+      // The quest-backed taoist card is refreshed by updateTaoistCardUI(), which the
+      // quest block calls on load and on every completion. It cannot run from here:
+      // this function is first called before the quest table exists.
       var taLock = document.getElementById('taoistLock');
       if (taLock) taLock.classList.toggle('hidden', isCharBought('taoist'));
       s.style.opacity = isCharBought('soldier') ? '1' : '1';
@@ -1133,6 +1152,9 @@
     // A support/summoner fighter: undead do less to him, he comes back once at half HP,
     // and every one of his abilities is about the dead doing the fighting for him.
     const TAOIST_HP = 120;
+    // ☯ Ascension — the reward for clearing all five Taoist Quests: more life, more
+    // damage, a deeper revival. Nothing else about his kit changes.
+    const TAOIST_HP_ASCENDED = 160, TAOIST_ASCENDED_DMG_MULT = 1.25, TAOIST_REVIVE_PCT_ASCENDED = 0.75;
     const TAOIST_SWORD_DMG = 14, TAOIST_SWORD_CD = 16, TAOIST_SWORD_SPEED = 13, TAOIST_SWORD_LIFE = 70, TAOIST_SWORD_R = 26;
     const TAOIST_PULSE_CD = 300, TAOIST_PULSE_HEAL_PCT = 0.02, TAOIST_PULSE_RADIUS = 240;
     const TAOIST_ZOMBIE_CD = 540, TAOIST_ZOMBIE_COUNT = 3, TAOIST_ZOMBIE_HP = 70, TAOIST_ZOMBIE_LIFE = 900;
@@ -1256,6 +1278,7 @@
     function incrementMatch() {
       matchCount++;
       localStorage.setItem('sm_matchCount', matchCount);
+      if (typeof questRoundStarted === 'function') questRoundStarted();
       // Reset shop every 10 matches
       if (matchCount >= MATCH_RESET_INTERVAL) {
         matchCount = 0;
@@ -4709,7 +4732,7 @@
         document.getElementById('charIcon').textContent = '🗡️';
         document.getElementById('charName').textContent = 'Slayer' + modeLabel;
       } else if (selectedChar === 'taoist') {
-        PLAYER_MAX_HP_CURRENT = TAOIST_HP;
+        PLAYER_MAX_HP_CURRENT = taoistMaxHp();
         document.getElementById('charIcon').textContent = '☯️';
         document.getElementById('charName').textContent = 'Taoist' + modeLabel;
       } else {
@@ -8744,7 +8767,7 @@
       addUltCharge(10);
       updateEXPBar();
       const tl = Math.min(Math.floor(totalKills / LEVEL_UP_KILLS) + 1, MAX_LEVEL);
-      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'phantom') { PLAYER_MAX_HP_CURRENT = Math.floor(PHANTOM_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'slayer') { PLAYER_MAX_HP_CURRENT = Math.floor(SLAYER_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'taoist') { PLAYER_MAX_HP_CURRENT = Math.floor(TAOIST_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 * skinMaxHpMult() : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80 * fighterSkinHpMult(); PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
+      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'phantom') { PLAYER_MAX_HP_CURRENT = Math.floor(PHANTOM_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'slayer') { PLAYER_MAX_HP_CURRENT = Math.floor(SLAYER_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'taoist') { PLAYER_MAX_HP_CURRENT = Math.floor(taoistMaxHp() * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 * skinMaxHpMult() : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80 * fighterSkinHpMult(); PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
     }
 
     // ==================== SPAWNING ====================
@@ -8946,6 +8969,7 @@
       time++; if (gameMode !== 'sandbox' && !campaignMode && !phantomMissionActive) { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
       if (gracePeriod > 0) gracePeriod--;
       tickCandyFromKills();
+      tickQuestProgress();
       if (isHalloweenEvent() && gameMode !== 'sandbox' && gameMode !== 'bossrush' && !campaignMode && !phantomMissionActive) {        candyDropTimer++; if (candyDropTimer >= 6000) { candyDropTimer = 0; pickups.push(createPickup(100 + Math.random() * (CW - 200), GROUND_Y, 'candy')); createTextParticle(CW / 2, 95, '🍬 CANDY DROP!', '#fb923c', 18); }
       }
       // The Pumpkin Boss is NOT part of a normal run: EASY / NORMAL / HARD, sandbox,
@@ -12683,11 +12707,12 @@
     // cannot instantly kill him again.
     function reviveTaoist() {
       taoistReviveUsed = true;
-      playerHP = Math.max(1, Math.floor(PLAYER_MAX_HP_CURRENT * TAOIST_REVIVE_PCT));
+      var revivePct = taoistAscendedNow() ? TAOIST_REVIVE_PCT_ASCENDED : TAOIST_REVIVE_PCT;
+      playerHP = Math.max(1, Math.floor(PLAYER_MAX_HP_CURRENT * revivePct));
       updateHPBar();
       gracePeriod = 120;
       stick.hitFlash = 8;
-      createTextParticle(stick.x, stick.y - 95, '☯ REVIVED — HALF HP', '#a3e635', 22);
+      createTextParticle(stick.x, stick.y - 95, '☯ REVIVED — ' + Math.round(revivePct * 100) + '% HP', '#a3e635', 22);
       createParticles(stick.x, stick.y - 40, 34, '#a3e635');
       // The dead answer their master: every surviving zombie is mended.
       allies.forEach(function (a) { if (a.alive) a.hp = Math.min(a.maxHp, a.hp + Math.round(a.maxHp * 0.3)); });
@@ -12700,9 +12725,10 @@
       var v = taoistAmulet.mult[key];
       return typeof v === 'number' ? v : 1;
     }
-    function taoistDmgMult() { return taoistAmuletMult('dmg'); }
+    function taoistDmgMult() { return taoistAmuletMult('dmg') * (taoistAscendedNow() ? TAOIST_ASCENDED_DMG_MULT : 1); }
     function taoistSpdMult() { return taoistAmuletMult('spd'); }
     function taoistTakenMult() { return taoistAmuletMult('taken'); }
+    function taoistMaxHp() { return taoistAscendedNow() ? TAOIST_HP_ASCENDED : TAOIST_HP; }
 
     // M1 — throw a wooden sword. It spins, flies straight at the cursor and hits once.
     function performTaoistSword() {
@@ -13321,7 +13347,7 @@
       var hasSummonAlly = false;
       for (var k in shopUpgrades) { if (k.indexOf('summon') === 0 && shopUpgrades[k] > 0) { hasSummonAlly = true; break; } }
       if (hasSummonAlly) { allySpawnTimer = ALLY_SPAWN_INTERVAL; }
-      PLAYER_MAX_HP_CURRENT = selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? Math.floor(90 * skinMaxHpMult()) : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? TAOIST_HP : Math.floor(100 * fighterSkinHpMult());
+      PLAYER_MAX_HP_CURRENT = selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? Math.floor(90 * skinMaxHpMult()) : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? taoistMaxHp() : Math.floor(100 * fighterSkinHpMult());
       PLAYER_MAX_HP_CURRENT += getShopUpgradeEffect('maxHp');
       // Knight shield init
       if (selectedChar === 'knight') { knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { knightShieldHP = 0; knightShieldMax = 0; }
@@ -13632,46 +13658,203 @@
       document.getElementById('menuScreen').classList.remove('hidden');
     });
 
-    // Daily Quest
+    // ==================== QUESTS (daily board + taoist line) ====================
+    // One lifetime save feeds both boards. The daily board resets at midnight and pays
+    // out the moment a quest is met; the taoist line is permanent and reads the same
+    // counters, so the two can never disagree about what the player actually did.
+    //   Quest 1 unlocks the Taoist.  All five ascend him.
+    var QUEST_STATS_KEY = 'sm_quest_stats';
+    var questLastKills = 0, questLastPoints = 0;
+    var taoistAscended = localStorage.getItem('sm_taoistAscended') === 'true';
+
+    function loadQuestStats() {
+      var st = {};
+      try { st = JSON.parse(localStorage.getItem(QUEST_STATS_KEY) || '{}') || {}; } catch (e) { st = {}; }
+      ['kills', 'points', 'rounds', 'dailies'].forEach(function (k) {
+        if (typeof st[k] !== 'number' || !isFinite(st[k])) st[k] = 0;
+      });
+      return st;
+    }
+    function saveQuestStats(st) {
+      try { localStorage.setItem(QUEST_STATS_KEY, JSON.stringify(st)); } catch (e) {}
+    }
+    function questToast(text, color) {
+      try {
+        if (gameState === 'playing' && typeof createTextParticle === 'function') {
+          createTextParticle(CW / 2, 105, text, color, 20);
+        }
+      } catch (e) {}
+    }
+
+    // ---- daily board: date-keyed, three live quests, rewards paid on completion ----
     function getDailyQuestKey() {
       var d = new Date();
-      return 'sm_daily_' + d.getFullYear() + '_' + (d.getMonth()+1) + '_' + d.getDate();
+      return 'sm_daily_' + d.getFullYear() + '_' + (d.getMonth() + 1) + '_' + d.getDate();
     }
-    function loadDailyQuests() {
-      var key = getDailyQuestKey();
-      try {
-        var saved = localStorage.getItem(key);
-        if (saved) return JSON.parse(saved);
-      } catch(e) {}
-      var quests = [
-        { id: 1, text: 'Kill 10 enemies', goal: 10, progress: 0, reward: 50, done: false },
-        { id: 2, text: 'Earn 100 points', goal: 100, progress: 0, reward: 75, done: false },
-        { id: 3, text: 'Defeat 3 bosses/waves', goal: 3, progress: 0, reward: 100, done: false }
+    function defaultDailyQuests() {
+      return [
+        { id: 'kills',  text: 'Kill 15 enemies', goal: 15,  progress: 0, reward: 75,  done: false },
+        { id: 'points', text: 'Earn 150 points', goal: 150, progress: 0, reward: 100, done: false },
+        { id: 'rounds', text: 'Play 3 rounds',   goal: 3,   progress: 0, reward: 125, done: false }
       ];
-      try { localStorage.setItem(key, JSON.stringify(quests)); } catch(e) {}
-      return quests;
     }
     function saveDailyQuests(q) {
-      var key = getDailyQuestKey();
-      try { localStorage.setItem(key, JSON.stringify(q)); } catch(e) {}
+      try { localStorage.setItem(getDailyQuestKey(), JSON.stringify(q)); } catch (e) {}
     }
+    function loadDailyQuests() {
+      var quests = null;
+      try { quests = JSON.parse(localStorage.getItem(getDailyQuestKey()) || 'null'); } catch (e) {}
+      // The old board was display-only (numeric ids, no metric): replace it outright.
+      var usable = Array.isArray(quests) && quests.length === 3 && quests.every(function (q) {
+        return q && typeof q.id === 'string' && typeof q.progress === 'number' && typeof q.goal === 'number';
+      });
+      if (!usable) { quests = defaultDailyQuests(); saveDailyQuests(quests); }
+      return quests;
+    }
+
+    // ---- the taoist line: five permanent quests, each one a lifetime counter ----
+    var TAOIST_QUEST_DEFS = [
+      { id: 1, metric: 'kills',   goal: 30,   reward: 100, text: 'Kill 30 enemies',        tag: 'UNLOCKS TAOIST' },
+      { id: 2, metric: 'rounds',  goal: 10,   reward: 150, text: 'Play 10 rounds',          tag: '' },
+      { id: 3, metric: 'dailies', goal: 5,    reward: 200, text: 'Complete 5 daily quests', tag: '' },
+      { id: 4, metric: 'points',  goal: 3000, reward: 300, text: 'Earn 3,000 points',       tag: '' },
+      { id: 5, metric: 'kills',   goal: 250,  reward: 500, text: 'Kill 250 enemies',        tag: 'ASCENDS TAOIST' }
+    ];
+    function saveTaoistQuests(q) {
+      try { localStorage.setItem('sm_taoist_quests', JSON.stringify(q)); } catch (e) {}
+    }
+    function loadTaoistQuests() {
+      var quests = null;
+      try { quests = JSON.parse(localStorage.getItem('sm_taoist_quests') || 'null'); } catch (e) {}
+      var usable = Array.isArray(quests) && quests.length === TAOIST_QUEST_DEFS.length &&
+        quests.every(function (q) { return q && typeof q.metric === 'string'; });
+      if (!usable) {
+        quests = TAOIST_QUEST_DEFS.map(function (d) {
+          return { id: d.id, metric: d.metric, text: d.text, tag: d.tag, goal: d.goal, reward: d.reward, progress: 0, done: false };
+        });
+        saveTaoistQuests(quests);
+      }
+      return quests;
+    }
+    function taoistQuestsDone() {
+      return loadTaoistQuests().filter(function (q) { return !!q.done; }).length;
+    }
+    function taoistQuestUnlocked() { return isCharBought('taoist') || taoistQuestsDone() >= 1; }
+    function taoistAscendedNow() { return taoistAscended === true; }
+
+    // Pours the lifetime save into the taoist line, pays out whatever completed and
+    // fires the two milestones (unlock at 1/5, ascension at 5/5).
+    function refreshTaoistQuests() {
+      var stats = loadQuestStats();
+      var quests = loadTaoistQuests();
+      var completed = [];
+      quests.forEach(function (q) {
+        q.progress = Math.min(q.goal, stats[q.metric] || 0);
+        if (!q.done && q.progress >= q.goal) { q.done = true; completed.push(q); }
+      });
+      saveTaoistQuests(quests);
+
+      var paid = 0;
+      completed.forEach(function (q) { paid += q.reward || 0; });
+      if (paid > 0) {
+        totalPoints += paid;
+        savePoints();
+        questLastPoints = totalPoints; // a reward is not "points earned" progress
+        updateMenuPoints();
+        questToast('☯ TAOIST QUEST +' + paid + ' pts', '#a3e635');
+      }
+      var done = quests.filter(function (q) { return !!q.done; }).length;
+      if (done >= 1 && !boughtTaoist) {
+        boughtTaoist = true;
+        try { localStorage.setItem('sm_boughtTaoist', 'true'); } catch (e) {}
+        updateTaoistCardUI();
+        questToast('☯ TAOIST UNLOCKED!', '#a3e635');
+      }
+      if (done >= quests.length && !taoistAscended) {
+        taoistAscended = true;
+        try { localStorage.setItem('sm_taoistAscended', 'true'); } catch (e) {}
+        updateTaoistCardUI();
+        questToast('☯ TAOIST ASCENDED — ' + TAOIST_HP_ASCENDED + ' HP · +25% DMG', '#fde047');
+      }
+      return quests;
+    }
+
+    // Feeds one metric (kills / points earned / rounds) into both boards.
+    function advanceQuestProgress(kind, amount) {
+      amount = Math.floor(amount);
+      if (!(amount > 0) || ['kills', 'points', 'rounds'].indexOf(kind) < 0) return;
+
+      var stats = loadQuestStats();
+      stats[kind] += amount;
+
+      var daily = loadDailyQuests();
+      var finished = [], dailyChanged = false;
+      daily.forEach(function (q) {
+        if (q.done || q.id !== kind) return;
+        q.progress = Math.min(q.goal, q.progress + amount);
+        dailyChanged = true;
+        if (q.progress >= q.goal) { q.done = true; finished.push(q); }
+      });
+      // Partial progress has to be written too, or a reload mid-quest starts it over.
+      if (dailyChanged) saveDailyQuests(daily);
+      if (finished.length) stats.dailies += finished.length;
+      saveQuestStats(stats);
+
+      if (finished.length) {
+        var paid = 0;
+        finished.forEach(function (q) { paid += q.reward; });
+        totalPoints += paid;
+        savePoints();
+        questLastPoints = totalPoints;
+        updateMenuPoints();
+        questToast('📅 DAILY DONE +' + paid + ' pts', '#34d399');
+      }
+      refreshTaoistQuests();
+    }
+
+    // Called from the fixed-step game loop. Kills restart every round, so the delta is
+    // taken against the last value seen; points only rise during play from gameplay.
+    function tickQuestProgress() {
+      if (gameState !== 'playing') return;
+      if (kills < questLastKills) questLastKills = kills;
+      if (kills > questLastKills) {
+        var dk = kills - questLastKills;
+        questLastKills = kills;
+        advanceQuestProgress('kills', dk);
+      }
+      if (totalPoints > questLastPoints) {
+        var dp = totalPoints - questLastPoints;
+        questLastPoints = totalPoints;
+        advanceQuestProgress('points', dp);
+      }
+    }
+    function questRoundStarted() {
+      questLastKills = 0;
+      questLastPoints = totalPoints;
+      advanceQuestProgress('rounds', 1);
+    }
+
     function renderDailyQuests() {
       var list = document.getElementById('dailyQuestList');
       if (!list) return;
       var quests = loadDailyQuests();
+      var stats = loadQuestStats();
       var streakEl = document.getElementById('dailyStreak');
-      if (streakEl) {
-        var s = parseInt(localStorage.getItem('sm_daily_streak') || '0', 10);
-        streakEl.textContent = s;
-      }
+      if (streakEl) streakEl.textContent = parseInt(localStorage.getItem('sm_daily_streak') || '0', 10);
       list.innerHTML = '';
-      quests.forEach(function(q) {
+      var doneCount = 0;
+      quests.forEach(function (q) {
+        if (q.done) doneCount++;
         var pct = Math.min(100, Math.floor((q.progress / q.goal) * 100));
         var div = document.createElement('div');
         div.className = 'p-2 rounded-lg border ' + (q.done ? 'border-emerald-400 bg-emerald-900/20' : 'border-slate-600 bg-slate-700/40');
-        div.innerHTML = '<div class="flex items-center justify-between mb-1"><div class="text-xs font-bold ' + (q.done ? 'text-emerald-300' : 'text-white') + '">' + (q.done ? '✅ ' : '📌 ') + q.text + '</div><div class="text-[10px] text-amber-400">+' + q.reward + ' pts</div></div><div class="w-full bg-slate-900 rounded-full h-1.5 mb-1"><div class="bg-emerald-500 h-1.5 rounded-full" style="width:' + pct + '%"></div></div><div class="text-[9px] text-slate-400">' + q.progress + '/' + q.goal + ' (' + pct + '%)</div>';
+        div.innerHTML = '<div class="flex items-center justify-between mb-1"><div class="text-xs font-bold ' + (q.done ? 'text-emerald-300' : 'text-white') + '">' + (q.done ? '✅ ' : '📌 ') + q.text + '</div><div class="text-[10px] text-amber-400">' + (q.done ? 'CLAIMED ' : '+') + q.reward + ' pts</div></div><div class="w-full bg-slate-900 rounded-full h-1.5 mb-1"><div class="bg-emerald-500 h-1.5 rounded-full" style="width:' + pct + '%"></div></div><div class="text-[9px] text-slate-400">' + q.progress + '/' + q.goal + ' (' + pct + '%)</div>';
         list.appendChild(div);
       });
+      var sum = document.getElementById('dailySummary');
+      if (sum) {
+        sum.innerHTML = 'Today: <b class="text-emerald-300">' + doneCount + '/3</b> cleared · <b class="text-lime-300">' + stats.dailies + '</b> daily clears all-time<br>Every daily clear counts toward ☯️ Taoist Quest 3 (5 needed).';
+      }
     }
     document.getElementById('dailyQuestBtn').addEventListener('click', function() {
       document.getElementById('menuScreen').classList.add('hidden');
@@ -13683,35 +13866,43 @@
       document.getElementById('menuScreen').classList.remove('hidden');
     });
 
-    // Taoist Quest
-    function loadTaoistQuests() {
-      try {
-        var saved = localStorage.getItem('sm_taoist_quests');
-        if (saved) return JSON.parse(saved);
-      } catch(e) {}
-      var quests = [
-        { id: 1, text: 'Play as Taoist 3 times', goal: 3, progress: 0, reward: 150, done: false },
-        { id: 2, text: 'Use Taoist revival once', goal: 1, progress: 0, reward: 200, done: false },
-        { id: 3, text: 'Kill 50 enemies as Taoist', goal: 50, progress: 0, reward: 300, done: false }
-      ];
-      try { localStorage.setItem('sm_taoist_quests', JSON.stringify(quests)); } catch(e) {}
-      return quests;
-    }
-    function saveTaoistQuests(q) {
-      try { localStorage.setItem('sm_taoist_quests', JSON.stringify(q)); } catch(e) {}
-    }
     function renderTaoistQuests() {
       var list = document.getElementById('taoistQuestList');
       if (!list) return;
-      var quests = loadTaoistQuests();
+      var quests = refreshTaoistQuests();
+      var done = quests.filter(function (q) { return !!q.done; }).length;
+      var prog = document.getElementById('taoistQuestProgress');
+      if (prog) prog.textContent = done + ' / ' + quests.length + ' COMPLETE';
+      var buff = document.getElementById('taoistBuffStatus');
+      if (buff) {
+        buff.innerHTML = taoistAscended
+          ? '<span class="text-lime-300 font-bold">☯ ASCENDED</span> — ' + TAOIST_HP_ASCENDED + ' HP · +25% DMG · revive at 75% HP'
+          : (done >= 1
+              ? '☯️ Taoist unlocked. Clear all ' + quests.length + ' to ascend him: +' + (TAOIST_HP_ASCENDED - TAOIST_HP) + ' HP · +25% DMG · revive at 75%.'
+              : 'Clear Quest 1 to unlock the Taoist — no points needed.');
+      }
       list.innerHTML = '';
-      quests.forEach(function(q) {
+      quests.forEach(function (q) {
         var pct = Math.min(100, Math.floor((q.progress / q.goal) * 100));
         var div = document.createElement('div');
         div.className = 'p-2 rounded-lg border ' + (q.done ? 'border-lime-400 bg-lime-900/20' : 'border-slate-600 bg-slate-700/40');
-        div.innerHTML = '<div class="flex items-center justify-between mb-1"><div class="text-xs font-bold ' + (q.done ? 'text-lime-300' : 'text-white') + '">' + (q.done ? '✅ ' : '☯️ ') + q.text + '</div><div class="text-[10px] text-amber-400">+' + q.reward + ' pts</div></div><div class="w-full bg-slate-900 rounded-full h-1.5 mb-1"><div class="bg-lime-500 h-1.5 rounded-full" style="width:' + pct + '%"></div></div><div class="text-[9px] text-slate-400">' + q.progress + '/' + q.goal + ' (' + pct + '%)</div>';
+        div.innerHTML = '<div class="flex items-center justify-between mb-1"><div class="text-xs font-bold ' + (q.done ? 'text-lime-300' : 'text-white') + '">' + (q.done ? '✅ ' : '☯️ ') + q.id + '. ' + q.text + '</div><div class="text-[10px] text-amber-400">+' + q.reward + ' pts</div></div>' + (q.tag ? '<div class="text-[8px] font-bold ' + (q.done ? 'text-lime-400' : 'text-slate-500') + ' mb-1">' + (q.done ? '✔ ' : '') + q.tag + '</div>' : '') + '<div class="w-full bg-slate-900 rounded-full h-1.5 mb-1"><div class="bg-lime-500 h-1.5 rounded-full" style="width:' + pct + '%"></div></div><div class="text-[9px] text-slate-400">' + q.progress + '/' + q.goal + ' (' + pct + '%)</div>';
         list.appendChild(div);
       });
+      updateTaoistCardUI();
+    }
+    function updateTaoistCardUI() {
+      var lock = document.getElementById('taoistLock');
+      if (lock) {
+        var bought = isCharBought('taoist');
+        lock.classList.toggle('hidden', bought);
+        if (!bought) {
+          var doneCount = taoistQuestsDone();
+          lock.innerHTML = '<span class="text-lg">☯️</span><span class="text-lime-300 text-[8px] font-bold text-center px-1 leading-tight">QUEST 1<br>' + doneCount + '/5</span>';
+        }
+      }
+      var info = document.getElementById('taoistCardInfo');
+      if (info) info.textContent = taoistAscended ? 'HP:' + TAOIST_HP_ASCENDED + ' ☯ ASCENDED' : 'HP:120 ☯ REVIVE';
     }
     document.getElementById('taoistQuestBtn').addEventListener('click', function() {
       document.getElementById('menuScreen').classList.add('hidden');
@@ -13722,6 +13913,11 @@
       document.getElementById('taoistQuestScreen').classList.add('hidden');
       document.getElementById('menuScreen').classList.remove('hidden');
     });
+    // Seed the boards on load: a fresh save gets its quest sets, and an unlock or an
+    // ascension the player already earned is re-applied.
+    questLastPoints = totalPoints;
+    refreshTaoistQuests();
+    updateTaoistCardUI();
     document.getElementById('halloweenClose').addEventListener('click', function() { document.getElementById('halloweenScreen').classList.add('hidden'); document.getElementById('menuScreen').classList.remove('hidden'); });
     document.getElementById('candyBuyPoints').addEventListener('click', function() { halloweenBuy(50, function() { totalPoints += 100; savePoints(); }); });
     document.getElementById('candyBuyBoss').addEventListener('click', function() { halloweenBuy(5, function() { bossPoints += 1; savePoints(); }); });

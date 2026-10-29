@@ -1179,7 +1179,7 @@ function run(file) {
       'hp=' + num(/const TAOIST_HP = (\d+);/));
     check(file + ': he revives once at half health',
       num(/const TAOIST_REVIVE_PCT = ([\d.]+)/) === 0.5 && /function reviveTaoist\(\)/.test(html) &&
-      /playerHP = Math\.max\(1, Math\.floor\(PLAYER_MAX_HP_CURRENT \* TAOIST_REVIVE_PCT\)\)/.test(html));
+      /playerHP = Math\.max\(1, Math\.floor\(PLAYER_MAX_HP_CURRENT \* revivePct\)\)/.test(html));
     check(file + ': the revival is spent, and only a new round restores it',
       /taoistReviveUsed = true;/.test(html) && /taoistReviveUsed = false;/.test(html) &&
       /gameState === 'gameover' && selectedChar === 'taoist' && !taoistReviveUsed/.test(html));
@@ -1260,12 +1260,40 @@ function run(file) {
     check(file + ': drawStickman never reads a declaration before it exists',
       offenders.length === 0, 'reads-before-declaration: ' + offenders.join(', '));
 
-    // Menu entry + unlock gate (1,200 points and 5 boss points, permanent).
-    check(file + ': the menu offers the taoist for 1,200 pts + 5 boss pts',
-      /id="charTaoist"/.test(html) && /1200🪙\+5🏆/.test(html) &&
-      /c === 'taoist' && totalPoints >= 1200 && bossPoints >= 5/.test(html));
+    // Menu entry + unlock gate: Taoist Quest 1, not points.
+    check(file + ': the menu shows the taoist card behind a quest gate',
+      /id="charTaoist"/.test(html) && /id="taoistLock"/.test(html) &&
+      /if \(!taoistQuestUnlocked\(\)\)/.test(html) &&
+      !/c === 'taoist' && totalPoints >= 1200/.test(html));
     check(file + ': the taoist unlock is permanent, not a rental',
       /if \(c === 'taoist'\) return; \/\/ permanent/.test(html));
+
+    // The quest system: live daily board + taoist line that gates the character.
+    const questDefs = (/var TAOIST_QUEST_DEFS = \[([\s\S]*?)\n    \];/.exec(html) || [])[1] || '';
+    check(file + ': the taoist line has exactly five quests',
+      (questDefs.match(/\{ id: \d+/g) || []).length === 5, 'defs=' + (questDefs.match(/\{ id: \d+/g) || []).length);
+    check(file + ': taoist quest 1 unlocks him and quest 5 ascends him',
+      /UNLOCKS TAOIST/.test(questDefs) && /ASCENDS TAOIST/.test(questDefs) &&
+      /taoistQuestUnlocked\(\) \{ return isCharBought\('taoist'\) \|\| taoistQuestsDone\(\) >= 1; \}/.test(html) &&
+      /if \(done >= 1 && !boughtTaoist\)/.test(html) &&
+      /if \(done >= quests\.length && !taoistAscended\)/.test(html));
+    check(file + ': ascension buffs HP, damage and the revival',
+      num(/const TAOIST_HP_ASCENDED = (\d+)/) === 160 &&
+      num(/TAOIST_ASCENDED_DMG_MULT = ([\d.]+)/) === 1.25 &&
+      num(/TAOIST_REVIVE_PCT_ASCENDED = ([\d.]+)/) === 0.75 &&
+      /function taoistMaxHp\(\) \{ return taoistAscendedNow\(\) \? TAOIST_HP_ASCENDED : TAOIST_HP; \}/.test(html) &&
+      /taoistAmuletMult\('dmg'\) \* \(taoistAscendedNow\(\) \? TAOIST_ASCENDED_DMG_MULT : 1\)/.test(html));
+    check(file + ': the daily board is driven by real gameplay and pays out',
+      /function tickQuestProgress\(\)/.test(html) && /tickQuestProgress\(\);/.test(html) &&
+      /function advanceQuestProgress\(kind, amount\)/.test(html) &&
+      /advanceQuestProgress\('kills', dk\)/.test(html) &&
+      /advanceQuestProgress\('points', dp\)/.test(html) &&
+      /advanceQuestProgress\('rounds', 1\)/.test(html) &&
+      /totalPoints \+= paid;/.test(html));
+    check(file + ': a finished daily quest counts toward taoist quest 3',
+      /stats\.dailies \+= finished\.length/.test(html) &&
+      /metric: 'dailies'/.test(html) &&
+      /q\.progress = Math\.min\(q\.goal, stats\[q\.metric\] \|\| 0\)/.test(html));
 
     // Dying outside a campaign used to freeze the canvas with no game-over screen, which
     // left a phone player with no way out (there is no ESC key).
