@@ -257,6 +257,7 @@
         <button id="modeEasy" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-cyan-400 font-bold text-sm transition-all">🟢 EASY</button>
         <button id="modeNormal" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-500 text-emerald-400 font-bold text-sm transition-all">🟢 NORMAL</button>
         <button id="modeHard" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all">🔴 HARD</button>
+        <button id="modeInsane" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-purple-400 font-bold text-sm transition-all">🟣 INSANE</button>
         <button id="modeBossRush" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all">🔥 BOSS RUSH</button>
         <button id="modeSandbox" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all">🧪 SANDBOX</button>
       </div>
@@ -581,6 +582,13 @@
           </div>
           <button class="shopBuyBtn px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors" data-upgrade="coinBoost" data-cost="120">120🪙</button>
         </div>
+        <div class="shop-item flex items-center justify-between bg-slate-700/50 rounded-lg p-2 border border-slate-600 hover:border-amber-500/50 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🛡</span>
+            <div><div class="text-xs font-bold text-white">Auto Shield</div><div class="text-[9px] text-slate-400">Immortal 2s (+1s/lv) every 10s (3)</div></div>
+          </div>
+          <button class="shopBuyBtn px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors" data-upgrade="shield" data-cost="300">300🪙</button>
+        </div>
         <div class="border-t border-slate-600 pt-1 mt-1"><div class="text-[9px] text-amber-400 font-bold mb-1">SUMMON ALLIES (respawn when killed)</div></div>
         <div class="shop-item flex items-center justify-between bg-slate-700/50 rounded-lg p-2 border border-slate-600 hover:border-amber-500/50 transition-colors">
           <div class="flex items-center gap-2">
@@ -623,6 +631,20 @@
             <div><div class="text-xs font-bold text-white">Titan</div><div class="text-[9px] text-slate-400">750HP powerhouse (1)</div></div>
           </div>
           <button class="shopBuyBtn px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors" data-upgrade="summonTitan" data-cost="500">500🪙</button>
+        </div>
+        <div class="shop-item flex items-center justify-between bg-slate-700/50 rounded-lg p-2 border border-slate-600 hover:border-amber-500/50 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">💣</span>
+            <div><div class="text-xs font-bold text-white">Bomb Healer</div><div class="text-[9px] text-slate-400">+14HP in a burst (2)</div></div>
+          </div>
+          <button class="shopBuyBtn px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors" data-upgrade="summonBombHealer" data-cost="220">220🪙</button>
+        </div>
+        <div class="shop-item flex items-center justify-between bg-slate-700/50 rounded-lg p-2 border border-slate-600 hover:border-amber-500/50 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🧀</span>
+            <div><div class="text-xs font-bold text-white">Cheese Pet</div><div class="text-[9px] text-slate-400">30 dmg every 2s (2)</div></div>
+          </div>
+          <button class="shopBuyBtn px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors" data-upgrade="summonCheesePet" data-cost="260">260🪙</button>
         </div>
       </div>
       <div class="mt-3">
@@ -1500,7 +1522,7 @@
     }
 
     // ==================== SHOP UPGRADES (permanent across runs) ====================
-    const SHOP_MAX_LEVELS = { maxHp: 5, damage: 5, speed: 3, atkSpeed: 5, regen: 1, coinBoost: 3, summonHealer: 3, summonAttacker: 3, summonCrossbow: 2, summonGunner: 2, summonTank: 2, summonTitan: 1 };
+    const SHOP_MAX_LEVELS = { maxHp: 5, damage: 5, speed: 3, atkSpeed: 5, regen: 1, coinBoost: 3, shield: 3, summonHealer: 3, summonAttacker: 3, summonCrossbow: 2, summonGunner: 2, summonTank: 2, summonTitan: 1, summonBombHealer: 2, summonCheesePet: 2 };
     let shopUpgrades = {
       maxHp: parseInt(localStorage.getItem('sm_upg_maxHp') || '0'),
       damage: parseInt(localStorage.getItem('sm_upg_damage') || '0'),
@@ -1508,12 +1530,15 @@
       atkSpeed: parseInt(localStorage.getItem('sm_upg_atkSpeed') || '0'),
       regen: parseInt(localStorage.getItem('sm_upg_regen') || '0'),
       coinBoost: parseInt(localStorage.getItem('sm_upg_coinBoost') || '0'),
+      shield: parseInt(localStorage.getItem('sm_upg_shield') || '0'),
       summonHealer: parseInt(localStorage.getItem('sm_upg_summonHealer') || '0'),
       summonAttacker: parseInt(localStorage.getItem('sm_upg_summonAttacker') || '0'),
       summonCrossbow: parseInt(localStorage.getItem('sm_upg_summonCrossbow') || '0'),
       summonGunner: parseInt(localStorage.getItem('sm_upg_summonGunner') || '0'),
       summonTank: parseInt(localStorage.getItem('sm_upg_summonTank') || '0'),
-      summonTitan: parseInt(localStorage.getItem('sm_upg_summonTitan') || '0')
+      summonTitan: parseInt(localStorage.getItem('sm_upg_summonTitan') || '0'),
+      summonBombHealer: parseInt(localStorage.getItem('sm_upg_summonBombHealer') || '0'),
+      summonCheesePet: parseInt(localStorage.getItem('sm_upg_summonCheesePet') || '0')
     };
     function saveUpgrades() {
       for (var k in shopUpgrades) localStorage.setItem('sm_upg_' + k, shopUpgrades[k]);
@@ -1526,6 +1551,7 @@
         case 'atkSpeed': return 1 - shopUpgrades.atkSpeed * 0.05;
         case 'regen': return shopUpgrades.regen > 0;
         case 'coinBoost': return shopUpgrades.coinBoost * 5;
+        case 'shield': return shopUpgrades.shield;
       }
       return 0;
     }
@@ -1561,11 +1587,18 @@
     const ALLY_SPAWN_INTERVAL = 2700, ALLY_HP = 120, ALLY_LIFETIME = 1800;
     const ALLY_HEALER_HEAL = 8, ALLY_HEALER_CD = 120;
     const ALLY_ATTACKER_DMG = 5, ALLY_ATTACKER_CD = 60;
+    // Bomb Healer patches the player up in bursts; the Cheese Pet bites for a flat 30.
+    const ALLY_BOMB_HEAL = 14, ALLY_BOMB_HEAL_CD = 300, ALLY_BOMB_HEAL_RADIUS = 160;
+    const CHEESE_PET_DMG = 30, CHEESE_PET_CD = 120;
     let ultDashUnlocked = false, ultGrenadeUnlocked = false, ultAllyUnlocked = false;
     let ultSlamUnlocked = false, ultParryUnlocked = false;
     let ultDashCD = 0, ultGrenadeCD = 0, ultAllyCD = 0, ultSlamCD = 0;
     let superBlastCD = 0, isRaging = false, rageTimer = 0, rageDmgMult = 1, superBlastOrbs = [];
     let isShielded = false, shieldTimer = 0, shieldCD = 0, shieldUnlocked = false, auraDmgTimer = 0;
+    // Shop "Auto Shield" upgrade: brief total immunity on a 10s cycle.
+    let shopShieldCD = 0, shopShieldActive = 0;
+    // Insane-mode spawn clocks (frames @60fps).
+    let insaneBigTimer = 0, insaneEliteTimer = 0, insaneGiantTimer = 0, insaneColossalTimer = 0;
     let mageFireballs = [], mageFrostOrbs = [], lightningBolts = [], mageLightningCD = 0, mageFrostCD = 0, mageTeleportCD = 0, mageMeteorCD = 0, mageIceShielded = false, mageIceTimer = 0;
     // Ninja state
     let ninjaSlashCD = 0, ninjaKunaiCD = 0, ninjaDashCD = 0, ninjaInvisCD = 0, ninjaInvisTimer = 0, ninjaIsInvis = false;
@@ -2815,12 +2848,14 @@
       document.getElementById('modeEasy').className = m === 'easy' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-cyan-500 text-cyan-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-cyan-400 font-bold text-sm transition-all';
       document.getElementById('modeNormal').className = m === 'normal' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-500 text-emerald-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all';
       document.getElementById('modeHard').className = m === 'hard' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-red-500 text-red-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all';
+      document.getElementById('modeInsane').className = m === 'insane' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-500 text-purple-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-purple-400 font-bold text-sm transition-all';
       document.getElementById('modeBossRush').className = m === 'bossrush' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-orange-500 text-orange-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all';
       document.getElementById('modeSandbox').className = m === 'sandbox' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-fuchsia-500 text-fuchsia-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all';
     }
     document.getElementById('modeEasy').addEventListener('click', () => selectMode('easy'));
     document.getElementById('modeNormal').addEventListener('click', () => selectMode('normal'));
     document.getElementById('modeHard').addEventListener('click', () => selectMode('hard'));
+    document.getElementById('modeInsane').addEventListener('click', () => selectMode('insane'));
     document.getElementById('modeBossRush').addEventListener('click', () => selectMode('bossrush'));
     document.getElementById('modeSandbox').addEventListener('click', () => selectMode('sandbox'));
     // Background mode (persisted)
@@ -4686,7 +4721,7 @@
       var sbToggle = document.getElementById('sandboxToggleBtn');
       if (gameMode === 'sandbox') { sbPanel.classList.remove('hidden'); instrPanel.classList.add('hidden'); if (sbToggle) { sbToggle.classList.remove('hidden'); sbToggle.textContent = '🧪 HIDE UI'; } } else { sbPanel.classList.add('hidden'); instrPanel.classList.remove('hidden'); if (sbToggle) sbToggle.classList.add('hidden'); }
       // Apply character-specific stats
-      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : gameMode === 'sandbox' ? ' 🧪SB' : '';
+      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'insane' ? ' 🟣INS' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : gameMode === 'sandbox' ? ' 🧪SB' : '';
       if (selectedChar === 'soldier') {
         PLAYER_MAX_HP_CURRENT = 110;
         document.getElementById('charIcon').textContent = '🎖';
@@ -4829,9 +4864,27 @@
     // Easy dummy HP override
     var EASY_DUMMY_HP = 50, EASY_TANK_HP = 100, EASY_SPEED_HP = 20, EASY_GUNNER_HP = 40;
 
+    // ==================== INSANE MODE ====================
+    // Purple, and it means it: every enemy hits and tanks 1.5x harder, two big dummies
+    // walk in every 5s, a super speed + super tank duo every 12s, THE GIANT every 25s
+    // and the ANCIENT COLOSSAL (halves all damage it takes) every 100s.
+    const INSANE_ENEMY_MULT = 1.5;
+    const INSANE_BIG_INTERVAL = 300, INSANE_ELITE_INTERVAL = 720;
+    const INSANE_GIANT_INTERVAL = 1500, INSANE_COLOSSAL_INTERVAL = 6000;
+    const BIG_DUMMY_HP = 260, BIG_DUMMY_SPD = 0.8;
+    const DARK_NINJA_HP = 110, DARK_NINJA_SPD = 3.1, DARK_NINJA_DMG = 14, DARK_NINJA_KUNAI_DMG = 9, DARK_NINJA_CD = 110;
+    const SUPER_SPEED_HP = 180, SUPER_TANK_HP = 900;
+    const GIANT_HP = 750, GIANT_DMG = 45;
+    const COLOSSAL_HP = 1200, COLOSSAL_DMG = 40, COLOSSAL_RESIST = 0.5;
+    function insaneOn() { return gameMode === 'insane'; }
+    function insaneHp(hp) { return insaneOn() ? Math.round(hp * INSANE_ENEMY_MULT) : hp; }
+    function insaneDmg(d) { return insaneOn() ? Math.max(1, Math.round(d * INSANE_ENEMY_MULT)) : d; }
+
     function createDummy(x, opts = {}) {
-      var baseHp = opts.hp || DUMMY_BASE_HP;
+      var baseHp = opts.hp || (opts.big ? BIG_DUMMY_HP : DUMMY_BASE_HP);
       if (gameMode === 'easy' && !opts.isKamikaze && !opts.isGunner && !opts.isCrossbow && !opts.isSummoner) baseHp = EASY_DUMMY_HP;
+      // Insane: every enemy is 1.5x tougher (damage is scaled once in damagePlayer).
+      baseHp = insaneHp(baseHp);
       return {
         x, y: opts.y || GROUND_Y, hp: baseHp, maxHp: baseHp,
         speed: opts.speed || DUMMY_SPD, attackCD: 30 + Math.floor(Math.random() * 30),
@@ -4840,6 +4893,8 @@
         isSummoner: opts.isSummoner || false, isSummon: opts.isSummon || false,
         isCrossbow: opts.isCrossbow || false, flyTime: opts.isCrossbow ? 0 : -1,
         isGrenader: opts.isGrenader || false,
+        big: opts.big || false, isDarkNinja: opts.isDarkNinja || false,
+        kunaiCD: opts.isDarkNinja ? 90 : 0,
         summonCD: opts.isSummoner ? SUMMONER_CD : 0, vx: 0,
       };
     }
@@ -4895,7 +4950,7 @@
         updateHPBar(); createTextParticle(x, y, '+' + heal, '#4ade80', 16); createParticles(x, y, 10, '#4ade80');
       }
     }
-    function spawnInitialDummies() { if (gameMode === 'sandbox') { dummies = []; return; } dummies = gameMode === 'hard' ? [createDummy(500), createDummy(650), createDummy(800)] : gameMode === 'easy' ? [createDummy(550), createDummy(700)] : [createDummy(550), createDummy(700)]; }
+    function spawnInitialDummies() { if (gameMode === 'sandbox') { dummies = []; return; } dummies = gameMode === 'hard' || gameMode === 'insane' ? [createDummy(500), createDummy(650), createDummy(800)] : [createDummy(550), createDummy(700)]; }
 
     // ==================== SANDBOX SPAWNERS ====================
     window.sandboxSpawn = function(type) {
@@ -5173,6 +5228,20 @@
         allies.push({ x: stick.x + 100, y: GROUND_Y, type: 'titan_ally', hp: 750, maxHp: 750, attackCD: 80, life: Infinity, hitFlash: 0, alive: true, facing: -1, speed: 0.8, state: 'chase', animTime: 0, slamCD: 150, stompCD: 200 });
         spawnedList.push('⛏ Titan');
       }
+      // Bomb Healers
+      var bombAlive = allies.filter(function(a) { return a.alive && a.type === 'bomb_healer'; }).length;
+      var bombWanted = shopUpgrades.summonBombHealer || 0;
+      for (var i = bombAlive; i < bombWanted; i++) {
+        allies.push({ x: stick.x - 120 - i * 40, y: GROUND_Y, type: 'bomb_healer', hp: 110, maxHp: 110, attackCD: ALLY_BOMB_HEAL_CD, life: ALLY_LIFETIME, hitFlash: 0, alive: true, facing: 1 });
+        spawnedList.push('💣 Bomb Healer');
+      }
+      // Cheese Pets
+      var petAlive = allies.filter(function(a) { return a.alive && a.type === 'cheese_pet'; }).length;
+      var petWanted = shopUpgrades.summonCheesePet || 0;
+      for (var i = petAlive; i < petWanted; i++) {
+        allies.push({ x: stick.x + 120 + i * 40, y: GROUND_Y, type: 'cheese_pet', hp: 90, maxHp: 90, attackCD: CHEESE_PET_CD, life: ALLY_LIFETIME, hitFlash: 0, alive: true, facing: 1 });
+        spawnedList.push('🧀 Cheese Pet');
+      }
       if (spawnedList.length > 0) createTextParticle(CW / 2, 50, '💚 ' + spawnedList.join(', '), '#34d399', 16);
     }
     function updateAllies() {
@@ -5267,6 +5336,44 @@
                 }
                 if (a.animTime > 35) a.state = 'chase';
                 break;
+            }
+          }
+        } else if (a.type === 'bomb_healer') {
+          // Bomb Healer: walks to the player and detonates a healing bomb every 5s.
+          const dist = Math.abs(stick.x - a.x);
+          if (dist > 100) a.x += Math.sign(stick.x - a.x) * 1.6;
+          a.attackCD--;
+          if (a.attackCD <= 0) {
+            a.attackCD = ALLY_BOMB_HEAL_CD;
+            var healedPlayer = false;
+            if (playerHP < PLAYER_MAX_HP_CURRENT) {
+              playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + ALLY_BOMB_HEAL);
+              updateHPBar(); healedPlayer = true;
+            }
+            allies.forEach(function(o) {
+              if (o.alive && o !== a && o.hp < o.maxHp && Math.abs(o.x - a.x) < ALLY_BOMB_HEAL_RADIUS) o.hp = Math.min(o.maxHp, o.hp + ALLY_BOMB_HEAL);
+            });
+            createExplosion(a.x, GROUND_Y - 25, ALLY_BOMB_HEAL_RADIUS * 0.5, '#4ade80');
+            createTextParticle(stick.x, stick.y - 60, healedPlayer ? '💚 HEAL BOMB +' + ALLY_BOMB_HEAL : '💣 BOMB READY', '#4ade80', 14);
+            createParticles(a.x, GROUND_Y - 25, 10, '#4ade80');
+          }
+        } else if (a.type === 'cheese_pet') {
+          // Cheese Pet: bites the nearest enemy for a flat 30 every 2s.
+          let nearest = null, nDist = Infinity;
+          dummies.forEach(function(d) { if (d.alive && !d.isKamikaze) { var dd = Math.abs(a.x - d.x); if (dd < nDist) { nDist = dd; nearest = d; } } });
+          miniBosses.forEach(function(m) { if (m.alive) { var dd = Math.abs(a.x - m.x); if (dd < nDist) { nDist = dd; nearest = m; } } });
+          if (boss && boss.alive) { var db = Math.abs(a.x - boss.x); if (db < nDist) { nDist = db; nearest = boss; } }
+          if (nearest) {
+            a.facing = nearest.x > a.x ? 1 : -1;
+            if (nDist > 70) a.x += Math.sign(nearest.x - a.x) * 2.2;
+            a.attackCD--;
+            if (a.attackCD <= 0 && nDist < 90) {
+              if (nearest === boss) dealDamageToBoss(CHEESE_PET_DMG, 'ally');
+              else if (nearest.maxHp && nearest.type) dealDamageToMiniBoss(nearest, CHEESE_PET_DMG, 'ally');
+              else dealDamageToDummy(nearest, CHEESE_PET_DMG, 'ally');
+              createTextParticle(nearest.x, GROUND_Y - 70, '🧀 ' + CHEESE_PET_DMG, '#facc15', 13);
+              createParticles(nearest.x, GROUND_Y - 30, 5, '#facc15');
+              a.attackCD = CHEESE_PET_CD;
             }
           }
         } else if (a.type === 'gunner_ally') {
@@ -5436,6 +5543,25 @@
           var bw4 = 20, bx4 = dx - bw4 / 2, by4 = flyY - 32;
           ctx.fillStyle = '#1e293b'; ctx.fillRect(bx4, by4, bw4, 3);
           ctx.fillStyle = '#d97706'; ctx.fillRect(bx4, by4, bw4 * Math.max(0, a.hp / a.maxHp), 3);
+        } else if (a.type === 'bomb_healer' || a.type === 'cheese_pet') {
+          var isBomb = a.type === 'bomb_healer';
+          var abc = a.hitFlash > 0 ? '#fff' : isBomb ? '#22c55e' : '#facc15';
+          var ahc = a.hitFlash > 0 ? '#fff' : isBomb ? '#86efac' : '#fde68a';
+          ctx.globalAlpha = 0.14; ctx.fillStyle = abc;
+          ctx.beginPath(); ctx.arc(dx, GROUND_Y - 25, 22, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+          ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = ahc; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(dx, GROUND_Y - 52, isBomb ? 11 : 9, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = abc;
+          ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 41); ctx.lineTo(dx, GROUND_Y - 8); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 34); ctx.lineTo(dx - 12, GROUND_Y - 26); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 34); ctx.lineTo(dx + 12, GROUND_Y - 26); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 8); ctx.lineTo(dx - 8, GROUND_Y + 12); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 8); ctx.lineTo(dx + 8, GROUND_Y + 12); ctx.stroke();
+          ctx.font = '12px serif'; ctx.textAlign = 'center';
+          ctx.fillText(isBomb ? '💣' : '🧀', dx, GROUND_Y - 64); ctx.textAlign = 'start';
+          var abw = 28, abx = dx - abw / 2, aby = GROUND_Y - 74;
+          ctx.fillStyle = '#1e293b'; ctx.fillRect(abx, aby, abw, 3);
+          ctx.fillStyle = abc; ctx.fillRect(abx, aby, abw * Math.max(0, a.hp / a.maxHp), 3);
         } else {
           var isH = a.type === 'healer', isTA = a.type === 'tank_ally';
           // Taoist undead: rotting green, and the big one is scaled up with a crown of bones.
@@ -6462,6 +6588,35 @@
         return;
       }
 
+      if (d.big) {
+        // Insane-mode big dummy: the same rig, twice the presence.
+        var bigHit = d.hitFlash > 0;
+        ctx.globalAlpha = 0.14; ctx.fillStyle = '#a855f7';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 45, 48, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.strokeStyle = bigHit ? '#fff' : '#e9d5ff'; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 96, 22, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = bigHit ? '#fff' : '#a855f7';
+        var bigSway = Math.sin(time * 0.12) * 2;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 74); ctx.lineTo(dx, GROUND_Y - 10); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 60 + bigSway); ctx.lineTo(dx - 34, GROUND_Y - 40); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 60 - bigSway); ctx.lineTo(dx + 34, GROUND_Y - 40); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 10); ctx.lineTo(dx - 22, GROUND_Y + 22); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 10); ctx.lineTo(dx + 22, GROUND_Y + 22); ctx.stroke();
+        // Glowing eyes, so it reads as an INSANE enemy not a normal dummy.
+        ctx.fillStyle = '#f0abfc';
+        ctx.beginPath(); ctx.arc(dx - 7, GROUND_Y - 98, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 7, GROUND_Y - 98, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e9d5ff'; ctx.font = '13px serif'; ctx.textAlign = 'center';
+        ctx.fillText('🟣', dx, GROUND_Y - 122); ctx.textAlign = 'start';
+        var bbw = 64, bbp = d.hp / d.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - bbw / 2 - 1, GROUND_Y - 140, bbw + 2, 9);
+        ctx.fillStyle = '#a855f7'; ctx.fillRect(dx - bbw / 2, GROUND_Y - 139, bbw * Math.max(0, bbp), 7);
+        ctx.fillStyle = '#e9d5ff'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('BIG ' + Math.ceil(Math.max(0, d.hp)), dx, GROUND_Y - 144); ctx.textAlign = 'start';
+        return;
+      }
+
       if (d.isCrossbow) {
         var lt = d.landingTime || CROSSBOW_LANDING_TIME;
         const flyY = d.flyTime < lt ? GROUND_Y - 55 - 80 * (1 - d.flyTime / lt) : GROUND_Y - 55;
@@ -6537,6 +6692,7 @@
       if (d.isKamikaze) { const p = Math.sin(time * 0.3) * 0.3 + 0.7; bodyColor = d.hitFlash > 0 ? '#fff' : `rgba(239,68,68,${p})`; headColor = d.hitFlash > 0 ? '#fff' : `rgba(252,165,165,${p})`; label = '💣'; }
       else if (d.isGrenader) { bodyColor = d.hitFlash > 0 ? '#fff' : '#f97316'; headColor = d.hitFlash > 0 ? '#fff' : '#fdba74'; label = '💣'; }
       else if (d.isGunner) { bodyColor = d.hitFlash > 0 ? '#fff' : '#ef4444'; headColor = d.hitFlash > 0 ? '#fff' : '#fca5a5'; label = '🔫'; }
+      else if (d.isDarkNinja) { bodyColor = d.hitFlash > 0 ? '#fff' : '#1e1b4b'; headColor = d.hitFlash > 0 ? '#fff' : '#5b21b6'; label = '🥷'; headR = 11; lineW = 3; }
       else if (d.isSummoner) { bodyColor = d.hitFlash > 0 ? '#fff' : '#3b82f6'; headColor = d.hitFlash > 0 ? '#fff' : '#93c5fd'; label = '🔮'; }
       else if (d.isSummon) { bodyColor = d.hitFlash > 0 ? '#fff' : '#64748b'; headColor = d.hitFlash > 0 ? '#fff' : '#94a3b8'; headR = 9; lineW = 2.5; }
       else { bodyColor = d.hitFlash > 0 ? '#fbbf24' : '#94a3b8'; headColor = d.hitFlash > 0 ? '#fde68a' : '#cbd5e1'; }
@@ -7123,6 +7279,41 @@
         ctx.fillText('🥛 MILKSON ' + mb.hp, dx, GROUND_Y - 98); ctx.textAlign = 'start';
         return;
       }
+      if (mb.type === 'giant' || mb.type === 'colossal') {
+        var isCol = mb.type === 'colossal';
+        var gBody = mb.hitFlash > 0 ? '#fff' : isCol ? '#0e7490' : '#6d28d9';
+        var gHead = mb.hitFlash > 0 ? '#fff' : isCol ? '#22d3ee' : '#c4b5fd';
+        var gScale = isCol ? 1.55 : 1.25;
+        ctx.globalAlpha = 0.15 + Math.sin(time * 0.06) * 0.05; ctx.fillStyle = isCol ? '#0e7490' : '#7c3aed';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 40, 58 * gScale, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        if (isCol) {
+          ctx.fillStyle = 'rgba(15,23,42,0.35)';
+          ctx.beginPath(); ctx.moveTo(dx - 26 * gScale, GROUND_Y - 78); ctx.lineTo(dx + 6, GROUND_Y - 84); ctx.lineTo(dx + 18, GROUND_Y - 54); ctx.lineTo(dx - 20, GROUND_Y - 48); ctx.closePath(); ctx.fill();
+        }
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.strokeStyle = gHead; ctx.lineWidth = 8 * gScale;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 82 * gScale, 20 * gScale, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = isCol ? '#fde047' : '#f0abfc';
+        ctx.beginPath(); ctx.arc(dx - 8 * gScale, GROUND_Y - 84 * gScale, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 8 * gScale, GROUND_Y - 84 * gScale, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = gBody; ctx.lineWidth = 9 * gScale;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 62 * gScale); ctx.lineTo(dx, GROUND_Y - 6); ctx.stroke();
+        ctx.lineWidth = 7 * gScale;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 52 * gScale); ctx.lineTo(dx - 26 * gScale, GROUND_Y - 34 * gScale); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 52 * gScale); ctx.lineTo(dx + 26 * gScale, GROUND_Y - 34 * gScale); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 6); ctx.lineTo(dx - 18 * gScale, GROUND_Y + 24); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 6); ctx.lineTo(dx + 18 * gScale, GROUND_Y + 24); ctx.stroke();
+        var gw = isCol ? 104 : 84, gp = mb.hp / mb.maxHp;
+        var gy2 = GROUND_Y - (isCol ? 168 : 140);
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - gw / 2 - 1, gy2, gw + 2, 10);
+        ctx.fillStyle = gp > 0.5 ? gBody : gp > 0.25 ? '#facc15' : '#f87171';
+        ctx.fillRect(dx - gw / 2, gy2 + 1, gw * Math.max(0, gp), 8);
+        ctx.fillStyle = gHead; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+        ctx.fillText((isCol ? '🌋 ANCIENT COLOSSAL ' : '💀 THE GIANT ') + Math.ceil(Math.max(0, mb.hp)) + '/' + mb.maxHp, dx, gy2 - 5);
+        if (isCol) { ctx.fillStyle = '#67e8f9'; ctx.font = 'bold 9px monospace'; ctx.fillText('🛡 50% RESIST · ' + COLOSSAL_DMG + ' DMG', dx, gy2 - 18); }
+        ctx.textAlign = 'start';
+        return;
+      }
       const isT = mb.type === 'tank';
       const bc = mb.hitFlash > 0 ? '#fbbf24' : isT ? '#c084fc' : '#fb923c';
       const hc = mb.hitFlash > 0 ? '#fde68a' : isT ? '#d8b4fe' : '#fdba74';
@@ -7161,9 +7352,15 @@
 
     // ==================== DAMAGE ====================
     function playerHpFloor() { return selectedChar === 'phantom' ? PHANTOM_MIN_HP : 0; }
-    function damagePlayer(dmg, color, bypassShield) {
+    function damagePlayer(dmg, color, bypassShield, skipInsane) {
       if (gameMode === 'sandbox') { createTextParticle(stick.x, stick.y - 55, '🛡 SANDBOX!', '#d946ef', 12); return; }
       if (gracePeriod > 0) return;
+      // Bought Auto Shield: completely immortal while it is lit, no damage at all.
+      if (shopShieldActive > 0) {
+        createTextParticle(stick.x, stick.y - 55, '🛡 IMMORTAL!', '#38bdf8', 14);
+        createParticles(stick.x, stick.y - 30, 4, '#38bdf8');
+        return;
+      }
       if (selectedChar === 'fighter' && selectedSkin === 'fighter_ghost' && ghostDodgeCharges > 0) {
         ghostDodgeCharges--;
         createTextParticle(stick.x, stick.y - 55, '👻 DODGE! (' + ghostDodgeCharges + ')', '#a5b4fc', 14);
@@ -7172,6 +7369,9 @@
       }
       if (absoluteImmortalActive()) { createTextParticle(stick.x, stick.y - 55, '🛡 IMMORTAL!', '#fbbf24', 14); createParticles(stick.x, stick.y - 30, 5, '#fbbf24'); return; }
       dmg = Math.floor(dmg * easyDmgMult());
+      // Insane mode: every enemy hit lands 1.5x harder. The Ancient Colossal's 40 is
+      // its stated damage, so it opts out of the mode multiplier.
+      if (!skipInsane) dmg = insaneDmg(dmg);
       // The taoist's amulet can bless (-35% taken) or curse (+40% taken) him.
       if (selectedChar === 'taoist') dmg = Math.max(1, Math.floor(dmg * taoistTakenMult()));
       if (ninjaIsInvis) { createTextParticle(stick.x, stick.y - 55, '👻 PHASE!', '#94a3b8', 12); return; }
@@ -7307,6 +7507,8 @@
 
     function dealDamageToMiniBoss(mb, dmg, source) {
       dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult());
+      // The Ancient Colossal shrugs off half of everything thrown at it.
+      if (mb.dmgReduction) dmg = Math.max(1, Math.floor(dmg * (1 - mb.dmgReduction)));
       if (mb.type === 'pumpkin') {
         // The soul form is attackable now: taking its 5,000 HP triggers the Soul Storm minigame.
         if (mb.orbMode) {
@@ -7353,10 +7555,10 @@
         } else if (mb.type === 'pumpkin') {
           killPumpkinBoss(mb);
         } else {
-          const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : 20;
+          const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : mb.type === 'colossal' ? 300 : mb.type === 'giant' ? 150 : 20;
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
-          var killName = mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
+          var killName = mb.type === 'giant' ? '💀 GIANT' : mb.type === 'colossal' ? '🌋 COLOSSAL' : mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
           createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : mb.type === 'medic' ? '#f8fafc' : mb.type === 'giant_gunner' ? '#dc2626' : mb.type === 'milkson' ? '#ef4444' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, killName + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
           if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
@@ -7407,6 +7609,26 @@
             // The taoist is one of the dead's own: zombies hit him 20% softer.
             var zDmg = selectedChar === 'taoist' ? Math.max(1, Math.round(ZOMBIE_DMG * TAOIST_ZOMBIE_DMG_MULT)) : ZOMBIE_DMG;
             damagePlayer(zDmg, '#22c55e'); d.attackCD = ZOMBIE_ATK_CD; createParticles(d.x, GROUND_Y - 30, 4, '#22c55e');
+          }
+        } else if (d.isDarkNinja) {
+          // Dark ninja: a shinobi's spacing — closes to mid range, backs off when it is
+          // crowded, and works the kunai. Cornered, it slashes.
+          if (dist > 240) d.x += Math.sign(stick.x - d.x) * d.speed;
+          else if (dist < 130) d.x -= Math.sign(stick.x - d.x) * d.speed * 0.9;
+          if (d.kunaiCD === undefined) d.kunaiCD = DARK_NINJA_CD;
+          d.kunaiCD--;
+          if (d.kunaiCD <= 0 && dist < 460) {
+            d.kunaiCD = DARK_NINJA_CD;
+            var ka = Math.atan2((stick.y - 35) - (GROUND_Y - 45), stick.x - d.x);
+            bullets.push({ x: d.x, y: GROUND_Y - 45, vx: Math.cos(ka) * 7, vy: Math.sin(ka) * 7, dmg: DARK_NINJA_KUNAI_DMG, life: 110, alive: true, isKunai: true });
+            createTextParticle(d.x, GROUND_Y - 70, '🗡 KUNAI!', '#4c1d95', 12);
+            createParticles(d.x + d.facing * 12, GROUND_Y - 45, 4, '#4c1d95');
+          }
+          d.attackCD--;
+          if (d.attackCD <= 0 && dist < 70) {
+            damagePlayer(DARK_NINJA_DMG, '#4c1d95');
+            d.attackCD = 90;
+            createParticles(d.x, GROUND_Y - 30, 5, '#4c1d95');
           }
         } else {
           if (dist < DUMMY_CHASE_RANGE && gameState === 'playing') d.x += Math.sign(stick.x - d.x) * d.speed;
@@ -7970,6 +8192,28 @@
             dummies.push(createDummy(mb.x + (Math.random() - 0.5) * 40, {}));
             createTextParticle(mb.x, GROUND_Y - 60, '🥛 SPAWN!', '#fca5a5', 12);
           }
+        } else if (mb.type === 'giant') {
+          // THE GIANT: slow pursuit, one enormous purple smash.
+          if (dist > 80) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          mb.attackCD--;
+          if (mb.attackCD <= 0 && dist < 130) {
+            damagePlayer(GIANT_DMG, '#7c3aed');
+            mb.attackCD = 90;
+            createTextParticle(mb.x, GROUND_Y - 118, '💜 GIANT SMASH!', '#a855f7', 18);
+            createParticles(mb.x, GROUND_Y - 40, 12, '#a855f7');
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 200);
+          }
+        } else if (mb.type === 'colossal') {
+          // ANCIENT COLOSSAL: 40 damage a swing, and it only takes half damage back.
+          if (dist > 110) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          mb.attackCD--;
+          if (mb.attackCD <= 0 && dist < 160) {
+            damagePlayer(COLOSSAL_DMG, '#0e7490', false, true);
+            mb.attackCD = 120;
+            createTextParticle(mb.x, GROUND_Y - 140, '🌋 COLOSSAL STRIKE! ' + COLOSSAL_DMG, '#22d3ee', 18);
+            createParticles(mb.x, GROUND_Y - 50, 16, '#0891b2');
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 300);
+          }
         } else {
           // Tank / Speed / Boss
           if (dist > 50) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
@@ -8008,6 +8252,53 @@
         createTextParticle(CW / 2, 60, '🛡 TANK + ⚡ SPEED!', '#fb923c', 18);
       }
     }
+    // ==================== INSANE MODE SPAWNER ====================
+    function spawnInsaneBigDummies() {
+      for (var bi = 0; bi < 2; bi++) {
+        var bx = Math.random() > 0.5 ? -60 - bi * 50 : CW + 60 + bi * 50;
+        dummies.push(createDummy(bx, { big: true, hp: BIG_DUMMY_HP, speed: BIG_DUMMY_SPD }));
+      }
+      createTextParticle(CW / 2, 50, '🟣 2 BIG DUMMIES!', '#a855f7', 16);
+      createParticles(CW / 2, GROUND_Y, 12, '#a855f7');
+    }
+    function spawnInsaneElites() {
+      var leftFirst = Math.random() > 0.5;
+      miniBosses.push({ x: leftFirst ? 70 : CW - 70, y: GROUND_Y, hp: SUPER_SPEED_HP, maxHp: SUPER_SPEED_HP, speed: SPEED_SPD * 1.8, attackCD: 20, hitFlash: 0, alive: true, facing: leftFirst ? 1 : -1, type: 'speed', super: true, animTime: 0, vy: 0 });
+      miniBosses.push({ x: leftFirst ? CW - 70 : 70, y: GROUND_Y, hp: SUPER_TANK_HP, maxHp: SUPER_TANK_HP, speed: TANK_SPD * 1.4, attackCD: 40, hitFlash: 0, alive: true, facing: leftFirst ? -1 : 1, type: 'tank', super: true, animTime: 0, vy: 0 });
+      createTextParticle(CW / 2, 50, '⚡ SUPER SPEED + 🛡 SUPER TANK!', '#c084fc', 16);
+      createParticles(CW / 2, GROUND_Y, 16, '#c084fc');
+    }
+    function spawnInsaneGiant() {
+      miniBosses.push({ x: stick.x > CW / 2 ? 110 : CW - 110, y: GROUND_Y, hp: GIANT_HP, maxHp: GIANT_HP, speed: 1.3, attackCD: 60, hitFlash: 0, alive: true, facing: 1, type: 'giant', animTime: 0, vy: 0 });
+      createTextParticle(CW / 2, 60, '💀 THE GIANT — ' + GIANT_HP + ' HP!', '#7c3aed', 24);
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 400);
+    }
+    function spawnInsaneColossal() {
+      miniBosses.push({ x: stick.x > CW / 2 ? 130 : CW - 130, y: GROUND_Y, hp: COLOSSAL_HP, maxHp: COLOSSAL_HP, speed: 0.9, attackCD: 90, hitFlash: 0, alive: true, facing: 1, type: 'colossal', animTime: 0, vy: 0, dmgReduction: COLOSSAL_RESIST });
+      createTextParticle(CW / 2, 60, '🌋 ANCIENT COLOSSAL — ' + COLOSSAL_HP + ' HP', '#0e7490', 22);
+      createTextParticle(CW / 2, 92, '🛡 50% RESIST · ' + COLOSSAL_DMG + ' DMG', '#22d3ee', 14);
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 600);
+    }
+    function updateInsaneSpawns() {
+      insaneBigTimer++; insaneEliteTimer++; insaneGiantTimer++; insaneColossalTimer++;
+      if (insaneBigTimer >= INSANE_BIG_INTERVAL) { insaneBigTimer = 0; spawnInsaneBigDummies(); }
+      if (insaneEliteTimer >= INSANE_ELITE_INTERVAL) { insaneEliteTimer = 0; spawnInsaneElites(); }
+      if (insaneGiantTimer >= INSANE_GIANT_INTERVAL && !miniBosses.some(function(m) { return m.alive && m.type === 'giant'; })) { insaneGiantTimer = 0; spawnInsaneGiant(); }
+      if (insaneColossalTimer >= INSANE_COLOSSAL_INTERVAL && !miniBosses.some(function(m) { return m.alive && m.type === 'colossal'; })) { insaneColossalTimer = 0; spawnInsaneColossal(); }
+    }
+    // Bought Auto Shield: 2s of total immunity (+1s per extra shop level) every 10s.
+    function updateShopShield() {
+      if (!shopUpgrades.shield) return;
+      if (shopShieldActive > 0) shopShieldActive--;
+      if (shopShieldCD > 0) shopShieldCD--;
+      if (shopShieldCD <= 0 && shopShieldActive <= 0) {
+        shopShieldActive = 120 + (shopUpgrades.shield - 1) * 60;
+        shopShieldCD = 600;
+        createTextParticle(stick.x, stick.y - 70, '🛡 SHIELD ' + Math.round(shopShieldActive / 60) + 's', '#38bdf8', 16);
+        createParticles(stick.x, stick.y - 30, 12, '#38bdf8');
+      }
+    }
+
     function spawnNecromancer() {
       if (miniBosses.some(function(m) { return m.alive && m.type === 'necro'; })) return;
       var side = stick.x > CW / 2 ? -80 : CW + 80;
@@ -8776,8 +9067,8 @@
       if (boss && boss.alive) return;
       var aliveDummies = dummies.filter(function(d) { return d.alive; }).length;
       var aliveMiniBosses = miniBosses.filter(function(m) { return m.alive; }).length;
-      if (aliveDummies + aliveMiniBosses > 10) return;
-      var waveCount = gameMode === 'hard' ? 3 : SPAWN_COUNT;
+      if (aliveDummies + aliveMiniBosses > (insaneOn() ? 14 : 10)) return;
+      var waveCount = gameMode === 'hard' ? 3 : gameMode === 'insane' ? 4 : SPAWN_COUNT;
       for (let i = 0; i < waveCount; i++) {
         const x = stick.x + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 200);
         const r = Math.random();
@@ -8788,6 +9079,12 @@
         } else if (gameMode === 'hard') {
           if (r < 0.15 && totalKills > 5) opts = { isCrossbow: true, hp: CROSSBOW_HP, speed: CROSSBOW_SPD, landingTime: 720 };
           else if (r < 0.22 && totalKills > 5) opts = { isSummoner: true, hp: SUMMONER_HP, speed: SUMMONER_SPD };
+        } else if (gameMode === 'insane') {
+          // Insane waves are led by the dark ninja.
+          if (r < 0.26 && totalKills > 2) opts = { isDarkNinja: true, hp: DARK_NINJA_HP, speed: DARK_NINJA_SPD };
+          else if (r < 0.40 && totalKills > 5) opts = { isCrossbow: true, hp: CROSSBOW_HP, speed: CROSSBOW_SPD };
+          else if (r < 0.52 && totalKills > 5) opts = { isGunner: true, hp: GUNNER_HP, speed: GUNNER_SPD };
+          else if (r < 0.62 && totalKills > 5) opts = { isSummoner: true, hp: SUMMONER_HP, speed: SUMMONER_SPD };
         } else {
           if (r < 0.12 && totalKills > 5) opts = { isCrossbow: true, hp: CROSSBOW_HP, speed: CROSSBOW_SPD };
           else if (r < 0.22 && totalKills > 5) opts = { isGunner: true, hp: GUNNER_HP, speed: GUNNER_SPD };
@@ -8968,6 +9265,8 @@
       try {
       time++; if (gameMode !== 'sandbox' && !campaignMode && !phantomMissionActive) { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
       if (gracePeriod > 0) gracePeriod--;
+      updateShopShield();
+      if (gameMode === 'insane' && !campaignMode && !phantomMissionActive) updateInsaneSpawns();
       tickCandyFromKills();
       tickQuestProgress();
       if (isHalloweenEvent() && gameMode !== 'sandbox' && gameMode !== 'bossrush' && !campaignMode && !phantomMissionActive) {        candyDropTimer++; if (candyDropTimer >= 6000) { candyDropTimer = 0; pickups.push(createPickup(100 + Math.random() * (CW - 200), GROUND_Y, 'candy')); createTextParticle(CW / 2, 95, '🍬 CANDY DROP!', '#fb923c', 18); }
@@ -13340,6 +13639,8 @@
       isKickDashing = false; kickDashDist = 0; isCharging = false; chargeDist = 0; chargeDmgDealt = false;
       superBlastCD = 0; isRaging = false; rageTimer = 0; rageDmgMult = 1; auraDmgTimer = 0;
       isShielded = false; shieldTimer = 0; shieldCD = 0; shieldUnlocked = false;
+      shopShieldCD = 0; shopShieldActive = 0;
+      insaneBigTimer = 0; insaneEliteTimer = 0; insaneGiantTimer = 0; insaneColossalTimer = 0;
       mageFireballs = []; mageFrostOrbs = []; lightningBolts = []; mageLightningCD = 0; mageFrostCD = 0; mageTeleportCD = 0; mageMeteorCD = 0; mageIceShielded = false; mageIceTimer = 0;
       gracePeriod = 300; playerLevel = 1;
       try { stopBossMusic(); } catch(e) {}
