@@ -393,8 +393,8 @@
             <div class="text-3xl">🎖️</div>
             <div class="flex-1">
               <div class="font-bold text-green-400">Soldier's War</div>
-              <div class="text-[10px] text-slate-400">10 levels • Join the army!</div>
-              <div id="campSoldierProgress" class="text-[10px] text-amber-400 mt-1">Level 1/10</div>
+              <div class="text-[10px] text-slate-400">15 levels • Join the army!</div>
+              <div id="campSoldierProgress" class="text-[10px] text-amber-400 mt-1">Level 1/15</div>
             </div>
           </div>
           <div id="soldierLevelSelect" class="grid grid-cols-5 gap-1.5 hidden"></div>
@@ -1243,6 +1243,10 @@
     const MEDIC_HP = 90, MEDIC_SPD = 0.4, MEDIC_HEAL = 30, MEDIC_HEAL_CD = 240, MEDIC_HEAL_RADIUS = 220;
     const GIANT_GUNNER_HP = 1000, GIANT_GUNNER_SPD = 0.4, GIANT_GUNNER_DMG = 10, GIANT_GUNNER_CD = 90, GIANT_GUNNER_BULLETS = 5;
     // Commander (Soldier campaign boss)
+    // Soldier campaign Lv 14-15 bosses.
+    const TITAN_GUNNER_HP = 2200, TITAN_GUNNER_DMG = 14, TITAN_GUNNER_CD = 70, TITAN_GUNNER_BULLETS = 7;
+    const AMETHYST_HP = 2600, AMETHYST_SPD = 1.2, AMETHYST_RESIST = 0.2;
+    const AMETHYST_SLAM_DMG = 55, AMETHYST_SLAM_RADIUS = 180, AMETHYST_CONTACT_DMG = 22, AMETHYST_BOLT_DMG = 28;
     const COMMANDER_HP = 800, COMMANDER_SPD = 0.5, COMMANDER_DMG = 8, COMMANDER_CD = 90;
     const COMMANDER_AIRSTRIKE_DMG = 40, COMMANDER_AIRSTRIKE_CD = 300; // 5s
     const MINI_BOSS_INTERVAL = 1500;
@@ -1600,6 +1604,8 @@
     // Insane-mode spawn clocks (frames @60fps).
     let insaneBigTimer = 0, insaneEliteTimer = 0, insaneGiantTimer = 0, insaneColossalTimer = 0;
     let mageFireballs = [], mageFrostOrbs = [], lightningBolts = [], mageLightningCD = 0, mageFrostCD = 0, mageTeleportCD = 0, mageMeteorCD = 0, mageIceShielded = false, mageIceTimer = 0;
+    // The Amethyst's telegraphed cyan lightning strikes (Soldier Lv 15).
+    let amethystBolts = [];
     // Ninja state
     let ninjaSlashCD = 0, ninjaKunaiCD = 0, ninjaDashCD = 0, ninjaInvisCD = 0, ninjaInvisTimer = 0, ninjaIsInvis = false;
     let ninjaCloneCD = 0, ninjaClones = [], ninjaCloneTimer = 0;
@@ -3246,6 +3252,19 @@
     ];
 
     // ===== SOLDIER'S WAR CAMPAIGN =====
+    // The blue Colossal that used to close the campaign in a cutscene is now the real
+    // final boss: this intro plays as THE AMETHYST descends, and SOLDIER_WIN_CUTSCENE
+    // is the aftermath once it is dead.
+    var SOLDIER_FINAL_INTRO_CUTSCENE = [
+      { speaker: 'Narrator', color: '#94a3b8', text: 'Victory! The battlefield falls silent...', portrait: 'narrator' },
+      { speaker: 'Gun Friend', color: '#22d3ee', text: 'We did it, soldier! The war is finally over!', portrait: 'gunfriend' },
+      { speaker: '???', color: '#a855f7', text: 'Over? You forgot about ME.', portrait: 'bluecolossal' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'THE AMETHYST — a blue Colossal — crashes down and strikes your Gun Friend!', portrait: 'bluecolossal' },
+      { speaker: 'Gun Friend', color: '#22d3ee', text: 'Agh... soldier... avenge... me...', portrait: 'gunfriend' },
+      { speaker: 'Soldier', color: '#4ade80', text: 'NO! ... You will PAY for that!', portrait: 'soldier' },
+      { speaker: 'Narrator', color: '#ef4444', text: 'It jumps, it slams and it calls down cyan lightning — and it shrugs off 20% of everything.', portrait: 'narrator' },
+    ];
+
     var SOLDIER_CAMPAIGN_LEVELS = [
       {
         name: 'Level 1: Joining the Army',
@@ -3350,18 +3369,64 @@
         ],
         duration: 0, spawnInterval: 0, spawnCount: 0,
         defeatGiantGunner: true, gunFriend: true
+      },
+      {
+        name: 'Level 11: Shotgun Squad',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'The enemy answers with SHOTGUNNERS — one every 5 seconds.', portrait: 'narrator' },
+          { speaker: 'Soldier', color: '#4ade80', text: 'Survive one minute of buckshot. Keep moving!', portrait: 'soldier' },
+        ],
+        duration: 3600, spawnInterval: 0, spawnCount: 0,
+        specialSpawns: [{ type: 'shotgun', interval: 300 }],
+        gunFriend: true
+      },
+      {
+        name: 'Level 12: Snipers & Shotguns',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'Snipers and shotgunners, both on a 7 second cycle.', portrait: 'narrator' },
+          { speaker: 'Soldier', color: '#4ade80', text: 'Gun Friend — cover me, I\'m going in!', portrait: 'soldier' },
+        ],
+        duration: 3600, spawnInterval: 0, spawnCount: 0,
+        specialSpawns: [{ type: 'shotgun', interval: 420 }, { type: 'sniper', interval: 420 }],
+        gunFriend: true
+      },
+      {
+        name: 'Level 13: Giant Gunners',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'GIANT GUNNERS stomp in every 7 seconds. Their barrages never stop.', portrait: 'narrator' },
+          { speaker: 'Soldier', color: '#4ade80', text: 'One minute. Just one minute...', portrait: 'soldier' },
+        ],
+        duration: 3600, spawnInterval: 0, spawnCount: 0,
+        specialSpawns: [{ type: 'giant_gunner', interval: 420 }],
+        gunFriend: true
+      },
+      {
+        name: 'Level 14: Commander & Titan Gunner',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'The COMMANDER returns — and he brought a TITAN GUNNER.', portrait: 'narrator' },
+          { speaker: 'Soldier', color: '#4ade80', text: 'Both of them. Fine. Drop them BOTH.', portrait: 'soldier' },
+        ],
+        duration: 0, spawnInterval: 0, spawnCount: 0,
+        spawnCommanderAt: 300, commanderHP: 800,
+        spawnTitanGunner: true, defeatTitanGunner: true,
+        gunFriend: true
+      },
+      {
+        name: 'Level 15: The Amethyst',
+        cutscene: SOLDIER_FINAL_INTRO_CUTSCENE,
+        duration: 0, spawnInterval: 0, spawnCount: 0,
+        spawnAmethyst: true,
+        gunFriend: true
       }
     ];
 
-    // Soldier campaign ending cutscene — a blue Colossal strikes down the Gun Friend
+    // Soldier campaign ending cutscene — played once the Amethyst (the blue Colossal
+    // from the old ending) is finally dead.
     var SOLDIER_WIN_CUTSCENE = [
-      { speaker: 'Narrator', color: '#94a3b8', text: 'Victory! The battlefield falls silent...', portrait: 'narrator' },
-      { speaker: 'Gun Friend', color: '#22d3ee', text: 'We did it, soldier! The war is finally over!', portrait: 'gunfriend' },
-      { speaker: '???', color: '#3b82f6', text: 'Over? You forgot about ME.', portrait: 'bluecolossal' },
-      { speaker: 'Narrator', color: '#94a3b8', text: 'A BLUE COLOSSAL crashes down and strikes your Gun Friend!', portrait: 'bluecolossal' },
-      { speaker: 'Gun Friend', color: '#22d3ee', text: 'Agh... soldier... avenge... me...', portrait: 'gunfriend' },
-      { speaker: 'Soldier', color: '#4ade80', text: 'NO! ... You will PAY for that!', portrait: 'soldier' },
-      { speaker: 'Narrator', color: '#ef4444', text: 'The soldiers are enraged. The battle is far from over...', portrait: 'narrator' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The Amethyst shatters. Its cyan lightning dies with it...', portrait: 'narrator' },
+      { speaker: 'Narrator', color: '#3b82f6', text: 'The blue Colossal is gone for good.', portrait: 'bluecolossal' },
+      { speaker: 'Soldier', color: '#4ade80', text: 'That was for you, Gun Friend. Rest now — the war is over.', portrait: 'soldier' },
+      { speaker: 'Narrator', color: '#ef4444', text: 'The soldiers are enraged no more. The battle is finally done...', portrait: 'narrator' },
       { speaker: 'Narrator', color: '#facc15', text: 'TO BE CONTINUED...', portrait: 'trophy' },
     ];
 
@@ -4461,6 +4526,22 @@
         }
         return;
       }
+      // Commander + Titan Gunner (Soldier Lv 14) — win when BOTH are down
+      if (lv.defeatTitanGunner) {
+        var tgAlive = miniBosses.some(function(m) { return m.alive && m.type === 'titan_gunner'; });
+        if (campaignSpecialTimers['tg_spawned'] && !tgAlive && !(commander && commander.alive) && campaignTimer > 120) {
+          campaignWinLevel();
+        }
+        return;
+      }
+      // The Amethyst (Soldier Lv 15) — win when it shatters
+      if (lv.spawnAmethyst) {
+        var ameAlive = miniBosses.some(function(m) { return m.alive && m.type === 'amethyst'; });
+        if (campaignSpecialTimers['ame_spawned'] && !ameAlive && campaignTimer > 120) {
+          campaignWinLevel();
+        }
+        return;
+      }
       // Timer-based win (Lv 1-8)
       if (lv.duration && campaignTimer >= lv.duration) {
         // Lv 8: boss must be beaten
@@ -4537,6 +4618,14 @@
             } else if (sp.type === 'medic') {
               miniBosses.push({ x: spx, y: GROUND_Y, hp: MEDIC_HP, maxHp: MEDIC_HP, speed: MEDIC_SPD, attackCD: MEDIC_HEAL_CD, hitFlash: 0, alive: true, facing: 1, type: 'medic', animTime: 0, vy: 0 });
               createTextParticle(CW / 2, 60, '➕ MEDIC!', '#f8fafc', 18);
+            } else if (sp.type === 'shotgun') {
+              // Soldier Lv 11-12: the shotgunner — a big gunner's 3-pellet spread, lighter.
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: BIG_GUNNER_HP, maxHp: BIG_GUNNER_HP, speed: BIG_GUNNER_SPD * 1.5, attackCD: BIG_GUNNER_CD, hitFlash: 0, alive: true, facing: 1, type: 'big_gunner', animTime: 0, vy: 0, bulletCount: 0 });
+              createTextParticle(CW / 2, 60, '💥 SHOTGUNNER!', '#dc2626', 18);
+            } else if (sp.type === 'giant_gunner') {
+              // Soldier Lv 13: one giant gunner every 7 seconds.
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: GIANT_GUNNER_HP, maxHp: GIANT_GUNNER_HP, speed: GIANT_GUNNER_SPD, attackCD: GIANT_GUNNER_CD, hitFlash: 0, alive: true, facing: 1, type: 'giant_gunner', animTime: 0, vy: 0, bulletCount: 0 });
+              createTextParticle(CW / 2, 60, '🔫 GIANT GUNNER!', '#dc2626', 20);
             }
           }
         }
@@ -4548,7 +4637,23 @@
         createTextParticle(CW / 2, 60, '🔫💥 GIANT GUNNER!', '#dc2626', 28);
         createParticles(CW / 2, GROUND_Y, 40, '#dc2626');
       }
-      // Commander spawn (Lv 5)
+      // Titan Gunner (Soldier Lv 14) — spawned once, fights alongside the Commander
+      if (lv.spawnTitanGunner && !campaignSpecialTimers['tg_spawned']) {
+        campaignSpecialTimers['tg_spawned'] = 1;
+        miniBosses.push({ x: stick.x > CW / 2 ? 120 : CW - 120, y: GROUND_Y, hp: TITAN_GUNNER_HP, maxHp: TITAN_GUNNER_HP, speed: 0.55, attackCD: TITAN_GUNNER_CD, hitFlash: 0, alive: true, facing: 1, type: 'titan_gunner', animTime: 0, vy: 0, bulletCount: 0 });
+        createTextParticle(CW / 2, 60, '🔫 TITAN GUNNER — ' + TITAN_GUNNER_HP + ' HP!', '#b91c1c', 26);
+        createParticles(CW / 2, GROUND_Y, 30, '#b91c1c');
+      }
+      // The Amethyst (Soldier Lv 15) — the blue Colossal
+      if (lv.spawnAmethyst && !campaignSpecialTimers['ame_spawned']) {
+        campaignSpecialTimers['ame_spawned'] = 1;
+        miniBosses.push({ x: CW / 2, y: GROUND_Y, hp: AMETHYST_HP, maxHp: AMETHYST_HP, speed: AMETHYST_SPD, attackCD: 150, hitFlash: 0, alive: true, facing: -1, type: 'amethyst', animTime: 0, vy: 0, state: 'chase', dmgReduction: AMETHYST_RESIST, jumpCount: 0, contactCD: 0 });
+        createTextParticle(CW / 2, 60, '💠 THE AMETHYST — ' + AMETHYST_HP + ' HP', '#a855f7', 28);
+        createTextParticle(CW / 2, 92, '🛡 20% RESIST · JUMPS · CYAN LIGHTNING', '#67e8f9', 14);
+        createParticles(CW / 2, GROUND_Y, 50, '#a855f7');
+        canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 700);
+      }
+      // Commander spawn (Lv 5 / Lv 14)
       if (lv.spawnCommanderAt && campaignTimer === lv.spawnCommanderAt && !commander) {
         var chp = lv.commanderHP || COMMANDER_HP;
         commander = { x: CW - 100, y: GROUND_Y, hp: chp, maxHp: chp, facing: -1, hitFlash: 0, alive: true, attackCD: COMMANDER_CD, animTime: 0, walkieTalkie: true, talkTimer: 180 };
@@ -4780,7 +4885,7 @@
       updateControlsList();
       incrementMatch();
       gameState = 'playing';
-      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
+      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = [];
       fullReset();
       resumeGameLoop();
     });
@@ -7208,9 +7313,10 @@
         ctx.fillText('➕ MEDIC ' + mb.hp, dx, GROUND_Y - 89); ctx.textAlign = 'start';
         return;
       }
-      if (mb.type === 'giant_gunner') {
-        const ggc = mb.hitFlash > 0 ? '#fbbf24' : '#b91c1c';
-        const ggh = mb.hitFlash > 0 ? '#fde68a' : '#f87171';
+      if (mb.type === 'giant_gunner' || mb.type === 'titan_gunner') {
+        var isTitanGunnerDraw = mb.type === 'titan_gunner';
+        const ggc = mb.hitFlash > 0 ? '#fbbf24' : isTitanGunnerDraw ? '#5b21b6' : '#b91c1c';
+        const ggh = mb.hitFlash > 0 ? '#fde68a' : isTitanGunnerDraw ? '#c4b5fd' : '#f87171';
         ctx.globalAlpha = 0.12 + Math.sin(time * 0.05) * 0.05; ctx.fillStyle = '#dc2626';
         ctx.beginPath(); ctx.arc(dx, GROUND_Y - 40, 60, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
         ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = ggh; ctx.lineWidth = 8;
@@ -7232,7 +7338,65 @@
         ctx.fillStyle = gpct > 0.5 ? '#dc2626' : '#f87171';
         ctx.fillRect(dx - gbw / 2, GROUND_Y - 117, gbw * Math.max(0, gpct), 7);
         ctx.fillStyle = '#f87171'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('🔫 GIANT GUNNER ' + mb.hp, dx, GROUND_Y - 122); ctx.textAlign = 'start';
+        ctx.fillText((isTitanGunnerDraw ? '🔫 TITAN GUNNER ' : '🔫 GIANT GUNNER ') + mb.hp, dx, GROUND_Y - 122); ctx.textAlign = 'start';
+        return;
+      }
+      if (mb.type === 'amethyst') {
+        // THE AMETHYST: blue-violet Colossal. Draws at mb.y so the leap actually lifts it.
+        var ay = mb.y === undefined ? GROUND_Y : mb.y;
+        var amHit = mb.hitFlash > 0;
+        var amBody = amHit ? '#fff' : '#4c1d95';
+        var amHead = amHit ? '#fff' : '#7dd3fc';
+        // Lightning telegraph: a cyan column that fills the arena before the strike.
+        amethystBolts.forEach(function(bolt) {
+          if (bolt.hit) return;
+          var charge = 1 - Math.max(0, bolt.delay) / 45;
+          ctx.globalAlpha = 0.10 + 0.30 * charge;
+          ctx.fillStyle = '#22d3ee';
+          ctx.fillRect(bolt.x - 14, 0, 28, GROUND_Y);
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+          ctx.beginPath(); ctx.moveTo(bolt.x, 0); ctx.lineTo(bolt.x, GROUND_Y); ctx.stroke();
+          ctx.setLineDash([]);
+        });
+        var amPulse = 1 + Math.sin(time * 0.09) * 0.04;
+        ctx.globalAlpha = 0.16 + Math.sin(time * 0.07) * 0.05; ctx.fillStyle = '#a855f7';
+        ctx.beginPath(); ctx.arc(dx, ay - 55, 74 * amPulse, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.strokeStyle = amHead; ctx.lineWidth = 12;
+        ctx.beginPath(); ctx.arc(dx, ay - 132, 30, 0, Math.PI * 2); ctx.stroke();
+        // Crystal crown
+        ctx.fillStyle = amHit ? '#fff' : '#c084fc';
+        ctx.beginPath(); ctx.moveTo(dx - 26, ay - 158); ctx.lineTo(dx - 14, ay - 186); ctx.lineTo(dx - 2, ay - 162); ctx.lineTo(dx + 12, ay - 190); ctx.lineTo(dx + 24, ay - 158); ctx.closePath(); ctx.fill();
+        // Eyes
+        ctx.fillStyle = '#f0abfc';
+        ctx.beginPath(); ctx.arc(dx - 11, ay - 136, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 11, ay - 136, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = amBody; ctx.lineWidth = 14;
+        ctx.beginPath(); ctx.moveTo(dx, ay - 102); ctx.lineTo(dx, ay - 10); ctx.stroke();
+        ctx.lineWidth = 11;
+        var amArm = mb.state === 'jumpWindup' ? -10 : 0;
+        ctx.beginPath(); ctx.moveTo(dx, ay - 84); ctx.lineTo(dx - 44, ay - 56 + amArm); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, ay - 84); ctx.lineTo(dx + 44, ay - 56 - amArm); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, ay - 10); ctx.lineTo(dx - 30, ay + 34); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, ay - 10); ctx.lineTo(dx + 30, ay + 34); ctx.stroke();
+        // Slam radius warning while airborne / winding up
+        if (mb.state === 'air' || mb.state === 'jumpWindup') {
+          ctx.globalAlpha = 0.18; ctx.fillStyle = '#a855f7';
+          ctx.beginPath(); ctx.ellipse(dx, GROUND_Y, AMETHYST_SLAM_RADIUS, 22, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+        // Keep the bar and its label on-screen even when it is cornered at an edge.
+        var amw = 128, amp = mb.hp / mb.maxHp, amy = ay - 212;
+        var amLabelX = Math.max(amw / 2 + 8, Math.min(CW - amw / 2 - 8, dx));
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(amLabelX - amw / 2 - 1, amy, amw + 2, 12);
+        ctx.fillStyle = amp > 0.5 ? '#a855f7' : amp > 0.25 ? '#facc15' : '#f87171';
+        ctx.fillRect(amLabelX - amw / 2, amy + 1, amw * Math.max(0, amp), 10);
+        ctx.fillStyle = '#e9d5ff'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('💠 THE AMETHYST ' + Math.ceil(Math.max(0, mb.hp)) + '/' + mb.maxHp, amLabelX, amy - 6);
+        ctx.fillStyle = '#67e8f9'; ctx.font = 'bold 9px monospace';
+        ctx.fillText('🛡 20% RESIST · CYAN LIGHTNING', amLabelX, amy - 19);
+        ctx.textAlign = 'start';
         return;
       }
       if (mb.type === 'milkson') {
@@ -7555,10 +7719,10 @@
         } else if (mb.type === 'pumpkin') {
           killPumpkinBoss(mb);
         } else {
-          const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : mb.type === 'colossal' ? 300 : mb.type === 'giant' ? 150 : 20;
+          const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : mb.type === 'colossal' ? 300 : mb.type === 'giant' ? 150 : mb.type === 'amethyst' ? 800 : mb.type === 'titan_gunner' ? 400 : 20;
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
-          var killName = mb.type === 'giant' ? '💀 GIANT' : mb.type === 'colossal' ? '🌋 COLOSSAL' : mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
+          var killName = mb.type === 'amethyst' ? '💠 AMETHYST SHATTERED' : mb.type === 'titan_gunner' ? '🔫 TITAN GUNNER' : mb.type === 'giant' ? '💀 GIANT' : mb.type === 'colossal' ? '🌋 COLOSSAL' : mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
           createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : mb.type === 'medic' ? '#f8fafc' : mb.type === 'giant_gunner' ? '#dc2626' : mb.type === 'milkson' ? '#ef4444' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, killName + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
           if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
@@ -8160,20 +8324,24 @@
               createParticles(mb.x, GROUND_Y - 40, 10, '#4ade80');
             }
           }
-        } else if (mb.type === 'giant_gunner') {
-          // Giant Gunner: slow, fires a 5-bullet spread
-          if (dist > 160) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+        } else if (mb.type === 'giant_gunner' || mb.type === 'titan_gunner') {
+          // Giant Gunner / Titan Gunner: slow, fires a wide bullet spread.
+          var isTitanGunner = mb.type === 'titan_gunner';
+          if (dist > (isTitanGunner ? 200 : 160)) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
           mb.attackCD--;
-          if (mb.attackCD <= 0 && dist < 500) {
-            mb.attackCD = GIANT_GUNNER_CD;
+          if (mb.attackCD <= 0 && dist < 520) {
+            var tgCd = isTitanGunner ? TITAN_GUNNER_CD : GIANT_GUNNER_CD;
+            var tgCount = isTitanGunner ? TITAN_GUNNER_BULLETS : GIANT_GUNNER_BULLETS;
+            var tgDmg = isTitanGunner ? TITAN_GUNNER_DMG : GIANT_GUNNER_DMG;
+            mb.attackCD = tgCd;
             var gga = Math.atan2((stick.y - 35) - (GROUND_Y - 55), stick.x - mb.x);
-            for (var ggi = 0; ggi < GIANT_GUNNER_BULLETS; ggi++) {
-              var goff = (ggi - (GIANT_GUNNER_BULLETS - 1) / 2) * 0.18;
+            for (var ggi = 0; ggi < tgCount; ggi++) {
+              var goff = (ggi - (tgCount - 1) / 2) * 0.18;
               var ggs = 6;
-              bullets.push({ x: mb.x, y: GROUND_Y - 55, vx: Math.cos(gga + goff) * ggs, vy: Math.sin(gga + goff) * ggs, dmg: GIANT_GUNNER_DMG, life: 140, alive: true });
+              bullets.push({ x: mb.x, y: GROUND_Y - 55, vx: Math.cos(gga + goff) * ggs, vy: Math.sin(gga + goff) * ggs, dmg: tgDmg, life: 140, alive: true });
             }
-            createTextParticle(mb.x, GROUND_Y - 100, '🔫 BARRAGE!', '#dc2626', 18);
-            createParticles(mb.x, GROUND_Y - 55, 12, '#dc2626');
+            createTextParticle(mb.x, GROUND_Y - 100, isTitanGunner ? '🔫 TITAN BARRAGE!' : '🔫 BARRAGE!', isTitanGunner ? '#7c3aed' : '#dc2626', 18);
+            createParticles(mb.x, GROUND_Y - 55, 12, isTitanGunner ? '#7c3aed' : '#dc2626');
           }
         } else if (mb.type === 'milkson') {
           // Milkson: slow, tanky, spawns dummies while chasing
@@ -8203,6 +8371,10 @@
             createParticles(mb.x, GROUND_Y - 40, 12, '#a855f7');
             canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 200);
           }
+        } else if (mb.type === 'amethyst') {
+          // THE AMETHYST (Soldier Lv 15): jumps, slams and calls down cyan lightning,
+          // and every hit it takes is cut by 20% (dmgReduction).
+          updateAmethyst(mb, dist);
         } else if (mb.type === 'colossal') {
           // ANCIENT COLOSSAL: 40 damage a swing, and it only takes half damage back.
           if (dist > 110) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
@@ -8230,6 +8402,83 @@
       let mi = 0;
       for (let i = 0; i < miniBosses.length; i++) { if (miniBosses[i].alive) miniBosses[mi++] = miniBosses[i]; }
       miniBosses.length = mi;
+      // The Amethyst's lightning resolves even if it dies mid-storm.
+      for (var ab = amethystBolts.length - 1; ab >= 0; ab--) {
+        var bolt = amethystBolts[ab];
+        bolt.life--;
+        if (bolt.delay > 0) {
+          bolt.delay--;
+          if (bolt.delay === 0) {
+            bolt.hit = true;
+            createExplosion(bolt.x, GROUND_Y - 70, 46, '#22d3ee');
+            createTextParticle(bolt.x, GROUND_Y - 150, '⚡ ZAP!', '#22d3ee', 18);
+            if (Math.abs(stick.x - bolt.x) < 55) damagePlayer(AMETHYST_BOLT_DMG, '#22d3ee');
+          }
+        }
+        if (bolt.life <= 0) { amethystBolts.splice(ab, 1); }
+      }
+    }
+
+    // ==================== THE AMETHYST ====================
+    function updateAmethyst(mb, dist) {
+      if (!mb.state) mb.state = 'chase';
+      if (mb.contactCD === undefined) mb.contactCD = 0;
+      if (mb.contactCD > 0) mb.contactCD--;
+      if (mb.y === undefined) mb.y = GROUND_Y;
+      switch (mb.state) {
+        case 'chase': {
+          if (dist > 120) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          if (dist < 105 && mb.contactCD <= 0) {
+            damagePlayer(AMETHYST_CONTACT_DMG, '#a855f7');
+            mb.contactCD = 90;
+            createParticles(mb.x, GROUND_Y - 40, 8, '#a855f7');
+          }
+          mb.attackCD--;
+          if (mb.attackCD <= 0) {
+            mb.jumpCount = (mb.jumpCount || 0) + 1;
+            // Alternate: jump-slam, then lightning, then jump-slam ...
+            if (mb.jumpCount % 2 === 1) { mb.state = 'jumpWindup'; mb.animTime = 0; }
+            else { mb.state = 'lightning'; mb.animTime = 0; }
+          }
+          break;
+        }
+        case 'jumpWindup':
+          mb.animTime++;
+          if (mb.animTime >= 24) {
+            mb.state = 'air';
+            mb.vy = -13.5;
+            mb.vx = Math.sign(stick.x - mb.x) * 5.5;
+            createTextParticle(mb.x, GROUND_Y - 150, '💠 AMETHYST LEAPS!', '#c084fc', 20);
+            createParticles(mb.x, GROUND_Y, 18, '#a855f7');
+          }
+          break;
+        case 'air':
+          mb.vy += 0.62;
+          mb.x += mb.vx;
+          mb.y += mb.vy;
+          if (mb.y >= GROUND_Y && mb.vy > 0) {
+            mb.y = GROUND_Y; mb.vy = 0; mb.vx = 0;
+            mb.state = 'slam'; mb.animTime = 0;
+            createExplosion(mb.x, GROUND_Y, 95, '#a855f7');
+            createTextParticle(mb.x, GROUND_Y - 130, '💥 AMETHYST SLAM! ' + AMETHYST_SLAM_DMG, '#c084fc', 22);
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 320);
+            if (Math.abs(stick.x - mb.x) < AMETHYST_SLAM_RADIUS) damagePlayer(AMETHYST_SLAM_DMG, '#a855f7');
+          }
+          break;
+        case 'slam':
+          mb.animTime++;
+          if (mb.animTime > 30) { mb.state = 'chase'; mb.attackCD = 140; }
+          break;
+        case 'lightning':
+          mb.animTime++;
+          if (mb.animTime === 12 || mb.animTime === 34 || mb.animTime === 56) {
+            var lx = Math.max(50, Math.min(CW - 50, stick.x + (Math.random() - 0.5) * 240));
+            amethystBolts.push({ x: lx, life: 80, delay: 45, hit: false });
+            createTextParticle(lx, 70, '⚡ CYAN LIGHTNING', '#22d3ee', 14);
+          }
+          if (mb.animTime > 95) { mb.state = 'chase'; mb.attackCD = 150; }
+          break;
+      }
     }
 
     function spawnMiniBosses() {
@@ -13632,7 +13881,7 @@
       taoistPulseFx = { active: false, timer: 0, x: 0 };
       taoistUltAmulet = { active: false, timer: 0, tick: 0, x: 0 };
       expKills = 0; expNextLevel = 5;
-      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {};
+      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = [];
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       isDashing = false; dashDist = 0;
