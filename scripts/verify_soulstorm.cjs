@@ -1404,6 +1404,19 @@ function run(file) {
       /mobStick\('mobBtnAtk', mobPunch\)/.test(html) &&
       /mobStick\('mobBtnKick', mobKick\)/.test(html) &&
       /function mobStick\(id, fire\)/.test(html));
+    // The stick is an AIM, not just a side: the drag moves the aim point that every
+    // aim-based attack already fires at, and the aiming arm follows that point.
+    check(file + ': the stick drags the arm and the shot follows it',
+      /let mobAim = \{ x: 1, y: 0 \}, mobAimTimer = 0/.test(html) &&
+      /function setMobAim\(dx, dy\)/.test(html) &&
+      /mouseX = Math\.max\(20, Math\.min\(CW - 20, stick\.x \+ mobAim\.x \* MOB_AIM_REACH\)\)/.test(html) &&
+      /mouseY = Math\.max\(10, Math\.min\(CH - 10, \(stick\.y - 40\) \+ mobAim\.y \* MOB_AIM_REACH\)\)/.test(html) &&
+      /setMobAim\(dx, dy\);/.test(html) &&
+      /updateMobAim\(\);/.test(html) &&
+      /if \(mobAimHeld > 0\) \{ mobAimTimer = MOB_AIM_HOLD; applyMobAim\(\); return; \}/.test(html) &&
+      /mobAimHeld = Math\.max\(0, mobAimHeld - 1\);/.test(html) &&
+      /if \(state === 'shoot' \|\| state === 'dash' \|\| mobAimTimer > 0\)/.test(html) &&
+      /ctx\.lineTo\(x \+ mobAim\.x \* 72, armY \+ mobAim\.y \* 72\)/.test(html));
     check(file + ': the stick drags a knob and aims your facing',
       /var knob = el\.querySelector\('\.mob-knob'\)/.test(html) &&
       /knob\.style\.transform = 'translate\('/.test(html) &&

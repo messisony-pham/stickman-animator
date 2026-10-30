@@ -3091,6 +3091,33 @@
     // a target instead of only hitting whatever happens to be in front. A plain tap (no
     // real drag) still throws the straight attack, so mashing keeps working.
     const MOB_STICK_RADIUS = 30, MOB_STICK_DEADZONE = 6, MOB_STICK_REPEAT_MS = 110;
+    const MOB_AIM_REACH = 420, MOB_AIM_HOLD = 75;
+    // Where the sticks point, the arm points and the attack goes. Every aim-based
+    // attack in the game already fires at the mouse point, so the drag simply moves
+    // that point: up, down, or either side.
+    let mobAim = { x: 1, y: 0 }, mobAimTimer = 0, mobAimHeld = 0;
+    function applyMobAim() {
+      mouseX = Math.max(20, Math.min(CW - 20, stick.x + mobAim.x * MOB_AIM_REACH));
+      mouseY = Math.max(10, Math.min(CH - 10, (stick.y - 40) + mobAim.y * MOB_AIM_REACH));
+    }
+    function setMobAim(dx, dy) {
+      var len = Math.sqrt(dx * dx + dy * dy);
+      if (len < 1) return;
+      mobAim.x = dx / len; mobAim.y = dy / len;
+      mobAimTimer = MOB_AIM_HOLD;
+      if (Math.abs(dx) > MOB_STICK_DEADZONE) stick.facing = dx > 0 ? 1 : -1;
+      applyMobAim();
+    }
+    function updateMobAim() {
+      // Held: the arm tracks the stick for as long as it is down. Released: the pose
+      // holds for a moment, then relaxes.
+      if (mobAimHeld > 0) { mobAimTimer = MOB_AIM_HOLD; applyMobAim(); return; }
+      if (mobAimTimer <= 0) return;
+      mobAimTimer--;
+      // Re-aim from the current position each frame, so walking does not drag the aim
+      // point along behind you — the arm keeps pointing the way you dragged.
+      applyMobAim();
+    }
     function mobStick(id, fire) {
       var el = document.getElementById(id);
       if (!el) return;
@@ -3103,6 +3130,7 @@
         if (!active) return;
         if (e && e.cancelable) e.preventDefault();
         active = null;
+        mobAimHeld = Math.max(0, mobAimHeld - 1);
         stopRepeat();
         el.classList.remove('mob-drag');
         setKnob(0, 0);
@@ -3111,6 +3139,7 @@
         if (e && e.cancelable) e.preventDefault();
         if (active) return;
         active = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+        mobAimHeld++;
         try { el.setPointerCapture(e.pointerId); } catch (err) {}
         el.classList.add('mob-drag');
         setKnob(0, 0);
@@ -3129,7 +3158,8 @@
         if (len > MOB_STICK_RADIUS) { dx = dx / len * MOB_STICK_RADIUS; dy = dy / len * MOB_STICK_RADIUS; }
         active.dx = dx; active.dy = dy;
         setKnob(dx, dy);
-        if (Math.abs(dx) > MOB_STICK_DEADZONE) stick.facing = dx > 0 ? 1 : -1;
+        // Drag the arm: the aim point (and so the shot) follows the stick.
+        setMobAim(dx, dy);
       });
       el.addEventListener('pointerup', release);
       el.addEventListener('pointercancel', release);
@@ -6575,7 +6605,9 @@
       // Arms: the rig swings them opposite the legs. The aiming arm still points at the
       // mouse during a shot, but now bends at the elbow and the other arm counterweights it.
       const kr = state === 'kick' ? ap * 30 * facing : 0;
-      if (state === 'shoot' || state === 'dash') {
+      // The aiming arm also points along a drag-stick direction (mobAimTimer > 0), so the
+      // arm visibly follows the stick even while standing still.
+      if (state === 'shoot' || state === 'dash' || mobAimTimer > 0) {
         const mdx = mouseX - x, mdy = mouseY - armY;
         const md = Math.sqrt(mdx * mdx + mdy * mdy) || 1;
         const aimX = (mdx / md) * 32, aimY = (mdy / md) * 32;
@@ -6588,6 +6620,8 @@
         }
       }
       if (state === 'kick' && ap > 0.3) { ctx.strokeStyle = '#fb7185'; ctx.lineWidth = 2.5; const kx = x + 12 * facing + kr * 0.6, ky = bbY + 18 + (ap - 0.3) * 6; ctx.beginPath(); ctx.moveTo(x + 10 * facing, bbY + 15); ctx.lineTo(kx, ky); ctx.stroke(); ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; }
+      // A short dashed sight line while the stick is held, so the direction is obvious.
+      if (mobAimTimer > 0 && state !== 'dash') { ctx.globalAlpha = 0.55; ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(x, armY); ctx.lineTo(x + mobAim.x * 72, armY + mobAim.y * 72); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; }
       if (state === 'shoot' && ap > 0.1 && ap < 0.5) { ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2; const mdx = mouseX - x, mdy = mouseY - armY; const md = Math.sqrt(mdx*mdx+mdy*mdy)||1; ctx.beginPath(); ctx.moveTo(x + (mdx/md)*30, armY + (mdy/md)*30); ctx.lineTo(x + (mdx/md)*50, armY + (mdy/md)*50); ctx.stroke();      ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; }
       if (state === 'dash') { ctx.globalAlpha = 0.4; ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3; for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(x - i * 22 * facing, headY); ctx.lineTo(x - i * 22 * facing, bbY); ctx.stroke(); } ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 3 * facing, btY + 6); ctx.lineTo(x - 44 * facing, btY + 6); ctx.stroke(); ctx.strokeStyle = playerColor; ctx.globalAlpha = 1; ctx.lineWidth = 5.5; }
       if (state === 'grenade' && animTime >= 4 && animTime <= 12) { const sa = 1 - (animTime - 4) / 8; const sr = (animTime - 4) * 18; ctx.strokeStyle = '#f97316'; ctx.lineWidth = 3; ctx.globalAlpha = sa * 0.7; ctx.beginPath(); ctx.arc(x, GROUND_Y + 15, sr, Math.PI, 0); ctx.stroke(); ctx.fillStyle = '#f97316'; ctx.globalAlpha = sa * 0.25; ctx.beginPath(); ctx.arc(x, GROUND_Y + 15, sr + 6, Math.PI, 0); ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = playerColor; ctx.lineWidth = 5.5; }
@@ -9791,6 +9825,7 @@
       if (gracePeriod > 0) gracePeriod--;
       updateShopShield();
       updateHollowLaser();
+      updateMobAim();
       if (gameMode === 'insane' && !campaignMode && !phantomMissionActive) updateInsaneSpawns();
       if (halloweenOn() && !campaignMode && !phantomMissionActive) updateHalloweenSpawns();
       tickCandyFromKills();
@@ -14106,6 +14141,7 @@
       const t = e.touches[0]; const rect = canvas.getBoundingClientRect();
       mouseX = (t.clientX - rect.left) * (CW / rect.width);
       mouseY = (t.clientY - rect.top) * (CH / rect.height);
+      mobAimTimer = 0; // a direct tap takes the aim back from the sticks
       if (mouseX > stick.x) stick.facing = 1; else stick.facing = -1;
       if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else if (selectedChar === 'cheeser') performCheeserThrow(); else if (selectedChar === 'phantom') performPhantomPunch(); else if (selectedChar === 'slayer') performSlayerSlash(); else if (selectedChar === 'taoist') performTaoistSword(); else performPunch();
     }, { passive: false });
@@ -14181,6 +14217,7 @@
       insaneBigTimer = 0; insaneEliteTimer = 0; insaneGiantTimer = 0; insaneColossalTimer = 0;
       halloweenMiniTimer = 0; halloweenBigTimer = 0;
       hollowLaser.active = false; hollowLaser.cd = 0;
+      mobAimTimer = 0; mobAimHeld = 0; mobAim.x = 1; mobAim.y = 0;
       mageFireballs = []; mageFrostOrbs = []; lightningBolts = []; mageLightningCD = 0; mageFrostCD = 0; mageTeleportCD = 0; mageMeteorCD = 0; mageIceShielded = false; mageIceTimer = 0;
       gracePeriod = 300; playerLevel = 1;
       try { stopBossMusic(); } catch(e) {}
