@@ -77,6 +77,22 @@
     .mob-ability { width: 40px; height: 40px; border-radius: 12px; font-size: 11px; }
     .mob-big { width: 62px; height: 62px; font-size: 22px; }
     .mob-small { width: 38px; height: 38px; border-radius: 12px; font-size: 14px; }
+    /* Punch and kick are DRAG STICKS, not taps: press, drag toward the target, release. */
+    .mob-stick {
+      touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+      position: relative; flex: 0 0 auto; width: 66px; height: 66px; border-radius: 9999px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(255,255,255,0.42); background: rgba(15,23,42,0.5); color: #fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+      transition: border-color .08s ease, background .08s ease;
+    }
+    .mob-stick.mob-drag { border-color: rgba(250,204,21,0.95); background: rgba(15,23,42,0.74); }
+    .mob-stick-icon { pointer-events: none; font-size: 20px; line-height: 1; opacity: .95; }
+    .mob-stick .mob-knob {
+      position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px;
+      border-radius: 9999px; background: rgba(250,204,21,0.55); border: 2px solid rgba(255,255,255,0.85);
+      pointer-events: none; transition: transform .04s linear;
+    }
     #dpadArea { width: 120px; }
     /* --- compact in-game HUD ---------------------------------------------- */
     body.mob-hud #instructions { display: none !important; }
@@ -133,12 +149,15 @@
       #mobAbilityRow { gap: 4px; }
       .mob-ability { width: 34px; height: 34px; font-size: 10px; }
       .mob-big { width: 56px; height: 56px; font-size: 20px; }
+      .mob-stick { width: 58px; height: 58px; }
+      .mob-stick-icon { font-size: 17px; }
     }
     @media (orientation: landscape) and (max-height: 560px) {
       .mob-dir { width: 50px; height: 50px; }
       .mob-jump { height: 38px; }
       .mob-ability { width: 36px; height: 36px; }
       .mob-big { width: 56px; height: 56px; }
+      .mob-stick { width: 58px; height: 58px; }
       #menuScreen, #campaignScreen, #settingsScreen { padding: 6px 0; }
       /* Landscape is where a side-scroller wants to be, so give the arena the height back:
          the thumb clusters hug the two edges (vertically centred, where a thumb actually
@@ -258,6 +277,7 @@
         <button id="modeNormal" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-500 text-emerald-400 font-bold text-sm transition-all">🟢 NORMAL</button>
         <button id="modeHard" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all">🔴 HARD</button>
         <button id="modeInsane" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-purple-400 font-bold text-sm transition-all">🟣 INSANE</button>
+        <button id="modeHalloween" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-300 font-bold text-sm transition-all">🎃 HALLOWEEN</button>
         <button id="modeBossRush" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all">🔥 BOSS RUSH</button>
         <button id="modeSandbox" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all">🧪 SANDBOX</button>
       </div>
@@ -441,21 +461,21 @@
   <div id="halloweenScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.8);">
     <div class="bg-slate-800 border-2 border-orange-500 rounded-2xl p-6 w-96 shadow-2xl max-h-[92vh] overflow-y-auto">
       <h2 class="text-orange-400 font-bold text-lg mb-1 text-center">🎃 SPOOKY SHOP</h2>
-      <p class="text-[10px] text-slate-400 text-center mb-2">Halloween event — spend candy 🍬</p>
+      <p class="text-[10px] text-slate-400 text-center mb-2">Halloween event — spend candy 🍬 · boss points cost 20, everything else is 50% off</p>
       <div class="text-center mb-3">🍬 <span id="halloweenCandy" class="text-orange-400 font-bold text-lg">0</span> <span class="text-slate-500 text-xs">candy</span></div>
       <div class="mb-3">
         <p class="text-xs font-bold text-amber-300 mb-1">💰 EXCHANGE</p>
         <div class="grid grid-cols-2 gap-2">
-          <button id="candyBuyPoints" class="py-2 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold transition-colors">100 Points<br><span class="text-[9px]">50🍬</span></button>
-          <button id="candyBuyBoss" class="py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold transition-colors">1 Boss Point<br><span class="text-[9px]">5🍬</span></button>
+          <button id="candyBuyPoints" class="py-2 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold transition-colors">100 Points<br><span class="text-[9px]" data-candy-price="points">25🍬</span></button>
+          <button id="candyBuyBoss" class="py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold transition-colors">1 Boss Point<br><span class="text-[9px]" data-candy-price="bossPoint">20🍬</span></button>
         </div>
       </div>
       <div class="mb-3">
         <p class="text-xs font-bold text-amber-300 mb-1">⬆️ UPGRADES (permanent)</p>
         <div class="grid grid-cols-3 gap-2">
-          <button id="candyUpgHp" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Max HP<br>+10/lv<br>50🍬</button>
-          <button id="candyUpgDmg" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Damage<br>+6%/lv<br>75🍬</button>
-          <button id="candyUpgSpd" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Speed<br>+12%/lv<br>60🍬</button>
+          <button id="candyUpgHp" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Max HP<br>+10/lv<br><span data-candy-price="maxHp">25🍬</span></button>
+          <button id="candyUpgDmg" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Damage<br>+6%/lv<br><span data-candy-price="damage">38🍬</span></button>
+          <button id="candyUpgSpd" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Speed<br>+12%/lv<br><span data-candy-price="speed">30🍬</span></button>
         </div>
       </div>
       <p id="halloweenStatus" class="text-[10px] text-orange-300 text-center mb-2 h-4"></p>
@@ -726,9 +746,10 @@
         <button id="mobBtnE" class="mob-btn mob-ability">E</button>
         <button id="mobBtnSoulStormE" class="mob-btn mob-ability" style="display:none;">E</button>
       </div>
+      <!-- Punch and kick are joysticks: drag the stick where you want to hit, let go. -->
       <div class="flex gap-2 items-center">
-        <button id="mobBtnAtk" class="mob-btn mob-big">👊</button>
-        <button id="mobBtnKick" class="mob-btn mob-big">🦵</button>
+        <div id="mobBtnAtk" class="mob-stick" data-stick="punch"><span class="mob-stick-icon">👊</span><span class="mob-knob"></span></div>
+        <div id="mobBtnKick" class="mob-stick" data-stick="kick"><span class="mob-stick-icon">🦵</span><span class="mob-knob"></span></div>
       </div>
     </div>
     <!-- Small always-on-top shortcuts -->
@@ -1288,7 +1309,10 @@
       jump:  { emoji: '⬆️', glow: '#a3e63544' },
       ally:  { emoji: '🤝', glow: '#c084fc44' },
       wing:  { emoji: '🪽', glow: '#7dd3fc44' },
-      candy: { emoji: '🍬', glow: '#fb923c55' }
+      candy: { emoji: '🍬', glow: '#fb923c55' },
+      // Halloween-mode pumpkin drops: one candy, or the 15% bag worth ten.
+      candy1: { emoji: '🍬', glow: '#fb923c55' },
+      candybag: { emoji: '🍬', glow: '#f9731688' }
     };
 
     let PLAYER_MAX_HP_CURRENT = 100;
@@ -1324,18 +1348,31 @@
     // ==================== HALLOWEEN EVENT (active every October, ends Nov 1) ====================
     let candy = loadNum('sm_candy');
     function isHalloweenEvent() { return new Date().getMonth() === 9; }
+    // Candy prices. The boss point is the one premium sink at 20🍬; EVERY other candy
+    // price is 50% of what it used to be. Both the labels and the click handlers read
+    // this table, so a price can never drift between the two.
+    const CANDY_PRICES = { bossPoint: 20, points: 25, maxHp: 25, damage: 38, speed: 30 };
+    function applyCandyPriceLabels() {
+      document.querySelectorAll('[data-candy-price]').forEach(function(el) {
+        var k = el.getAttribute('data-candy-price');
+        if (CANDY_PRICES[k] !== undefined) el.textContent = CANDY_PRICES[k] + '🍬';
+      });
+    }
     function saveCandy() { localStorage.setItem('sm_candy', candy); updateCandyUI(); }
     function updateCandyUI() {
       ['menuCandy', 'halloweenCandy'].forEach(function(id) { var e = document.getElementById(id); if (e) e.textContent = candy; });
     }
     function addCandy(n) {
-      if (n <= 0 || !isHalloweenEvent()) return;
+      // The October event pays candy, and so does HALLOWEEN mode — otherwise the mode
+      // would hand out a currency nobody can earn outside one month a year.
+      if (n <= 0 || !halloweenCandyOn()) return;
       candy += n; saveCandy();
       if (gameState === 'playing' && typeof stick !== 'undefined') createTextParticle(stick.x, stick.y - 70, '🍬 +' + n, '#fb923c', 14);
     }
     const SKINS = [
       { id: 'fighter_ghost', char: 'fighter', name: 'Ghost', emoji: '👻', cost: 10, desc: 'Dodge 5 hits / 15s' },
       { id: 'fighter_werewolf', char: 'fighter', name: 'Werewolf', emoji: '🐺', cost: 15, desc: 'Claws: +35% DMG under 50% HP' },
+      { id: 'fighter_hollow', char: 'fighter', name: 'The Hollow', emoji: '🎃', cost: 20, desc: '×3 DMG & SPD · S: SKY LASER' },
       { id: 'fighter_zombie', char: 'fighter', name: 'Zombie', emoji: '🧟', cost: 12, desc: 'Undead: +25% HP, −12% SPD' },
       { id: 'soldier_skeleton', char: 'soldier', name: 'Skeleton', emoji: '💀', cost: 10, desc: 'Soldier +20% HP' },
       { id: 'mage_witch', char: 'mage', name: 'Witch', emoji: '🧙', cost: 13, desc: 'Mage +20% DMG' },
@@ -1353,16 +1390,68 @@
         return (typeof playerHP === 'number' && playerHP > 0 && playerHP < PLAYER_MAX_HP_CURRENT * 0.5) ? 1.35 : 1;
       }
       if (selectedChar === 'mage' && selectedSkin === 'mage_witch') return 1.2;
+      // The Hollow's "+200%" is a ×3 multiplier on damage and speed alike.
+      if (hollowOn()) return 3;
       if (selectedChar === 'hyper' && selectedSkin === 'hyper_spirit') return 2;
       if (selectedChar === 'phantom' && selectedSkin === 'phantom_reaper') return 1.5;
       return 1;
     }
-    function skinSpeedMult() { return ((selectedChar === 'phantom' && selectedSkin === 'phantom_reaper') ? 1.5 : 1) * ((selectedChar === 'fighter' && selectedSkin === 'fighter_zombie') ? 0.88 : 1) * taoistSpdMult(); }
+    function skinSpeedMult() { return ((selectedChar === 'phantom' && selectedSkin === 'phantom_reaper') ? 1.5 : 1) * ((selectedChar === 'fighter' && selectedSkin === 'fighter_zombie') ? 0.88 : 1) * (hollowOn() ? 3 : 1) * taoistSpdMult(); }
     function skinMaxHpMult() { return (selectedChar === 'soldier' && selectedSkin === 'soldier_skeleton') ? 1.2 : 1; }
     // The fighter has no per-skin HP hook like the soldier, so the zombie's extra health
     // lives here and is applied wherever the fighter's 100 is assigned.
     function fighterSkinHpMult() { return (selectedChar === 'fighter' && selectedSkin === 'fighter_zombie') ? 1.25 : 1; }
     function vampireHeal(dmg) { if (selectedChar === 'ninja' && selectedSkin === 'ninja_vampire') { playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + dmg); updateHPBar(); } }
+
+    // ==================== THE HOLLOW (fighter skin) ====================
+    // +200% damage and speed (a ×3 on both), plus S: a mini laser that drops from the sky
+    // and is DRAGGED with the pointer — 4 damage every 0.75s to whatever stands under it.
+    const HOLLOW_LASER_DMG = 4, HOLLOW_LASER_TICK = 45, HOLLOW_LASER_RADIUS = 44;
+    let hollowLaser = { active: false, x: CW / 2, cd: 0 };
+    function hollowOn() { return selectedChar === 'fighter' && selectedSkin === 'fighter_hollow'; }
+    function toggleHollowLaser() {
+      if (gameState !== 'playing' || !hollowOn()) return;
+      hollowLaser.active = !hollowLaser.active;
+      hollowLaser.x = Math.max(40, Math.min(CW - 40, mouseX));
+      hollowLaser.cd = 0;
+      createTextParticle(stick.x, stick.y - 82, hollowLaser.active ? '🔆 SKY LASER ON' : '🔆 SKY LASER OFF', '#a3e635', 15);
+      createParticles(hollowLaser.x, GROUND_Y - 10, 12, '#a3e635');
+    }
+    function updateHollowLaser() {
+      if (!hollowLaser.active) return;
+      // Equipping something else (or dying) puts the beam away.
+      if (!hollowOn() || gameState !== 'playing') { hollowLaser.active = false; return; }
+      // Draggable: the beam tracks the pointer, which is the mouse on a desktop and a
+      // finger on a phone (the canvas touchmove handler feeds the same value).
+      hollowLaser.x = Math.max(30, Math.min(CW - 30, mouseX));
+      hollowLaser.cd++;
+      if (hollowLaser.cd < HOLLOW_LASER_TICK) return;
+      hollowLaser.cd = 0;
+      dummies.forEach(function(d) { if (d.alive && Math.abs(d.x - hollowLaser.x) < HOLLOW_LASER_RADIUS) dealDamageToDummy(d, HOLLOW_LASER_DMG, 'laser'); });
+      miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(mb.x - hollowLaser.x) < HOLLOW_LASER_RADIUS) dealDamageToMiniBoss(mb, HOLLOW_LASER_DMG, 'laser'); });
+      if (boss && boss.alive && Math.abs(boss.x - hollowLaser.x) < HOLLOW_LASER_RADIUS) dealDamageToBoss(HOLLOW_LASER_DMG, 'laser');
+      createParticles(hollowLaser.x + (Math.random() - 0.5) * 34, GROUND_Y - 8, 4, '#bef264');
+    }
+    function drawHollowLaser() {
+      if (!hollowLaser.active) return;
+      var lx = hollowLaser.x;
+      var beam = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      beam.addColorStop(0, 'rgba(163,230,53,0)');
+      beam.addColorStop(0.3, 'rgba(163,230,53,0.32)');
+      beam.addColorStop(1, 'rgba(190,242,100,0.85)');
+      ctx.fillStyle = beam;
+      var bw = 11 + Math.sin(time * 0.6) * 2;
+      ctx.fillRect(lx - bw / 2, 0, bw, GROUND_Y);
+      ctx.fillStyle = 'rgba(247,254,231,0.92)';
+      ctx.fillRect(lx - 2, 0, 4, GROUND_Y);
+      ctx.strokeStyle = '#a3e635'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(lx, GROUND_Y, HOLLOW_LASER_RADIUS, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 0.22 + Math.sin(time * 0.2) * 0.06; ctx.fillStyle = '#a3e635';
+      ctx.beginPath(); ctx.arc(lx, GROUND_Y, HOLLOW_LASER_RADIUS, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#d9f99d'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('🔆 ' + HOLLOW_LASER_DMG + ' / 0.75s', lx, GROUND_Y - 50); ctx.textAlign = 'start';
+    }
     // ==================== RANKS ====================
     // Ranks are DERIVED from the saved point total — nothing extra is stored, so the same
     // save shows the same rank on every device and an old save earns its rank at once.
@@ -1395,7 +1484,8 @@
     let pumpkinBossRequested = false;
     function tickCandyFromKills() {
       if (kills < lastKillsAwarded) lastKillsAwarded = kills;
-      if (kills > lastKillsAwarded) { if (gameMode !== 'sandbox') addCandy(kills - lastKillsAwarded); lastKillsAwarded = kills; }
+      // Halloween mode pays through the pumpkins themselves, not per kill.
+      if (kills > lastKillsAwarded) { if (gameMode !== 'sandbox' && gameMode !== 'halloween') addCandy(kills - lastKillsAwarded); lastKillsAwarded = kills; }
     }
 
     // ==================== PUMPKIN BOSS (Headless Horseman head) ====================
@@ -1412,7 +1502,7 @@
     const PUMPKIN_SOUL_HP = 5000;      // the soul form is a real, attackable 5,000 HP fight
     const PUMPKIN_SOUL_TIMEOUT = 7200; // 2 min safety net only — the soul form is meant to die to damage
     const PUMPKIN_ORB_TIME = 1200;     // 20s soul-form aura cycle (visual only — damage decides the fight now)
-    const SKIN_COST_MULT = 4;          // each skin's candy price is 4x
+    const SKIN_COST_MULT = 2;          // each skin's candy price is 2x (50% off the old 4x)
     // Pumpkin Boss music: a 3-stage build tied to the fight (LOW -> MID -> full BOSS song)
     // 0:00 low -> 0:20 mid -> 0:40 mid-high -> 1:00 full boss song (1:30 arc)
     const PUMPKIN_MUSIC_STAGES = ['pumpkin_low', 'pumpkin_mid', 'pumpkin_midhi', 'pumpkin_boss', 'pumpkin_soul'];
@@ -1603,6 +1693,8 @@
     let shopShieldCD = 0, shopShieldActive = 0;
     // Insane-mode spawn clocks (frames @60fps).
     let insaneBigTimer = 0, insaneEliteTimer = 0, insaneGiantTimer = 0, insaneColossalTimer = 0;
+    // Halloween mode's two pumpkin clocks (mini every 3s, big every 9s).
+    let halloweenMiniTimer = 0, halloweenBigTimer = 0;
     let mageFireballs = [], mageFrostOrbs = [], lightningBolts = [], mageLightningCD = 0, mageFrostCD = 0, mageTeleportCD = 0, mageMeteorCD = 0, mageIceShielded = false, mageIceTimer = 0;
     // The Amethyst's telegraphed cyan lightning strikes (Soldier Lv 15).
     let amethystBolts = [];
@@ -2857,6 +2949,8 @@
       document.getElementById('modeInsane').className = m === 'insane' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-500 text-purple-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-purple-400 font-bold text-sm transition-all';
       document.getElementById('modeBossRush').className = m === 'bossrush' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-orange-500 text-orange-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all';
       document.getElementById('modeSandbox').className = m === 'sandbox' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-fuchsia-500 text-fuchsia-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all';
+      document.getElementById('modeHalloween').className = m === 'halloween' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-orange-500 text-orange-300 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-300 font-bold text-sm transition-all';
+      refreshHalloweenUI();
     }
     document.getElementById('modeEasy').addEventListener('click', () => selectMode('easy'));
     document.getElementById('modeNormal').addEventListener('click', () => selectMode('normal'));
@@ -2864,6 +2958,7 @@
     document.getElementById('modeInsane').addEventListener('click', () => selectMode('insane'));
     document.getElementById('modeBossRush').addEventListener('click', () => selectMode('bossrush'));
     document.getElementById('modeSandbox').addEventListener('click', () => selectMode('sandbox'));
+    document.getElementById('modeHalloween').addEventListener('click', () => selectMode('halloween'));
     // Background mode (persisted)
     var bgMode = localStorage.getItem('sm_bgMode') || 'plain';
     function selectBg(b) {
@@ -2988,7 +3083,55 @@
       keys.add(' ');
       if (stick.grounded) { stick.vy = JUMP_FORCE; stick.grounded = false; }
     }, function() { keys.delete(' '); });
-    mobTap('mobBtnAtk', function() {
+    // --- drag sticks: punch and kick -----------------------------------------
+    // Press the pad, drag toward the side you want to hit, release to swing. The knob
+    // follows the thumb and the drag sets which way you face, so a phone player can pick
+    // a target instead of only hitting whatever happens to be in front. A plain tap (no
+    // real drag) still throws the straight attack, so mashing keeps working.
+    const MOB_STICK_RADIUS = 30, MOB_STICK_DEADZONE = 6;
+    function mobStick(id, fire) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var knob = el.querySelector('.mob-knob');
+      var active = null;
+      function setKnob(dx, dy) { if (knob) knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; }
+      function release(e) {
+        if (!active) return;
+        if (e && e.cancelable) e.preventDefault();
+        var dx = active.dx;
+        active = null;
+        el.classList.remove('mob-drag');
+        setKnob(0, 0);
+        if (Math.abs(dx) > MOB_STICK_DEADZONE) stick.facing = dx > 0 ? 1 : -1;
+        fire();
+      }
+      el.addEventListener('pointerdown', function (e) {
+        if (e && e.cancelable) e.preventDefault();
+        if (active) return;
+        active = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+        try { el.setPointerCapture(e.pointerId); } catch (err) {}
+        el.classList.add('mob-drag');
+        setKnob(0, 0);
+      });
+      el.addEventListener('pointermove', function (e) {
+        if (!active || e.pointerId !== active.id) return;
+        if (e.cancelable) e.preventDefault();
+        var dx = e.clientX - active.x, dy = e.clientY - active.y;
+        var len = Math.sqrt(dx * dx + dy * dy);
+        if (len > MOB_STICK_RADIUS) { dx = dx / len * MOB_STICK_RADIUS; dy = dy / len * MOB_STICK_RADIUS; }
+        active.dx = dx; active.dy = dy;
+        setKnob(dx, dy);
+        if (Math.abs(dx) > MOB_STICK_DEADZONE) stick.facing = dx > 0 ? 1 : -1;
+      });
+      el.addEventListener('pointerup', release);
+      el.addEventListener('pointercancel', release);
+      el.addEventListener('lostpointercapture', release);
+      el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    }
+    mobStick('mobBtnAtk', mobPunch);
+    mobStick('mobBtnKick', mobKick);
+    // The sticks fire exactly the attacks the old 👊 / 🦵 buttons did, per character.
+    function mobPunch() {
       if (gameState !== 'playing') return;
       if (selectedChar === 'soldier') performShoot();
       else if (selectedChar === 'mage') performMageFireball();
@@ -3001,8 +3144,8 @@
       else if (selectedChar === 'slayer') performSlayerSlash();
       else if (selectedChar === 'taoist') performTaoistSword();
       else performPunch();
-    });
-    mobTap('mobBtnKick', function() {
+    }
+    function mobKick() {
       if (gameState !== 'playing') return;
       if (selectedChar === 'soldier') performShotgun();
       else if (selectedChar === 'fighter') performKickFighter();
@@ -3015,7 +3158,7 @@
       else if (selectedChar === 'phantom') performPhantomTeleport();
       else if (selectedChar === 'slayer') performSlayerLunge();
       else if (selectedChar === 'taoist') performTaoistPulse();
-    });
+    }
     function mobAbility1() {
       if (selectedChar === 'soldier') performDash();
       else if (selectedChar === 'fighter') performDash();
@@ -3065,7 +3208,9 @@
       else if (selectedChar === 'taoist') performTaoistBigZombie();
     }
     function mobAbilityE() {
-      if (selectedChar === 'super') performSuperShield();
+      // Fighter's E slot is free, and on a phone it is the Hollow's sky-laser switch.
+      if (selectedChar === 'fighter') toggleHollowLaser();
+      else if (selectedChar === 'super') performSuperShield();
       else if (selectedChar === 'mage') performMageIceShield();
       else if (selectedChar === 'ninja') performNinjaSharin();
       else if (selectedChar === 'hyper') performHyperShield();
@@ -4826,7 +4971,7 @@
       var sbToggle = document.getElementById('sandboxToggleBtn');
       if (gameMode === 'sandbox') { sbPanel.classList.remove('hidden'); instrPanel.classList.add('hidden'); if (sbToggle) { sbToggle.classList.remove('hidden'); sbToggle.textContent = '🧪 HIDE UI'; } } else { sbPanel.classList.add('hidden'); instrPanel.classList.remove('hidden'); if (sbToggle) sbToggle.classList.add('hidden'); }
       // Apply character-specific stats
-      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'insane' ? ' 🟣INS' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : gameMode === 'sandbox' ? ' 🧪SB' : '';
+      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'insane' ? ' 🟣INS' : gameMode === 'halloween' ? ' 🎃HALL' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : gameMode === 'sandbox' ? ' 🧪SB' : '';
       if (selectedChar === 'soldier') {
         PLAYER_MAX_HP_CURRENT = 110;
         document.getElementById('charIcon').textContent = '🎖';
@@ -4985,6 +5130,52 @@
     function insaneHp(hp) { return insaneOn() ? Math.round(hp * INSANE_ENEMY_MULT) : hp; }
     function insaneDmg(d) { return insaneOn() ? Math.max(1, Math.round(d * INSANE_ENEMY_MULT)) : d; }
 
+    // ==================== HALLOWEEN MODE ====================
+    // A pumpkin patch you farm for candy: a mini pumpkin every 3s, a big one every 9s,
+    // and EVERY living pumpkin drops a candy every 2s — 15% of those drops are a bag
+    // worth 10. Kill one early and you get nothing, which is the whole trade-off.
+    // The normal wave / kamikaze / grenader / titan / boss clocks stay frozen here.
+    const HALLOWEEN_MINI_INTERVAL = 180;   // 3s
+    const HALLOWEEN_BIG_INTERVAL = 540;    // 9s
+    const HALLOWEEN_CANDY_CD = 120;        // 2s between drops, per pumpkin
+    const HALLOWEEN_BAG_CHANCE = 0.15, HALLOWEEN_BAG_SIZE = 10;
+    const MINI_PUMPKIN_HP = 70, MINI_PUMPKIN_SPD = 1.8, MINI_PUMPKIN_DMG = 6;
+    const BIG_PUMPKIN_HP = 320, BIG_PUMPKIN_SPD = 1.0, BIG_PUMPKIN_DMG = 12;
+    function halloweenOn() { return gameMode === 'halloween'; }
+    function halloweenCandyOn() { return isHalloweenEvent() || halloweenOn(); }
+    function spawnHalloweenPumpkin(big) {
+      var fromLeft = Math.random() > 0.5;
+      var px = fromLeft ? -50 : CW + 50;
+      dummies.push({
+        x: px, y: GROUND_Y,
+        hp: big ? BIG_PUMPKIN_HP : MINI_PUMPKIN_HP,
+        maxHp: big ? BIG_PUMPKIN_HP : MINI_PUMPKIN_HP,
+        speed: big ? BIG_PUMPKIN_SPD : MINI_PUMPKIN_SPD,
+        attackCD: 40, hitFlash: 0, alive: true,
+        facing: fromLeft ? 1 : -1, isPumpkin: true, pumpkinBig: !!big,
+        pumpkinDmg: big ? BIG_PUMPKIN_DMG : MINI_PUMPKIN_DMG,
+        candyDropCD: HALLOWEEN_CANDY_CD, animTime: 0
+      });
+      createParticles(px, GROUND_Y - 20, big ? 16 : 8, '#fb923c');
+      createTextParticle(CW / 2, big ? 78 : 56, big ? '🎃 BIG PUMPKIN!' : '🎃 mini pumpkin', big ? '#f97316' : '#fb923c', big ? 20 : 12);
+    }
+    function tickPumpkinCandy() {
+      dummies.forEach(function(d) {
+        if (!d.alive || !d.isPumpkin) return;
+        d.candyDropCD--;
+        if (d.candyDropCD > 0) return;
+        d.candyDropCD = HALLOWEEN_CANDY_CD;
+        var bag = Math.random() < HALLOWEEN_BAG_CHANCE;
+        pickups.push(createPickup(d.x, GROUND_Y, bag ? 'candybag' : 'candy1'));
+      });
+    }
+    function updateHalloweenSpawns() {
+      halloweenMiniTimer++; halloweenBigTimer++;
+      if (halloweenMiniTimer >= HALLOWEEN_MINI_INTERVAL) { halloweenMiniTimer = 0; spawnHalloweenPumpkin(false); }
+      if (halloweenBigTimer >= HALLOWEEN_BIG_INTERVAL) { halloweenBigTimer = 0; spawnHalloweenPumpkin(true); }
+      tickPumpkinCandy();
+    }
+
     function createDummy(x, opts = {}) {
       var baseHp = opts.hp || (opts.big ? BIG_DUMMY_HP : DUMMY_BASE_HP);
       if (gameMode === 'easy' && !opts.isKamikaze && !opts.isGunner && !opts.isCrossbow && !opts.isSummoner) baseHp = EASY_DUMMY_HP;
@@ -5046,6 +5237,12 @@
       } else if (type === 'wing') {
         pickupWingTimer = PICKUP_WING_DUR;
         createTextParticle(x, y, '🪽 WING FLIGHT!', '#7dd3fc', 16); createParticles(x, y, 10, '#7dd3fc');
+      } else if (type === 'candy1') {
+        addCandy(1);
+        createTextParticle(x, y, '🍬 +1', '#fb923c', 14); createParticles(x, y, 6, '#fb923c');
+      } else if (type === 'candybag') {
+        addCandy(HALLOWEEN_BAG_SIZE);
+        createTextParticle(x, y, '🍬 BAG OF CANDY +' + HALLOWEEN_BAG_SIZE, '#f97316', 18); createParticles(x, y, 16, '#f97316');
       } else if (type === 'candy') {
         addCandy(3);
         createTextParticle(x, y, '🍬 +3 CANDY', '#fb923c', 16); createParticles(x, y, 10, '#fb923c');
@@ -5055,7 +5252,11 @@
         updateHPBar(); createTextParticle(x, y, '+' + heal, '#4ade80', 16); createParticles(x, y, 10, '#4ade80');
       }
     }
-    function spawnInitialDummies() { if (gameMode === 'sandbox') { dummies = []; return; } dummies = gameMode === 'hard' || gameMode === 'insane' ? [createDummy(500), createDummy(650), createDummy(800)] : [createDummy(550), createDummy(700)]; }
+    function spawnInitialDummies() {
+      if (gameMode === 'sandbox') { dummies = []; return; }
+      if (halloweenOn()) { dummies = []; spawnHalloweenPumpkin(false); spawnHalloweenPumpkin(false); return; }
+      dummies = gameMode === 'hard' || gameMode === 'insane' ? [createDummy(500), createDummy(650), createDummy(800)] : [createDummy(550), createDummy(700)];
+    }
 
     // ==================== SANDBOX SPAWNERS ====================
     window.sandboxSpawn = function(type) {
@@ -6693,6 +6894,56 @@
         return;
       }
 
+      // HALLOWEEN mode pumpkins — one rig, two sizes. The big one is a proper bruiser:
+      // lidded jack-o-lantern, ridged sides and a fat health bar over the stem.
+      if (d.isPumpkin) {
+        var pgBig = !!d.pumpkinBig;
+        var pr = pgBig ? 34 : 15;
+        var pcy = GROUND_Y - (pgBig ? pr + 8 : pr + 5);
+        var pHit = d.hitFlash > 0;
+        var pBody = pHit ? '#ffffff' : (pgBig ? '#ea580c' : '#fb923c');
+        var pLine = pHit ? '#ffffff' : '#9a3412';
+        ctx.globalAlpha = pgBig ? 0.2 : 0.13;
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath(); ctx.arc(dx, pcy, pr * 2.1, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Three overlapping lobes read as a pumpkin without needing ellipse().
+        ctx.fillStyle = pBody;
+        ctx.beginPath(); ctx.arc(dx - pr * 0.34, pcy, pr * 0.76, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + pr * 0.34, pcy, pr * 0.76, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx, pcy, pr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = pLine; ctx.lineWidth = pgBig ? 2 : 1.4;
+        ctx.beginPath(); ctx.arc(dx, pcy, pr, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx - pr * 0.34, pcy - pr * 0.62); ctx.lineTo(dx - pr * 0.34, pcy + pr * 0.62); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx + pr * 0.34, pcy - pr * 0.62); ctx.lineTo(dx + pr * 0.34, pcy + pr * 0.62); ctx.stroke();
+        // Stem
+        ctx.strokeStyle = '#15803d'; ctx.lineWidth = pgBig ? 6 : 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(dx, pcy - pr * 0.88); ctx.lineTo(dx + pr * 0.2, pcy - pr * 1.3); ctx.stroke();
+        // Jack-o-lantern face
+        ctx.fillStyle = '#3b0764';
+        ctx.beginPath(); ctx.moveTo(dx - pr * 0.52, pcy - pr * 0.22); ctx.lineTo(dx - pr * 0.14, pcy - pr * 0.22); ctx.lineTo(dx - pr * 0.33, pcy + pr * 0.12); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(dx + pr * 0.14, pcy - pr * 0.22); ctx.lineTo(dx + pr * 0.52, pcy - pr * 0.22); ctx.lineTo(dx + pr * 0.33, pcy + pr * 0.12); ctx.closePath(); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(dx - pr * 0.46, pcy + pr * 0.34); ctx.lineTo(dx - pr * 0.2, pcy + pr * 0.34);
+        ctx.lineTo(dx - pr * 0.02, pcy + pr * 0.6); ctx.lineTo(dx + pr * 0.2, pcy + pr * 0.34);
+        ctx.lineTo(dx + pr * 0.46, pcy + pr * 0.34); ctx.lineTo(dx + pr * 0.26, pcy + pr * 0.62);
+        ctx.lineTo(dx - pr * 0.26, pcy + pr * 0.62); ctx.closePath(); ctx.fill();
+        // Legs
+        ctx.strokeStyle = pBody; ctx.lineWidth = pgBig ? 7 : 3.5;
+        ctx.beginPath(); ctx.moveTo(dx - pr * 0.32, pcy + pr * 0.72); ctx.lineTo(dx - pr * 0.5, GROUND_Y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx + pr * 0.32, pcy + pr * 0.72); ctx.lineTo(dx + pr * 0.5, GROUND_Y); ctx.stroke();
+        // Health bar (+ a name plate on the big one)
+        var pgW = pgBig ? 78 : 30, pgPct = Math.max(0, d.hp / d.maxHp);
+        var pgY = pcy - pr * 1.5 - 10;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - pgW / 2 - 1, pgY - 1, pgW + 2, pgBig ? 9 : 6);
+        ctx.fillStyle = pgBig ? '#f97316' : '#fb923c'; ctx.fillRect(dx - pgW / 2, pgY, pgW * pgPct, pgBig ? 7 : 4);
+        if (pgBig) {
+          ctx.fillStyle = '#fdba74'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+          ctx.fillText('BIG PUMPKIN ' + Math.ceil(Math.max(0, d.hp)), dx, pgY - 5); ctx.textAlign = 'start';
+        }
+        return;
+      }
+
       if (d.big) {
         // Insane-mode big dummy: the same rig, twice the presence.
         var bigHit = d.hitFlash > 0;
@@ -7511,6 +7762,11 @@
       var pulse = 1 + Math.sin(time * 0.15 + p.bobPhase) * 0.12;
       ctx.fillStyle = meta.glow; ctx.beginPath(); ctx.arc(p.x, p.y + bob, 15 * pulse, 0, Math.PI * 2); ctx.fill();
       ctx.font = '18px serif'; ctx.textAlign = 'center'; ctx.fillText(meta.emoji, p.x, p.y + bob + 6); ctx.textAlign = 'start';
+      // A bag is unmistakable: same candy sprite, a fat glow and the ×10 stamped on it.
+      if (p.type === 'candybag') {
+        ctx.fillStyle = '#fdba74'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('BAG ×' + HALLOWEEN_BAG_SIZE, p.x, p.y + bob + 22); ctx.textAlign = 'start';
+      }
       ctx.globalAlpha = 1;
     }
 
@@ -7794,6 +8050,15 @@
             d.attackCD = 90;
             createParticles(d.x, GROUND_Y - 30, 5, '#4c1d95');
           }
+        } else if (d.isPumpkin) {
+          // Pumpkins shuffle straight at you and smack with their own (small) damage.
+          if (dist < DUMMY_CHASE_RANGE) d.x += Math.sign(stick.x - d.x) * d.speed;
+          d.attackCD--;
+          if (d.attackCD <= 0 && dist < DUMMY_ATK_RANGE) {
+            damagePlayer(d.pumpkinDmg || MINI_PUMPKIN_DMG, '#fb923c');
+            d.attackCD = DUMMY_ATTACK_CD;
+            createParticles(d.x, GROUND_Y - 20, 4, '#fb923c');
+          }
         } else {
           if (dist < DUMMY_CHASE_RANGE && gameState === 'playing') d.x += Math.sign(stick.x - d.x) * d.speed;
           else { if (time % 120 < 60) d.x += d.speed * 0.5; else d.x -= d.speed * 0.5; }
@@ -7910,6 +8175,8 @@
 
     function checkBossSpawn() {
       if (campaignMode || phantomMissionActive) return; // campaign/mission handles its own spawns
+      // Halloween mode is a pumpkin patch, not a gauntlet: no titan, no boss.
+      if (halloweenOn()) return;
       if (boss && boss.alive) return;
       // Titan spawns every 60s
       if (titanTimer >= TITAN_SPAWN_INTERVAL && !boss && gameMode !== 'easy') {
@@ -9512,10 +9779,12 @@
       // anywhere in between would otherwise leave the game frozen on this frame forever.
       var loopFrameArmed = false;
       try {
-      time++; if (gameMode !== 'sandbox' && !campaignMode && !phantomMissionActive) { spawnTimer++; kamikazeTimer++; miniBossTimer++; allySpawnTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
+      time++; if (gameMode !== 'sandbox' && !campaignMode && !phantomMissionActive) { allySpawnTimer++; if (!halloweenOn()) { spawnTimer++; kamikazeTimer++; miniBossTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); } }
       if (gracePeriod > 0) gracePeriod--;
       updateShopShield();
+      updateHollowLaser();
       if (gameMode === 'insane' && !campaignMode && !phantomMissionActive) updateInsaneSpawns();
+      if (halloweenOn() && !campaignMode && !phantomMissionActive) updateHalloweenSpawns();
       tickCandyFromKills();
       tickQuestProgress();
       if (isHalloweenEvent() && gameMode !== 'sandbox' && gameMode !== 'bossrush' && !campaignMode && !phantomMissionActive) {        candyDropTimer++; if (candyDropTimer >= 6000) { candyDropTimer = 0; pickups.push(createPickup(100 + Math.random() * (CW - 200), GROUND_Y, 'candy')); createTextParticle(CW / 2, 95, '🍬 CANDY DROP!', '#fb923c', 18); }
@@ -11532,7 +11801,7 @@
         phantomRealmFade = Math.max(0, phantomRealmFade - 0.06);
         if (phantomRealmFade > 0) { ctx.globalAlpha = 0.82 * phantomRealmFade; ctx.fillStyle = '#05050d'; ctx.fillRect(0, 0, CW, CH); ctx.globalAlpha = 1; }
       }
-      drawStickman(); drawBullets(); drawPlayerBullets(); drawGrenades(); drawEnemyGrenades(); drawSuperBlastOrbs(); drawMageFireballs(); drawMageFrostOrbs(); drawLightningBolts(); drawNinjaKunais(); drawNinjaClones(); drawNinjaSharins();
+      drawHollowLaser(); drawStickman(); drawBullets(); drawPlayerBullets(); drawGrenades(); drawEnemyGrenades(); drawSuperBlastOrbs(); drawMageFireballs(); drawMageFrostOrbs(); drawLightningBolts(); drawNinjaKunais(); drawNinjaClones(); drawNinjaSharins();
       if (ninjaIsInvis && gameState === 'playing') { ctx.globalAlpha = 0.15; ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 22, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.fillText('👻 INVIS ' + Math.ceil(ninjaInvisTimer / 60) + 's', stick.x, stick.y - 65); ctx.textAlign = 'start'; }
       if (ninjaUltActive && gameState === 'playing') { ctx.globalAlpha = 0.2 + Math.sin(time * 0.3) * 0.1; ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 80 + Math.sin(time * 0.2) * 10, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
       if (isRaging && gameState === 'playing') { ctx.globalAlpha = 0.12 + Math.sin(time * 0.2) * 0.08; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 120, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 0.06 + Math.sin(time * 0.25) * 0.04; ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 120, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 0.5 + Math.sin(time * 0.3) * 0.15; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 30 + Math.sin(time * 0.2) * 5, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; } if (mageIceShielded && gameState === 'playing') { var ia = 0.35 + Math.sin(time * 0.2) * 0.15; ctx.globalAlpha = ia; ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 28 + Math.sin(time * 0.15) * 3, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = ia * 0.25; ctx.fillStyle = '#67e8f9'; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 28 + Math.sin(time * 0.15) * 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = ia * 0.5; ctx.strokeStyle = '#a5f3fc'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 35 + Math.sin(time * 0.25) * 4, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#67e8f9'; ctx.textAlign = 'center'; ctx.fillText('🧊 ' + Math.ceil(mageIceTimer / 60) + 's', stick.x, stick.y - 68); ctx.textAlign = 'start'; } if (isShielded && gameState === 'playing') { var sa = 0.4 + Math.sin(time * 0.15) * 0.15; ctx.globalAlpha = sa; ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 25 + Math.sin(time * 0.2) * 3, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = sa * 0.3; ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 25 + Math.sin(time * 0.2) * 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#38bdf8'; ctx.textAlign = 'center'; ctx.fillText('🛡 ' + Math.ceil(shieldTimer / 60) + 's', stick.x, stick.y - 65); ctx.textAlign = 'start'; } if (absoluteImmortalActive() && gameState === 'playing') { var aa = 0.45 + Math.sin(time * 0.2) * 0.2; ctx.globalAlpha = aa; ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 32 + Math.sin(time * 0.18) * 4, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = aa * 0.25; ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 32 + Math.sin(time * 0.18) * 4, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#fbbf24'; ctx.textAlign = 'center'; ctx.fillText('🛡 IMMORTAL ' + Math.ceil((180 - (time % 600)) / 60) + 's', stick.x, stick.y - 70); ctx.textAlign = 'start'; }
@@ -13710,6 +13979,8 @@
         if (e.key === '2') performSlam();
         if (e.key === '3') performUltimate();
         if (e.key.toLowerCase() === 'f') performParry();
+        // The Hollow's sky laser — S toggles it, the pointer drags it.
+        if (e.key.toLowerCase() === 's') toggleHollowLaser();
       } else if (selectedChar === 'super') {
         if (e.key === '1') performSuperCharge();
         if (e.key === '2') performSuperBlast();
@@ -13812,6 +14083,16 @@
       mouseY = (e.clientY - rect.top) * (CH / rect.height);
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Dragging a finger across the arena moves the aim point — that is what lets the
+    // Hollow's sky laser be dragged on a phone, where there is no mouse to point with.
+    canvas.addEventListener('touchmove', (e) => {
+      if (gameState !== 'playing') return;
+      const t = e.touches[0]; if (!t) return;
+      const rect = canvas.getBoundingClientRect();
+      mouseX = (t.clientX - rect.left) * (CW / rect.width);
+      mouseY = (t.clientY - rect.top) * (CH / rect.height);
+      if (hollowLaser.active) e.preventDefault();
+    }, { passive: false });
     canvas.addEventListener('touchstart', (e) => {
       if (gameState !== 'playing') return; e.preventDefault();
       const t = e.touches[0]; const rect = canvas.getBoundingClientRect();
@@ -13890,6 +14171,8 @@
       isShielded = false; shieldTimer = 0; shieldCD = 0; shieldUnlocked = false;
       shopShieldCD = 0; shopShieldActive = 0;
       insaneBigTimer = 0; insaneEliteTimer = 0; insaneGiantTimer = 0; insaneColossalTimer = 0;
+      halloweenMiniTimer = 0; halloweenBigTimer = 0;
+      hollowLaser.active = false; hollowLaser.cd = 0;
       mageFireballs = []; mageFrostOrbs = []; lightningBolts = []; mageLightningCD = 0; mageFrostCD = 0; mageTeleportCD = 0; mageMeteorCD = 0; mageIceShielded = false; mageIceTimer = 0;
       gracePeriod = 300; playerLevel = 1;
       try { stopBossMusic(); } catch(e) {}
@@ -14052,6 +14335,7 @@
       if (mb) mb.textContent = bossPoints;
       updateRankUI();
       updateTraitUI();
+      refreshHalloweenUI();
     }
     function updateRankUI() {
       var el = document.getElementById('menuRank');
@@ -14469,19 +14753,25 @@
     refreshTaoistQuests();
     updateTaoistCardUI();
     document.getElementById('halloweenClose').addEventListener('click', function() { document.getElementById('halloweenScreen').classList.add('hidden'); document.getElementById('menuScreen').classList.remove('hidden'); });
-    document.getElementById('candyBuyPoints').addEventListener('click', function() { halloweenBuy(50, function() { totalPoints += 100; savePoints(); }); });
-    document.getElementById('candyBuyBoss').addEventListener('click', function() { halloweenBuy(5, function() { bossPoints += 1; savePoints(); }); });
-    document.getElementById('candyUpgHp').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.maxHp >= SHOP_MAX_LEVELS.maxHp) { if (st) st.textContent = 'Max HP already maxed'; return; } halloweenBuy(50, function() { shopUpgrades.maxHp++; saveUpgrades(); }); });
-    document.getElementById('candyUpgDmg').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.damage >= SHOP_MAX_LEVELS.damage) { if (st) st.textContent = 'Damage already maxed'; return; } halloweenBuy(75, function() { shopUpgrades.damage++; saveUpgrades(); }); });
-    document.getElementById('candyUpgSpd').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.speed >= SHOP_MAX_LEVELS.speed) { if (st) st.textContent = 'Speed already maxed'; return; } halloweenBuy(60, function() { shopUpgrades.speed++; saveUpgrades(); }); });
+    applyCandyPriceLabels();
+    document.getElementById('candyBuyPoints').addEventListener('click', function() { halloweenBuy(CANDY_PRICES.points, function() { totalPoints += 100; savePoints(); }); });
+    document.getElementById('candyBuyBoss').addEventListener('click', function() { halloweenBuy(CANDY_PRICES.bossPoint, function() { bossPoints += 1; savePoints(); }); });
+    document.getElementById('candyUpgHp').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.maxHp >= SHOP_MAX_LEVELS.maxHp) { if (st) st.textContent = 'Max HP already maxed'; return; } halloweenBuy(CANDY_PRICES.maxHp, function() { shopUpgrades.maxHp++; saveUpgrades(); }); });
+    document.getElementById('candyUpgDmg').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.damage >= SHOP_MAX_LEVELS.damage) { if (st) st.textContent = 'Damage already maxed'; return; } halloweenBuy(CANDY_PRICES.damage, function() { shopUpgrades.damage++; saveUpgrades(); }); });
+    document.getElementById('candyUpgSpd').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.speed >= SHOP_MAX_LEVELS.speed) { if (st) st.textContent = 'Speed already maxed'; return; } halloweenBuy(CANDY_PRICES.speed, function() { shopUpgrades.speed++; saveUpgrades(); }); });
     document.getElementById('bgSetHalloween').addEventListener('click', function() { selectBg('halloween'); });
-    (function initHalloweenUI() {
+    // Candy only earns its place on the menu when it can be earned or spent: during the
+    // October event, in HALLOWEEN mode, or once this save already holds some.
+    function refreshHalloweenUI() {
       updateCandyUI();
-      if (isHalloweenEvent()) {
+      if (isHalloweenEvent() || candy > 0 || halloweenOn()) {
         var mcw = document.getElementById('menuCandyWrap'); if (mcw) mcw.classList.remove('hidden');
         var hs = document.getElementById('halloweenShopBtn'); if (hs) hs.classList.remove('hidden');
         var hb = document.getElementById('bgSetHalloween'); if (hb) hb.classList.remove('hidden');
       }
+    }
+    (function initHalloweenUI() {
+      refreshHalloweenUI();
       // 🎃 Fight Boss is the ONLY way into the Pumpkin Boss fight, so its button has to
       // be there all year round, not just during the Halloween event.
       var pbb = document.getElementById('pumpkinBossBtn'); if (pbb) pbb.classList.remove('hidden');

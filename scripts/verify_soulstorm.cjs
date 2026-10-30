@@ -1233,9 +1233,10 @@ function run(file) {
       /performTaoistAmulet/.test(taoistKeys[0]));
     check(file + ': left click / right click are sword and pulse',
       /if \(e\.button === 2\) performTaoistPulse\(\); else performTaoistSword\(\);/.test(html));
+    // Punch and kick are drag sticks now, so the pads are wired through mobStick().
     check(file + ': the phone pads drive the same six abilities',
-      /mobTap\('mobBtnAtk'[\s\S]{0,900}performTaoistSword/.test(html) &&
-      /mobTap\('mobBtnKick'[\s\S]{0,900}performTaoistPulse/.test(html) &&
+      /mobStick\('mobBtnAtk', mobPunch\)[\s\S]{0,2600}performTaoistSword/.test(html) &&
+      /mobStick\('mobBtnKick', mobKick\)[\s\S]{0,3200}performTaoistPulse/.test(html) &&
       /function mobAbility1\(\)[\s\S]{0,700}performTaoistZombies/.test(html) &&
       /function mobAbility2\(\)[\s\S]{0,700}performTaoistSeal/.test(html) &&
       /function mobAbility3\(\)[\s\S]{0,700}performTaoistUlt/.test(html) &&
@@ -1302,6 +1303,112 @@ function run(file) {
       /if \(gosScreen && gosScreen\.classList\.contains\('hidden'\)\)/.test(html));
     check(file + ': RETRY restarts a non-campaign round instead of sitting on a dead screen',
       /if \(campaignMode\) \{ launchCampaignLevel\(campaignLevel\); return; \}[\s\S]{0,220}fullReset\(\); gameState = 'playing'; resumeGameLoop\(\);/.test(html));
+  });
+}
+
+// --- W: HALLOWEEN mode, the candy economy, The Hollow and the drag sticks ------.
+{
+  console.log('\n===== halloween mode =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const num = (re) => Number((re.exec(html) || [])[1]);
+
+    check(file + ': the menu offers a HALLOWEEN mode and it really switches mode',
+      /id="modeHalloween"/.test(html) &&
+      /getElementById\('modeHalloween'\)\.addEventListener\('click', \(\) => selectMode\('halloween'\)\)/.test(html) &&
+      /getElementById\('modeHalloween'\)\.className = m === 'halloween'/.test(html) &&
+      /gameMode === 'halloween' \? ' 🎃HALL'/.test(html));
+
+    check(file + ': a mini pumpkin every 3s and a big one every 9s',
+      num(/HALLOWEEN_MINI_INTERVAL = (\d+)/) === 180 &&
+      num(/HALLOWEEN_BIG_INTERVAL = (\d+)/) === 540 &&
+      /function updateHalloweenSpawns\(\)/.test(html) &&
+      /halloweenMiniTimer >= HALLOWEEN_MINI_INTERVAL\) \{ halloweenMiniTimer = 0; spawnHalloweenPumpkin\(false\); \}/.test(html) &&
+      /halloweenBigTimer >= HALLOWEEN_BIG_INTERVAL\) \{ halloweenBigTimer = 0; spawnHalloweenPumpkin\(true\); \}/.test(html) &&
+      /if \(halloweenOn\(\) && !campaignMode && !phantomMissionActive\) updateHalloweenSpawns\(\);/.test(html),
+      'mini=' + num(/HALLOWEEN_MINI_INTERVAL = (\d+)/) + ' big=' + num(/HALLOWEEN_BIG_INTERVAL = (\d+)/));
+
+    check(file + ': every pumpkin drops a candy every 2s, 15% of them a bag of 10',
+      num(/HALLOWEEN_CANDY_CD = (\d+)/) === 120 &&
+      num(/HALLOWEEN_BAG_CHANCE = ([\d.]+)/) === 0.15 &&
+      num(/HALLOWEEN_BAG_SIZE = (\d+)/) === 10 &&
+      /var bag = Math\.random\(\) < HALLOWEEN_BAG_CHANCE;/.test(html) &&
+      /createPickup\(d\.x, GROUND_Y, bag \? 'candybag' : 'candy1'\)/.test(html) &&
+      /type === 'candy1'[\s\S]{0,120}addCandy\(1\)/.test(html) &&
+      /type === 'candybag'[\s\S]{0,120}addCandy\(HALLOWEEN_BAG_SIZE\)/.test(html),
+      'cd=' + num(/HALLOWEEN_CANDY_CD = (\d+)/) + ' bag%=' + num(/HALLOWEEN_BAG_CHANCE = ([\d.]+)/));
+
+    check(file + ': the pumpkins are drawn and they hit for their own damage',
+      /if \(d\.isPumpkin\) \{/.test(html) && /isPumpkin: true, pumpkinBig: !!big/.test(html) &&
+      /damagePlayer\(d\.pumpkinDmg \|\| MINI_PUMPKIN_DMG, '#fb923c'\)/.test(html) &&
+      num(/MINI_PUMPKIN_HP = (\d+)/) === 70 && num(/BIG_PUMPKIN_HP = (\d+)/) === 320);
+
+    // A pumpkin farm, not a gauntlet: normal waves, titan and boss all stand down.
+    check(file + ': halloween mode freezes the normal spawn clocks and the boss',
+      /allySpawnTimer\+\+; if \(!halloweenOn\(\)\) \{ spawnTimer\+\+;/.test(html) &&
+      /function checkBossSpawn\(\) \{[\s\S]{0,240}if \(halloweenOn\(\)\) return;/.test(html) &&
+      /if \(halloweenOn\(\)\) \{ dummies = \[\]; spawnHalloweenPumpkin\(false\);/.test(html));
+
+    // The mode has to be able to pay candy even outside October.
+    check(file + ': halloween mode earns candy all year round',
+      /function halloweenCandyOn\(\) \{ return isHalloweenEvent\(\) \|\| halloweenOn\(\); \}/.test(html) &&
+      /if \(n <= 0 \|\| !halloweenCandyOn\(\)\) return;/.test(html) &&
+      /gameMode !== 'sandbox' && gameMode !== 'halloween'\) addCandy/.test(html));
+
+    // ---- candy economy ------------------------------------------------------
+    check(file + ': a boss point costs 20 candy and everything else is 50% off',
+      /const CANDY_PRICES = \{ bossPoint: 20, points: 25, maxHp: 25, damage: 38, speed: 30 \};/.test(html) &&
+      /halloweenBuy\(CANDY_PRICES\.bossPoint/.test(html) &&
+      /halloweenBuy\(CANDY_PRICES\.points/.test(html) &&
+      /halloweenBuy\(CANDY_PRICES\.maxHp/.test(html) &&
+      /halloweenBuy\(CANDY_PRICES\.damage/.test(html) &&
+      /halloweenBuy\(CANDY_PRICES\.speed/.test(html) &&
+      num(/SKIN_COST_MULT = (\d+)/) === 2,
+      'skinMult=' + num(/SKIN_COST_MULT = (\d+)/));
+    check(file + ': the shop labels are written from the same price table',
+      /function applyCandyPriceLabels\(\)/.test(html) &&
+      (html.match(/data-candy-price="/g) || []).length === 5 &&
+      /<button id="candyBuyBoss"[\s\S]{0,200}data-candy-price="bossPoint"/.test(html) &&
+      /applyCandyPriceLabels\(\);/.test(html) &&
+      /CANDY_PRICES\[k\] \+ '🍬'/.test(html));
+
+    // ---- The Hollow ---------------------------------------------------------
+    check(file + ': the Hollow skin is in the skin grid',
+      /id: 'fighter_hollow', char: 'fighter', name: 'The Hollow'/.test(html));
+    check(file + ': the Hollow is +200% damage AND +200% speed',
+      /function hollowOn\(\) \{ return selectedChar === 'fighter' && selectedSkin === 'fighter_hollow'; \}/.test(html) &&
+      /if \(hollowOn\(\)\) return 3;/.test(html) &&
+      /\* \(hollowOn\(\) \? 3 : 1\)/.test(html));
+    check(file + ': S drops a draggable mini sky laser for 4 dmg every 0.75s',
+      num(/HOLLOW_LASER_DMG = (\d+)/) === 4 &&
+      num(/HOLLOW_LASER_TICK = (\d+)/) === 45 &&
+      /function toggleHollowLaser\(\)/.test(html) &&
+      /if \(e\.key\.toLowerCase\(\) === 's'\) toggleHollowLaser\(\);/.test(html) &&
+      /hollowLaser\.x = Math\.max\(30, Math\.min\(CW - 30, mouseX\)\);/.test(html) &&
+      /dealDamageToDummy\(d, HOLLOW_LASER_DMG, 'laser'\)/.test(html) &&
+      /hollowLaser\.cd < HOLLOW_LASER_TICK/.test(html),
+      'dmg=' + num(/HOLLOW_LASER_DMG = (\d+)/) + ' tick=' + num(/HOLLOW_LASER_TICK = (\d+)/));
+    check(file + ': the beam is drawn and can be dragged by a finger too',
+      /function drawHollowLaser\(\)/.test(html) &&
+      /drawHollowLaser\(\); drawStickman\(\);/.test(html) &&
+      /addEventListener\('touchmove'[\s\S]{0,400}mouseX = \(t\.clientX - rect\.left\)/.test(html) &&
+      /if \(selectedChar === 'fighter'\) toggleHollowLaser\(\);/.test(html));
+
+    // ---- mobile drag sticks -------------------------------------------------
+    check(file + ': punch and kick are drag sticks on the phone',
+      /id="mobBtnAtk" class="mob-stick"/.test(html) &&
+      /id="mobBtnKick" class="mob-stick"/.test(html) &&
+      /mobStick\('mobBtnAtk', mobPunch\)/.test(html) &&
+      /mobStick\('mobBtnKick', mobKick\)/.test(html) &&
+      /function mobStick\(id, fire\)/.test(html));
+    check(file + ': the stick drags a knob and aims your facing',
+      /var knob = el\.querySelector\('\.mob-knob'\)/.test(html) &&
+      /knob\.style\.transform = 'translate\('/.test(html) &&
+      /if \(Math\.abs\(dx\) > MOB_STICK_DEADZONE\) stick\.facing = dx > 0 \? 1 : -1;/.test(html) &&
+      /el\.addEventListener\('pointermove'/.test(html) &&
+      /el\.setPointerCapture\(e\.pointerId\)/.test(html));
+    check(file + ': a plain tap still fires the attack',
+      /function release\(e\)[\s\S]{0,420}fire\(\);/.test(html));
   });
 }
 
