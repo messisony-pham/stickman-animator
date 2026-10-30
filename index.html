@@ -58,6 +58,13 @@
        buttons) stretched the whole menu to 460px on a 320px phone and clipped the
        right-hand characters. Cap it, and let the character grid reflow instead. */
     #menuScreen > div { width: 100%; }
+    /* The menu is taller than a phone, and a centred flex box clips the overflow at the
+       TOP as well as the bottom — which left Daily / Taoist Quest / Skin unreachable.
+       Let it scroll, and start it at the top on a small screen. */
+    #menuScreen { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+    @media (max-width: 760px) {
+      #menuScreen { justify-content: flex-start; padding: 10px 0 26px; }
+    }
     @media (max-width: 480px) {
       #charGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       #charGrid > .char-card { min-width: 0; }
@@ -487,7 +494,7 @@
   <div id="skinScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.75);">
     <div class="bg-slate-800 border-2 border-orange-600 rounded-2xl p-6 w-96 shadow-2xl max-h-[92vh] overflow-y-auto">
       <h2 class="text-white font-bold text-lg mb-1 text-center">👕 Halloween Skins</h2>
-      <p class="text-[10px] text-slate-400 text-center mb-3">🍬 <span id="skinCandy" class="text-orange-400 font-bold">0</span> candy — click to buy / equip. Each skin boosts one character.</p>
+      <p class="text-[10px] text-slate-400 text-center mb-3">🍬 <span id="skinCandy" class="text-orange-400 font-bold">0</span> candy — click to buy / equip. Every skin works on every character.</p>
       <div id="skinGrid" class="grid grid-cols-2 gap-2"></div>
       <button id="skinClose" class="w-full mt-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-colors">✅ Done</button>
     </div>
@@ -744,6 +751,7 @@
         <button id="mobBtn3" class="mob-btn mob-ability">3</button>
         <button id="mobBtnF" class="mob-btn mob-ability">F</button>
         <button id="mobBtnE" class="mob-btn mob-ability">E</button>
+        <button id="mobBtnS" class="mob-btn mob-ability" style="display:none;">S</button>
         <button id="mobBtnSoulStormE" class="mob-btn mob-ability" style="display:none;">E</button>
       </div>
       <!-- Punch and kick are joysticks: press to hit, drag to aim, keep holding to keep firing. -->
@@ -753,7 +761,8 @@
       </div>
     </div>
     <!-- Small always-on-top shortcuts -->
-    <div class="absolute pointer-events-auto flex gap-1.5" style="right:max(10px, env(safe-area-inset-right)); top:52px;">
+    <!-- Pause + shop sit on the LEFT, out of the way of the right thumb cluster. -->
+    <div class="absolute pointer-events-auto flex gap-1.5" style="left:max(10px, env(safe-area-inset-left)); top:52px;">
       <button id="mobBtnPause" class="mob-btn mob-small">⏸</button>
       <button id="mobBtnShop" class="mob-btn mob-small">🛒</button>
     </div>
@@ -1369,6 +1378,8 @@
       candy += n; saveCandy();
       if (gameState === 'playing' && typeof stick !== 'undefined') createTextParticle(stick.x, stick.y - 70, '🍬 +' + n, '#fb923c', 14);
     }
+    // EVERY skin is universal: the bonus and the look follow the skin, whoever wears
+    // it. (`char` is kept only as the skin's origin, it no longer gates anything.)
     const SKINS = [
       { id: 'fighter_ghost', char: 'fighter', name: 'Ghost', emoji: '👻', cost: 10, desc: 'Dodge 5 hits / 15s' },
       { id: 'fighter_werewolf', char: 'fighter', name: 'Werewolf', emoji: '🐺', cost: 15, desc: 'Claws: +35% DMG under 50% HP' },
@@ -1376,11 +1387,11 @@
       // 50% candy discount, it costs a flat 150.
       { id: 'fighter_hollow', char: 'fighter', name: 'The Hollow', emoji: '🎃', cost: 20, price: 150, desc: '×3 DMG & SPD · S: SKY LASER' },
       { id: 'fighter_zombie', char: 'fighter', name: 'Zombie', emoji: '🧟', cost: 12, desc: 'Undead: +25% HP, −12% SPD' },
-      { id: 'soldier_skeleton', char: 'soldier', name: 'Skeleton', emoji: '💀', cost: 10, desc: 'Soldier +20% HP' },
-      { id: 'mage_witch', char: 'mage', name: 'Witch', emoji: '🧙', cost: 13, desc: 'Mage +20% DMG' },
+      { id: 'soldier_skeleton', char: 'soldier', name: 'Skeleton', emoji: '💀', cost: 10, desc: 'Undead bones: +20% HP' },
+      { id: 'mage_witch', char: 'mage', name: 'Witch', emoji: '🧙', cost: 13, desc: '+20% DMG' },
       { id: 'ninja_vampire', char: 'ninja', name: 'Vampire', emoji: '🧛', cost: 14, desc: 'Heal by damage dealt' },
-      { id: 'hyper_spirit', char: 'hyper', name: 'Spirit', emoji: '👻', cost: 20, desc: 'Hyper ×2 DMG' },
-      { id: 'phantom_reaper', char: 'phantom', name: 'Reaper', emoji: '☠️', cost: 20, desc: 'Phantom ×1.5 DMG & SPD' }
+      { id: 'hyper_spirit', char: 'hyper', name: 'Spirit', emoji: '👻', cost: 20, desc: '×2 DMG' },
+      { id: 'phantom_reaper', char: 'phantom', name: 'Reaper', emoji: '☠️', cost: 20, desc: '×1.5 DMG & SPD' }
     ];
     let ownedSkins = {};
     try { ownedSkins = JSON.parse(localStorage.getItem('sm_ownedSkins') || '{}'); } catch (e) { ownedSkins = {}; }
@@ -1388,29 +1399,29 @@
     function saveSkins() { localStorage.setItem('sm_ownedSkins', JSON.stringify(ownedSkins)); localStorage.setItem('sm_selectedSkin', selectedSkin); }
     function skinDmgMult() {
       // Werewolf: the claws come out when the fight turns bad.
-      if (selectedChar === 'fighter' && selectedSkin === 'fighter_werewolf') {
+      if (selectedSkin === 'fighter_werewolf') {
         return (typeof playerHP === 'number' && playerHP > 0 && playerHP < PLAYER_MAX_HP_CURRENT * 0.5) ? 1.35 : 1;
       }
-      if (selectedChar === 'mage' && selectedSkin === 'mage_witch') return 1.2;
+      if (selectedSkin === 'mage_witch') return 1.2;
       // The Hollow's "+200%" is a ×3 multiplier on damage and speed alike.
       if (hollowOn()) return 3;
-      if (selectedChar === 'hyper' && selectedSkin === 'hyper_spirit') return 2;
-      if (selectedChar === 'phantom' && selectedSkin === 'phantom_reaper') return 1.5;
+      if (selectedSkin === 'hyper_spirit') return 2;
+      if (selectedSkin === 'phantom_reaper') return 1.5;
       return 1;
     }
-    function skinSpeedMult() { return ((selectedChar === 'phantom' && selectedSkin === 'phantom_reaper') ? 1.5 : 1) * ((selectedChar === 'fighter' && selectedSkin === 'fighter_zombie') ? 0.88 : 1) * (hollowOn() ? 3 : 1) * taoistSpdMult(); }
-    function skinMaxHpMult() { return (selectedChar === 'soldier' && selectedSkin === 'soldier_skeleton') ? 1.2 : 1; }
-    // The fighter has no per-skin HP hook like the soldier, so the zombie's extra health
-    // lives here and is applied wherever the fighter's 100 is assigned.
-    function fighterSkinHpMult() { return (selectedChar === 'fighter' && selectedSkin === 'fighter_zombie') ? 1.25 : 1; }
-    function vampireHeal(dmg) { if (selectedChar === 'ninja' && selectedSkin === 'ninja_vampire') { playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + dmg); updateHPBar(); } }
+    function skinSpeedMult() { return (selectedSkin === 'phantom_reaper' ? 1.5 : 1) * (selectedSkin === 'fighter_zombie' ? 0.88 : 1) * (hollowOn() ? 3 : 1) * taoistSpdMult(); }
+    // One HP hook for every skin on every character (was split between the fighter's
+    // 100 and the soldier's 90 before skins went universal).
+    function skinHpMult() { return selectedSkin === 'fighter_zombie' ? 1.25 : selectedSkin === 'soldier_skeleton' ? 1.2 : 1; }
+    function vampireHeal(dmg) { if (selectedSkin === 'ninja_vampire') { playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + dmg); updateHPBar(); } }
 
-    // ==================== THE HOLLOW (fighter skin) ====================
+    // ==================== THE HOLLOW (universal skin) ====================
     // +200% damage and speed (a ×3 on both), plus S: a mini laser that drops from the sky
     // and is DRAGGED with the pointer — 4 damage every 0.75s to whatever stands under it.
+    // Works on ANY character now, so the ability is bound on its own S button on a phone.
     const HOLLOW_LASER_DMG = 4, HOLLOW_LASER_TICK = 45, HOLLOW_LASER_RADIUS = 44;
     let hollowLaser = { active: false, x: CW / 2, cd: 0 };
-    function hollowOn() { return selectedChar === 'fighter' && selectedSkin === 'fighter_hollow'; }
+    function hollowOn() { return selectedSkin === 'fighter_hollow'; }
     function toggleHollowLaser() {
       if (gameState !== 'playing' || !hollowOn()) return;
       hollowLaser.active = !hollowLaser.active;
@@ -3092,6 +3103,16 @@
     // real drag) still throws the straight attack, so mashing keeps working.
     const MOB_STICK_RADIUS = 30, MOB_STICK_DEADZONE = 6, MOB_STICK_REPEAT_MS = 110;
     const MOB_AIM_REACH = 420, MOB_AIM_HOLD = 75;
+    // The Hollow's S gets its own pad button: E is already taken by half the roster, and
+    // the skin's ability has to be reachable on any character.
+    let mobSShown = null;
+    function refreshMobSButton() {
+      var b = document.getElementById('mobBtnS');
+      if (!b) return;
+      var want = hollowOn() ? 'inline-flex' : 'none';
+      if (mobSShown === want) return;
+      mobSShown = want; b.style.display = want;
+    }
     // Where the sticks point, the arm points and the attack goes. Every aim-based
     // attack in the game already fires at the mouse point, so the drag simply moves
     // that point: up, down, or either side.
@@ -3264,6 +3285,7 @@
       if (gameState === 'minigame' && soulStormActive && soulStormEActive) soulStormPressE();
       else if (gameState === 'playing') mobAbilityE();
     });
+    mobTap('mobBtnS', function() { if (gameState === 'playing' && hollowOn()) toggleHollowLaser(); });
     mobTap('mobBtnSoulStormE', function() { if (gameState === 'minigame' && soulStormActive && soulStormEActive) soulStormPressE(); });
     mobTap('mobBtnPause', function() { togglePause(); });
     mobTap('mobBtnShop', function() { if (gameState === 'playing') openShop(); });
@@ -5015,7 +5037,7 @@
         document.getElementById('charIcon').textContent = '🎖';
         document.getElementById('charName').textContent = 'Soldier' + modeLabel;
       } else if (selectedChar === 'fighter') {
-        PLAYER_MAX_HP_CURRENT = Math.floor(100 * fighterSkinHpMult());
+        PLAYER_MAX_HP_CURRENT = 100;
         document.getElementById('charIcon').textContent = '👊';
         document.getElementById('charName').textContent = 'Fighter' + modeLabel;
       } else if (selectedChar === 'super') {
@@ -7823,7 +7845,7 @@
         createParticles(stick.x, stick.y - 30, 4, '#38bdf8');
         return;
       }
-      if (selectedChar === 'fighter' && selectedSkin === 'fighter_ghost' && ghostDodgeCharges > 0) {
+      if (selectedSkin === 'fighter_ghost' && ghostDodgeCharges > 0) {
         ghostDodgeCharges--;
         createTextParticle(stick.x, stick.y - 55, '👻 DODGE! (' + ghostDodgeCharges + ')', '#a5b4fc', 14);
         createParticles(stick.x, stick.y - 30, 6, '#a5b4fc');
@@ -9616,7 +9638,7 @@
       addUltCharge(10);
       updateEXPBar();
       const tl = Math.min(Math.floor(totalKills / LEVEL_UP_KILLS) + 1, MAX_LEVEL);
-      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'phantom') { PLAYER_MAX_HP_CURRENT = Math.floor(PHANTOM_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'slayer') { PLAYER_MAX_HP_CURRENT = Math.floor(SLAYER_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'taoist') { PLAYER_MAX_HP_CURRENT = Math.floor(taoistMaxHp() * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 * skinMaxHpMult() : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80 * fighterSkinHpMult(); PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
+      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'phantom') { PLAYER_MAX_HP_CURRENT = Math.floor(PHANTOM_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'slayer') { PLAYER_MAX_HP_CURRENT = Math.floor(SLAYER_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'taoist') { PLAYER_MAX_HP_CURRENT = Math.floor(taoistMaxHp() * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } PLAYER_MAX_HP_CURRENT = Math.floor(PLAYER_MAX_HP_CURRENT * skinHpMult()); playerHP = PLAYER_MAX_HP_CURRENT; if (selectedChar === 'knight') knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
     }
 
     // ==================== SPAWNING ====================
@@ -9826,6 +9848,7 @@
       updateShopShield();
       updateHollowLaser();
       updateMobAim();
+      refreshMobSButton();
       if (gameMode === 'insane' && !campaignMode && !phantomMissionActive) updateInsaneSpawns();
       if (halloweenOn() && !campaignMode && !phantomMissionActive) updateHalloweenSpawns();
       tickCandyFromKills();
@@ -9839,7 +9862,7 @@
         pumpkinBossRequested = false; pumpkinSpawned = true; miniBosses.push({
  x: stick.x > CW / 2 ? 150 : CW - 150, y: GROUND_Y - 150, baseY: GROUND_Y - 150, hp: PUMPKIN_PHASE_HP, maxHp: PUMPKIN_PHASE_HP, speed: 1.2, attackCD: 60, hitFlash: 0, alive: true, facing: 1, type: 'pumpkin', animTime: 0, vy: 0, phase: 1, healCD: PUMPKIN_HEAL_INTERVAL, minionCD: 180, slamCD: 260, slamActive: false, slamVy: 0, orbMode: false, orbTimer: 0, orbShootCD: 0, soulTimer: 0, phaseFlash: 60 }); createTextParticle(CW / 2, 60, '🎃 PUMPKIN BOSS!', '#f97316', 26); createTextParticle(CW / 2, 92, 'Headless Horseman — ' + PUMPKIN_PHASES + ' phases × ' + PUMPKIN_PHASE_HP + ' HP', '#fb923c', 14); createParticles(CW / 2, GROUND_Y - 130, 40, '#f97316'); startPumpkinMusic();
       }
-      if (selectedChar === 'fighter' && selectedSkin === 'fighter_ghost') { ghostDodgeTimer++; if (ghostDodgeTimer >= 900) { ghostDodgeTimer = 0; ghostDodgeCharges = 5; } }
+      if (selectedSkin === 'fighter_ghost') { ghostDodgeTimer++; if (ghostDodgeTimer >= 900) { ghostDodgeTimer = 0; ghostDodgeCharges = 5; } }
       if (gameMode === 'bossrush') {
         // Boss Rush: 3 waves + DEATH
         if (!bossRushActive) {
@@ -14012,6 +14035,8 @@
       if (e.key === 'Tab' && gameState === 'playing') { e.preventDefault(); openShop(); return; }
       if (gameState !== 'playing') return;
       keys.add(e.key);
+      // The Hollow's sky laser is a SKIN ability, so S works on every character.
+      if (selectedSkin === 'fighter_hollow' && e.key.toLowerCase() === 's') toggleHollowLaser();
       if (selectedChar === 'soldier') {
         if (e.key === '1') performDash();
         if (e.key === '2') performGrenade();
@@ -14022,8 +14047,6 @@
         if (e.key === '2') performSlam();
         if (e.key === '3') performUltimate();
         if (e.key.toLowerCase() === 'f') performParry();
-        // The Hollow's sky laser — S toggles it, the pointer drags it.
-        if (e.key.toLowerCase() === 's') toggleHollowLaser();
       } else if (selectedChar === 'super') {
         if (e.key === '1') performSuperCharge();
         if (e.key === '2') performSuperBlast();
@@ -14225,7 +14248,7 @@
       var hasSummonAlly = false;
       for (var k in shopUpgrades) { if (k.indexOf('summon') === 0 && shopUpgrades[k] > 0) { hasSummonAlly = true; break; } }
       if (hasSummonAlly) { allySpawnTimer = ALLY_SPAWN_INTERVAL; }
-      PLAYER_MAX_HP_CURRENT = selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? Math.floor(90 * skinMaxHpMult()) : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? taoistMaxHp() : Math.floor(100 * fighterSkinHpMult());
+      PLAYER_MAX_HP_CURRENT = Math.floor((selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? taoistMaxHp() : 100) * skinHpMult());
       PLAYER_MAX_HP_CURRENT += getShopUpgradeEffect('maxHp');
       // Knight shield init
       if (selectedChar === 'knight') { knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { knightShieldHP = 0; knightShieldMax = 0; }
@@ -14404,7 +14427,7 @@
         btn.type = 'button';
         btn.className = 'text-left p-2 rounded-lg border-2 transition-colors ' + (equipped ? 'border-orange-400 bg-orange-900/40' : owned ? 'border-slate-600 bg-slate-700/50 hover:border-orange-400' : 'border-slate-700 bg-slate-800 hover:border-orange-500');
         var skCost = sk.price || sk.cost * SKIN_COST_MULT;
-        btn.innerHTML = '<div class="text-lg">' + sk.emoji + '</div><div class="text-[11px] font-bold text-white">' + sk.name + '</div><div class="text-[9px] text-slate-400 capitalize">' + sk.char + '</div><div class="text-[9px] text-orange-300">' + sk.desc + '</div><div class="text-[9px] mt-0.5 ' + (equipped ? 'text-emerald-400' : 'text-amber-400') + '">' + (equipped ? '✓ EQUIPPED' : owned ? 'Click to equip' : skCost + '🍬') + '</div>';
+        btn.innerHTML = '<div class="text-lg">' + sk.emoji + '</div><div class="text-[11px] font-bold text-white">' + sk.name + '</div><div class="text-[9px] text-slate-400">every character</div><div class="text-[9px] text-orange-300">' + sk.desc + '</div><div class="text-[9px] mt-0.5 ' + (equipped ? 'text-emerald-400' : 'text-amber-400') + '">' + (equipped ? '✓ EQUIPPED' : owned ? 'Click to equip' : skCost + '🍬') + '</div>';
         btn.addEventListener('click', function() {
           if (selectedSkin === sk.id) { selectedSkin = ''; saveSkins(); }
           else if (ownedSkins[sk.id]) { selectedSkin = sk.id; saveSkins(); }

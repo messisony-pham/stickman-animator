@@ -1379,14 +1379,15 @@ function run(file) {
       /id: 'fighter_hollow'[\s\S]{0,160}price: 150/.test(html) &&
       /var skCost = sk\.price \|\| sk\.cost \* SKIN_COST_MULT;/.test(html));
     check(file + ': the Hollow is +200% damage AND +200% speed',
-      /function hollowOn\(\) \{ return selectedChar === 'fighter' && selectedSkin === 'fighter_hollow'; \}/.test(html) &&
+      /function hollowOn\(\) \{ return selectedSkin === 'fighter_hollow'; \}/.test(html) &&
       /if \(hollowOn\(\)\) return 3;/.test(html) &&
       /\* \(hollowOn\(\) \? 3 : 1\)/.test(html));
     check(file + ': S drops a draggable mini sky laser for 4 dmg every 0.75s',
       num(/HOLLOW_LASER_DMG = (\d+)/) === 4 &&
       num(/HOLLOW_LASER_TICK = (\d+)/) === 45 &&
       /function toggleHollowLaser\(\)/.test(html) &&
-      /if \(e\.key\.toLowerCase\(\) === 's'\) toggleHollowLaser\(\);/.test(html) &&
+      // A SKIN ability, so S is bound outside the per-character branches.
+      /keys\.add\(e\.key\);\s*\/\/ The Hollow's sky laser is a SKIN ability[\s\S]{0,160}if \(selectedSkin === 'fighter_hollow' && e\.key\.toLowerCase\(\) === 's'\) toggleHollowLaser\(\);/.test(html) &&
       /hollowLaser\.x = Math\.max\(30, Math\.min\(CW - 30, mouseX\)\);/.test(html) &&
       /dealDamageToDummy\(d, HOLLOW_LASER_DMG, 'laser'\)/.test(html) &&
       /hollowLaser\.cd < HOLLOW_LASER_TICK/.test(html),
@@ -1394,8 +1395,35 @@ function run(file) {
     check(file + ': the beam is drawn and can be dragged by a finger too',
       /function drawHollowLaser\(\)/.test(html) &&
       /drawHollowLaser\(\); drawStickman\(\);/.test(html) &&
-      /addEventListener\('touchmove'[\s\S]{0,400}mouseX = \(t\.clientX - rect\.left\)/.test(html) &&
-      /if \(selectedChar === 'fighter'\) toggleHollowLaser\(\);/.test(html));
+      /addEventListener\('touchmove'[\s\S]{0,400}mouseX = \(t\.clientX - rect\.left\)/.test(html));
+    check(file + ': the phone gets its own S button for the Hollow ability',
+      /<button id="mobBtnS" class="mob-btn mob-ability" style="display:none;">S<\/button>/.test(html) &&
+      /function refreshMobSButton\(\)/.test(html) &&
+      /var want = hollowOn\(\) \? 'inline-flex' : 'none';/.test(html) &&
+      /refreshMobSButton\(\);/.test(html) &&
+      /mobTap\('mobBtnS', function\(\) \{ if \(gameState === 'playing' && hollowOn\(\)\) toggleHollowLaser\(\); \}\);/.test(html));
+
+    // ---- skins are universal -----------------------------------------------
+    check(file + ': every skin works on every character',
+      /if \(selectedSkin === 'fighter_werewolf'\)/.test(html) &&
+      /if \(selectedSkin === 'mage_witch'\) return 1\.2;/.test(html) &&
+      /if \(selectedSkin === 'hyper_spirit'\) return 2;/.test(html) &&
+      /if \(selectedSkin === 'phantom_reaper'\) return 1\.5;/.test(html) &&
+      /selectedSkin === 'phantom_reaper' \? 1\.5 : 1/.test(html) &&
+      /selectedSkin === 'fighter_zombie' \? 0\.88 : 1/.test(html) &&
+      /function vampireHeal\(dmg\) \{ if \(selectedSkin === 'ninja_vampire'\)/.test(html) &&
+      /if \(selectedSkin === 'fighter_ghost' && ghostDodgeCharges > 0\)/.test(html) &&
+      /if \(selectedSkin === 'fighter_ghost'\) \{ ghostDodgeTimer\+\+;/.test(html) &&
+      /if \(selectedChar === 'fighter' && selectedSkin ===/.test(html) === false,
+      'a leftover char+skin gate is still in the page');
+    check(file + ': the skin HP bonus applies to every character',
+      /function skinHpMult\(\) \{ return selectedSkin === 'fighter_zombie' \? 1\.25 : selectedSkin === 'soldier_skeleton' \? 1\.2 : 1; \}/.test(html) &&
+      /\: 100\) \* skinHpMult\(\)\);/.test(html) &&
+      /PLAYER_MAX_HP_CURRENT = Math\.floor\(PLAYER_MAX_HP_CURRENT \* skinHpMult\(\)\)/.test(html) &&
+      /skinMaxHpMult|fighterSkinHpMult/.test(html) === false);
+    check(file + ': the skin screen says the skins are universal',
+      /Every skin works on every character\./.test(html) &&
+      /every character<\/div>/.test(html));
 
     // ---- mobile drag sticks -------------------------------------------------
     check(file + ': punch and kick are drag sticks on the phone',
@@ -1425,6 +1453,13 @@ function run(file) {
       /el\.setPointerCapture\(e\.pointerId\)/.test(html));
     // Pressing fires at once, dragging aims, and holding keeps firing — so the stick
     // both shoots on press and keeps shooting while it is dragged around.
+    check(file + ': pause and shop moved to the left thumb side',
+      /style="left:max\(10px, env\(safe-area-inset-left\)\); top:52px;">\s*<button id="mobBtnPause"/.test(html) &&
+      /<!-- Pause \+ shop sit on the LEFT[\s\S]{0,300}id="mobBtnPause"/.test(html) &&
+      /style="right:max\(10px, env\(safe-area-inset-right\)\); top:52px;"/.test(html) === false);
+    check(file + ': the menu scrolls on a phone instead of clipping its buttons',
+      /#menuScreen \{ overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; \}/.test(html) &&
+      /@media \(max-width: 760px\) \{\s*#menuScreen \{ justify-content: flex-start; padding: 10px 0 26px; \}/.test(html));
     check(file + ': pressing and dragging fires, and holding keeps firing',
       num(/MOB_STICK_REPEAT_MS = (\d+)/) === 110 &&
       /\/\/ DRAGGING IS ATTACKING[\s\S]{0,400}fire\(\);/.test(html) &&
