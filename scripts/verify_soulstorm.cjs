@@ -1491,6 +1491,18 @@ function run(file) {
       /Ancient Colossal — a mountain of old stone and moss/.test(html) &&
       /var solX = cw \* 0\.34, lie = sidx >= 3;/.test(html) &&
       /His friend's grave: a rifle in the dirt/.test(html));
+    // The Hollow's beam is no longer a free toggle: 7s of laser, then 7s of cooldown,
+    // and cutting it short costs the same cooldown as letting it run out.
+    check(file + ': the sky laser burns for 7s then cools down for 7s',
+      num(/HOLLOW_LASER_BURN = (\d+)/) === 420 &&
+      num(/HOLLOW_LASER_COOLDOWN = (\d+)/) === 420 &&
+      /hollowLaser\.burn = HOLLOW_LASER_BURN;/.test(html) &&
+      /hollowLaser\.burn--;[\s\S]{0,120}endHollowLaser\('🔆 SKY LASER SPENT'\)/.test(html) &&
+      /hollowLaser\.cool = HOLLOW_LASER_COOLDOWN;/.test(html) &&
+      /if \(hollowLaser\.cool > 0\) \{[\s\S]{0,140}return;/.test(html) &&
+      /Math\.ceil\(hollowLaser\.cool \/ 60\)/.test(html) &&
+      /SKY LASER READY/.test(html),
+      'burn=' + num(/HOLLOW_LASER_BURN = (\d+)/) + ' cool=' + num(/HOLLOW_LASER_COOLDOWN = (\d+)/));
   });
 }
 

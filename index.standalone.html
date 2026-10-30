@@ -1420,20 +1420,46 @@
     // and is DRAGGED with the pointer — 4 damage every 0.75s to whatever stands under it.
     // Works on ANY character now, so the ability is bound on its own S button on a phone.
     const HOLLOW_LASER_DMG = 4, HOLLOW_LASER_TICK = 45, HOLLOW_LASER_RADIUS = 44;
-    let hollowLaser = { active: false, x: CW / 2, cd: 0 };
+    // The beam burns for 7 seconds (420 frames at 60fps), then it needs 7 seconds before
+    // S can call it down again — cutting it short still costs the full cooldown.
+    const HOLLOW_LASER_BURN = 420, HOLLOW_LASER_COOLDOWN = 420;
+    let hollowLaser = { active: false, x: CW / 2, cd: 0, burn: 0, cool: 0 };
     function hollowOn() { return selectedSkin === 'fighter_hollow'; }
+    function endHollowLaser(label) {
+      if (!hollowLaser.active) return;
+      hollowLaser.active = false;
+      hollowLaser.cd = 0;
+      hollowLaser.burn = 0;
+      hollowLaser.cool = HOLLOW_LASER_COOLDOWN;
+      if (label) createTextParticle(stick.x, stick.y - 82, label, '#94a3b8', 15);
+    }
     function toggleHollowLaser() {
       if (gameState !== 'playing' || !hollowOn()) return;
-      hollowLaser.active = !hollowLaser.active;
+      if (hollowLaser.active) { endHollowLaser('🔆 SKY LASER OFF'); return; }
+      if (hollowLaser.cool > 0) {
+        createTextParticle(stick.x, stick.y - 82, '🔆 LASER ' + Math.ceil(hollowLaser.cool / 60) + 's', '#94a3b8', 15);
+        return;
+      }
+      hollowLaser.active = true;
       hollowLaser.x = Math.max(40, Math.min(CW - 40, mouseX));
       hollowLaser.cd = 0;
-      createTextParticle(stick.x, stick.y - 82, hollowLaser.active ? '🔆 SKY LASER ON' : '🔆 SKY LASER OFF', '#a3e635', 15);
+      hollowLaser.burn = HOLLOW_LASER_BURN;
+      createTextParticle(stick.x, stick.y - 82, '🔆 SKY LASER ON', '#a3e635', 15);
       createParticles(hollowLaser.x, GROUND_Y - 10, 12, '#a3e635');
     }
     function updateHollowLaser() {
-      if (!hollowLaser.active) return;
+      if (!hollowLaser.active) {
+        if (hollowLaser.cool > 0) {
+          hollowLaser.cool--;
+          if (hollowLaser.cool === 0) createTextParticle(stick.x, stick.y - 82, '🔆 SKY LASER READY', '#a3e635', 15);
+        }
+        return;
+      }
       // Equipping something else (or dying) puts the beam away.
-      if (!hollowOn() || gameState !== 'playing') { hollowLaser.active = false; return; }
+      if (!hollowOn() || gameState !== 'playing') { endHollowLaser(null); return; }
+      // 7 seconds in the sky, then it shuts itself off and starts the cooldown.
+      hollowLaser.burn--;
+      if (hollowLaser.burn <= 0) { endHollowLaser('🔆 SKY LASER SPENT'); return; }
       // Draggable: the beam tracks the pointer, which is the mouse on a desktop and a
       // finger on a phone (the canvas touchmove handler feeds the same value).
       hollowLaser.x = Math.max(30, Math.min(CW - 30, mouseX));
@@ -14374,7 +14400,7 @@
       shopShieldCD = 0; shopShieldActive = 0;
       insaneBigTimer = 0; insaneEliteTimer = 0; insaneGiantTimer = 0; insaneColossalTimer = 0;
       halloweenMiniTimer = 0; halloweenBigTimer = 0;
-      hollowLaser.active = false; hollowLaser.cd = 0;
+      hollowLaser.active = false; hollowLaser.cd = 0; hollowLaser.burn = 0; hollowLaser.cool = 0;
       mobAimTimer = 0; mobAimHeld = 0; mobAim.x = 1; mobAim.y = 0;
       mageFireballs = []; mageFrostOrbs = []; lightningBolts = []; mageLightningCD = 0; mageFrostCD = 0; mageTeleportCD = 0; mageMeteorCD = 0; mageIceShielded = false; mageIceTimer = 0;
       gracePeriod = 300; playerLevel = 1;
