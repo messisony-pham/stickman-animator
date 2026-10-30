@@ -1467,6 +1467,30 @@ function run(file) {
       /function stopRepeat\(\) \{ if \(repeatId\) \{ clearInterval\(repeatId\); repeatId = null; \} \}/.test(html) &&
       /function release\(e\)[\s\S]{0,260}stopRepeat\(\)/.test(html),
       'repeat=' + num(/MOB_STICK_REPEAT_MS = (\d+)/));
+    // Soldier campaign story: the Gun Friend is killed by the Ancient Colossal in
+    // level 10, so levels 10-15 deploy no ally; level 15 is a week without food or
+    // water and the ending is the soldier dying once the Amethyst is down.
+    check(file + ': level 10 kills the Gun Friend, and gone is his ally from there on',
+      /var SOLDIER_FRIEND_DEATH_CUTSCENE = \[/.test(html) &&
+      /name: 'Level 10: The Giant Gunner',\s*cutscene: SOLDIER_FRIEND_DEATH_CUTSCENE,/.test(html) &&
+      /SOLDIER_FRIEND_DEATH_CUTSCENE = \[[\s\S]{0,1600}speaker: 'Ancient Colossal'/.test(html) &&
+      /SOLDIER_FRIEND_DEATH_CUTSCENE = \[[\s\S]{0,1600}stone fist comes down on your Gun Friend/.test(html) &&
+      (html.match(/gunFriend: true/g) || []).length === 4 &&
+      (html.match(/gunFriend: false/g) || []).length === 6,
+      'true=' + (html.match(/gunFriend: true/g) || []).length + ' false=' + (html.match(/gunFriend: false/g) || []).length);
+    check(file + ': level 15 is a week of no food and no drink',
+      /name: 'Level 15: The Amethyst',\s*cutscene: SOLDIER_FINAL_INTRO_CUTSCENE,/.test(html) &&
+      /A week has passed since the Ancient Colossal took your Gun Friend/.test(html) &&
+      /A week of fighting\. No food\. No drink\./.test(html));
+    check(file + ': the soldier says Finally and does not get up',
+      /\{ speaker: 'Soldier', color: '#4ade80', text: 'Finally\.', portrait: 'soldier' \}/.test(html) &&
+      /lies down on the field, and he does not get up again/.test(html) &&
+      /speaker: 'Narrator', color: '#22d3ee', text: 'A little further on, his Gun Friend is waiting for him\.'/.test(html));
+    check(file + ': both new scenes are painted, not just spoken',
+      /\} else if \(cutsceneData === SOLDIER_FRIEND_DEATH_CUTSCENE\) \{/.test(html) &&
+      /Ancient Colossal — a mountain of old stone and moss/.test(html) &&
+      /var solX = cw \* 0\.34, lie = sidx >= 3;/.test(html) &&
+      /His friend's grave: a rifle in the dirt/.test(html));
   });
 }
 

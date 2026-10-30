@@ -3457,17 +3457,29 @@
     ];
 
     // ===== SOLDIER'S WAR CAMPAIGN =====
-    // The blue Colossal that used to close the campaign in a cutscene is now the real
-    // final boss: this intro plays as THE AMETHYST descends, and SOLDIER_WIN_CUTSCENE
-    // is the aftermath once it is dead.
+    // Level 10 — the Ancient Colossal comes up out of the ground and kills the Gun
+    // Friend. From this level on the soldier fights alone (no gunFriend ally).
+    var SOLDIER_FRIEND_DEATH_CUTSCENE = [
+      { speaker: 'Gun Friend', color: '#22d3ee', text: 'That was the last one! We can go home, soldier!', portrait: 'gunfriend' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The ground splits open. Something ANCIENT climbs out of it.', portrait: 'narrator' },
+      { speaker: 'Ancient Colossal', color: '#a3e635', text: 'YOU. DO. NOT. GO. HOME.', portrait: 'ancientcolossal' },
+      { speaker: 'Narrator', color: '#ef4444', text: 'Its stone fist comes down on your Gun Friend. There is no time to shout.', portrait: 'ancientcolossal' },
+      { speaker: 'Gun Friend', color: '#22d3ee', text: 'Soldier... I cant... feel my legs...', portrait: 'gunfriend' },
+      { speaker: 'Gun Friend', color: '#22d3ee', text: 'Finish it... for the both of us...', portrait: 'gunfriend' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The Ancient Colossal drags the GIANT GUNNER out of the dirt and sinks back under the field.', portrait: 'narrator' },
+      { speaker: 'Soldier', color: '#4ade80', text: 'I will bury every one of you. FOR MY FRIEND!', portrait: 'soldier' },
+    ];
+
+    // Level 15 — a week later. This intro plays as THE AMETHYST descends, and
+    // SOLDIER_WIN_CUTSCENE is what is left once it is dead.
     var SOLDIER_FINAL_INTRO_CUTSCENE = [
-      { speaker: 'Narrator', color: '#94a3b8', text: 'Victory! The battlefield falls silent...', portrait: 'narrator' },
-      { speaker: 'Gun Friend', color: '#22d3ee', text: 'We did it, soldier! The war is finally over!', portrait: 'gunfriend' },
-      { speaker: '???', color: '#a855f7', text: 'Over? You forgot about ME.', portrait: 'bluecolossal' },
-      { speaker: 'Narrator', color: '#94a3b8', text: 'THE AMETHYST — a blue Colossal — crashes down and strikes your Gun Friend!', portrait: 'bluecolossal' },
-      { speaker: 'Gun Friend', color: '#22d3ee', text: 'Agh... soldier... avenge... me...', portrait: 'gunfriend' },
-      { speaker: 'Soldier', color: '#4ade80', text: 'NO! ... You will PAY for that!', portrait: 'soldier' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'A week has passed since the Ancient Colossal took your Gun Friend.', portrait: 'narrator' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'A week of fighting. No food. No drink.', portrait: 'narrator' },
+      { speaker: 'Soldier', color: '#4ade80', text: 'My hands are shaking... but I am still standing.', portrait: 'soldier' },
+      { speaker: '???', color: '#a855f7', text: 'Not for much longer.', portrait: 'bluecolossal' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'THE AMETHYST — a blue Colossal — crashes down in front of you.', portrait: 'bluecolossal' },
       { speaker: 'Narrator', color: '#ef4444', text: 'It jumps, it slams and it calls down cyan lightning — and it shrugs off 20% of everything.', portrait: 'narrator' },
+      { speaker: 'Soldier', color: '#4ade80', text: 'Then I finish this HUNGRY.', portrait: 'soldier' },
     ];
 
     var SOLDIER_CAMPAIGN_LEVELS = [
@@ -3568,12 +3580,9 @@
       },
       {
         name: 'Level 10: The Giant Gunner',
-        cutscene: [
-          { speaker: 'Narrator', color: '#94a3b8', text: 'The enemy deploys their ultimate weapon — the GIANT GUNNER!', portrait: 'narrator' },
-          { speaker: 'Soldier', color: '#4ade80', text: 'This ends now. FOR MY COUNTRY!', portrait: 'soldier' },
-        ],
+        cutscene: SOLDIER_FRIEND_DEATH_CUTSCENE,
         duration: 0, spawnInterval: 0, spawnCount: 0,
-        defeatGiantGunner: true, gunFriend: true
+        defeatGiantGunner: true, gunFriend: false
       },
       {
         name: 'Level 11: Shotgun Squad',
@@ -3583,7 +3592,7 @@
         ],
         duration: 3600, spawnInterval: 0, spawnCount: 0,
         specialSpawns: [{ type: 'shotgun', interval: 300 }],
-        gunFriend: true
+        gunFriend: false
       },
       {
         name: 'Level 12: Snipers & Shotguns',
@@ -3593,7 +3602,7 @@
         ],
         duration: 3600, spawnInterval: 0, spawnCount: 0,
         specialSpawns: [{ type: 'shotgun', interval: 420 }, { type: 'sniper', interval: 420 }],
-        gunFriend: true
+        gunFriend: false
       },
       {
         name: 'Level 13: Giant Gunners',
@@ -3603,7 +3612,7 @@
         ],
         duration: 3600, spawnInterval: 0, spawnCount: 0,
         specialSpawns: [{ type: 'giant_gunner', interval: 420 }],
-        gunFriend: true
+        gunFriend: false
       },
       {
         name: 'Level 14: Commander & Titan Gunner',
@@ -3614,25 +3623,27 @@
         duration: 0, spawnInterval: 0, spawnCount: 0,
         spawnCommanderAt: 300, commanderHP: 800,
         spawnTitanGunner: true, defeatTitanGunner: true,
-        gunFriend: true
+        gunFriend: false
       },
       {
         name: 'Level 15: The Amethyst',
         cutscene: SOLDIER_FINAL_INTRO_CUTSCENE,
         duration: 0, spawnInterval: 0, spawnCount: 0,
         spawnAmethyst: true,
-        gunFriend: true
+        gunFriend: false
       }
     ];
 
-    // Soldier campaign ending cutscene — played once the Amethyst (the blue Colossal
-    // from the old ending) is finally dead.
+    // Soldier campaign ending cutscene — the Amethyst dies, and so does he: a week
+    // without food or water has already taken everything the war left behind.
     var SOLDIER_WIN_CUTSCENE = [
       { speaker: 'Narrator', color: '#94a3b8', text: 'The Amethyst shatters. Its cyan lightning dies with it...', portrait: 'narrator' },
-      { speaker: 'Narrator', color: '#3b82f6', text: 'The blue Colossal is gone for good.', portrait: 'bluecolossal' },
-      { speaker: 'Soldier', color: '#4ade80', text: 'That was for you, Gun Friend. Rest now — the war is over.', portrait: 'soldier' },
-      { speaker: 'Narrator', color: '#ef4444', text: 'The soldiers are enraged no more. The battle is finally done...', portrait: 'narrator' },
-      { speaker: 'Narrator', color: '#facc15', text: 'TO BE CONTINUED...', portrait: 'trophy' },
+      { speaker: 'Soldier', color: '#4ade80', text: 'Hah... hah... it is done. It is finally done.', portrait: 'soldier' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'A week without food. A week without drink. His legs give way under him.', portrait: 'narrator' },
+      { speaker: 'Soldier', color: '#4ade80', text: 'Finally.', portrait: 'soldier' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The soldier lies down on the field, and he does not get up again.', portrait: 'narrator' },
+      { speaker: 'Narrator', color: '#22d3ee', text: 'A little further on, his Gun Friend is waiting for him.', portrait: 'gunfriend' },
+      { speaker: 'Narrator', color: '#facc15', text: 'THE END.', portrait: 'trophy' },
     ];
 
     // Cutscene rendering
@@ -3833,6 +3844,109 @@
           }
           cctx.textAlign = 'start';
         }
+      } else if (cutsceneData === SOLDIER_FRIEND_DEATH_CUTSCENE) {
+        // Level 10 — the Ancient Colossal crushes the Gun Friend in the dusk
+        var dIdx = cutsceneIndex;
+        var dGround = ch - 120;
+        var dSky = cctx.createLinearGradient(0, 0, 0, dGround);
+        dSky.addColorStop(0, '#1c0f22'); dSky.addColorStop(0.5, '#7c2d12'); dSky.addColorStop(1, '#f59e0b');
+        cctx.fillStyle = dSky; cctx.fillRect(0, 0, cw, dGround);
+        // sinking sun
+        cctx.globalAlpha = 0.7; cctx.fillStyle = '#fbbf24';
+        cctx.beginPath(); cctx.arc(cw * 0.52, dGround - 30, 56, Math.PI, Math.PI * 2); cctx.fill();
+        cctx.globalAlpha = 1;
+        // ground
+        var dGr = cctx.createLinearGradient(0, dGround, 0, ch);
+        dGr.addColorStop(0, '#1c1917'); dGr.addColorStop(1, '#0c0a09');
+        cctx.fillStyle = dGr; cctx.fillRect(0, dGround, cw, ch - dGround);
+        // embers drifting over the field
+        for (var de = 0; de < 24; de++) {
+          var dey = dGround - ((t * 0.012 + de * 37) % 210);
+          var dex = (de * 83 + 41) % cw;
+          cctx.globalAlpha = Math.max(0, 0.55 - (dGround - dey) / 420);
+          cctx.fillStyle = de % 3 ? '#f97316' : '#fde68a';
+          cctx.fillRect(dex, dey, 2, 2);
+        }
+        cctx.globalAlpha = 1;
+        cctx.lineJoin = 'round'; cctx.lineCap = 'round';
+        var dstruck = dIdx >= 3;
+        // Ancient Colossal — a mountain of old stone and moss
+        var acX = cw * 0.74, acY = dGround;
+        cctx.globalAlpha = 0.18 + Math.sin(t * 0.004) * 0.06; cctx.fillStyle = '#84cc16';
+        cctx.beginPath(); cctx.arc(acX, acY - 190, 120, 0, Math.PI * 2); cctx.fill(); cctx.globalAlpha = 1;
+        cctx.strokeStyle = '#78716c'; cctx.lineWidth = 14;
+        cctx.beginPath(); cctx.moveTo(acX, acY - 205); cctx.lineTo(acX, acY - 70); cctx.stroke();
+        cctx.beginPath(); cctx.moveTo(acX, acY - 70); cctx.lineTo(acX - 48, acY); cctx.stroke();
+        cctx.beginPath(); cctx.moveTo(acX, acY - 70); cctx.lineTo(acX + 48, acY); cctx.stroke();
+        // moss growing on the stone
+        cctx.strokeStyle = '#65a30d'; cctx.lineWidth = 6;
+        cctx.beginPath(); cctx.moveTo(acX - 10, acY - 190); cctx.lineTo(acX + 10, acY - 150); cctx.stroke();
+        // head: a cracked slab with one glowing socket
+        cctx.fillStyle = '#57534e';
+        cctx.beginPath(); cctx.moveTo(acX - 34, acY - 250); cctx.lineTo(acX + 34, acY - 250); cctx.lineTo(acX + 26, acY - 198); cctx.lineTo(acX - 26, acY - 198); cctx.closePath(); cctx.fill();
+        cctx.fillStyle = '#a3e635';
+        cctx.beginPath(); cctx.arc(acX + 10, acY - 228, 5, 0, Math.PI * 2); cctx.fill();
+        // the arm: swinging over the field before the strike, buried in it after
+        cctx.strokeStyle = '#78716c'; cctx.lineWidth = 12;
+        var armDrop = dstruck ? 62 : Math.sin(t * 0.004) * 10;
+        cctx.beginPath(); cctx.moveTo(acX - 6, acY - 170); cctx.lineTo(acX - 74, acY - 130 + armDrop); cctx.stroke();
+        cctx.fillStyle = '#a8a29e';
+        cctx.beginPath(); cctx.arc(acX - 74, acY - 130 + armDrop, 22, 0, Math.PI * 2); cctx.fill();
+        // Gun Friend — standing, then under that fist
+        var dfX = cw * 0.4;
+        if (!dstruck) {
+          cctx.strokeStyle = '#22d3ee'; cctx.lineWidth = 5;
+          cctx.beginPath(); cctx.arc(dfX, acY - 120, 12, 0, Math.PI * 2); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dfX, acY - 108); cctx.lineTo(dfX, acY - 70); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dfX, acY - 100); cctx.lineTo(dfX - 16, acY - 88); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dfX, acY - 100); cctx.lineTo(dfX + 16, acY - 88); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dfX, acY - 70); cctx.lineTo(dfX - 12, acY - 46); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dfX, acY - 70); cctx.lineTo(dfX + 12, acY - 46); cctx.stroke();
+          cctx.strokeStyle = '#94a3b8'; cctx.lineWidth = 3;
+          cctx.beginPath(); cctx.moveTo(dfX + 12, acY - 92); cctx.lineTo(dfX + 34, acY - 96); cctx.stroke();
+          cctx.fillStyle = '#22d3ee'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
+          cctx.fillText('GUN FRIEND', dfX, acY - 148);
+        } else {
+          cctx.strokeStyle = '#22d3ee'; cctx.lineWidth = 5;
+          cctx.beginPath(); cctx.arc(dfX - 30, acY - 10, 11, 0, Math.PI * 2); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dfX - 20, acY - 10); cctx.lineTo(dfX + 42, acY - 8); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dfX + 42, acY - 8); cctx.lineTo(dfX + 64, acY - 2); cctx.stroke();
+          cctx.strokeStyle = '#94a3b8'; cctx.lineWidth = 3;
+          cctx.beginPath(); cctx.moveTo(dfX + 66, acY - 6); cctx.lineTo(dfX + 94, acY - 12); cctx.stroke();
+          cctx.fillStyle = '#22d3ee'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
+          cctx.fillText('GUN FRIEND', dfX + 16, acY - 42);
+          // dust thrown up by the strike
+          for (var du = 0; du < 8; du++) {
+            var dua = du / 8 * Math.PI * 2;
+            cctx.globalAlpha = 0.35 + Math.sin(t * 0.01 + du) * 0.2;
+            cctx.fillStyle = '#78716c';
+            cctx.beginPath(); cctx.arc(acX - 74 + Math.cos(dua) * 46, acY - 4 + Math.sin(dua) * 10, 10, 0, Math.PI * 2); cctx.fill();
+          }
+          cctx.globalAlpha = 1;
+        }
+        // the soldier, off to the left — on his feet until his friend is gone
+        var dsX = cw * 0.18;
+        if (dIdx < 5) {
+          cctx.strokeStyle = '#4ade80'; cctx.lineWidth = 4;
+          cctx.beginPath(); cctx.arc(dsX, acY - 96, 10, 0, Math.PI * 2); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 86); cctx.lineTo(dsX, acY - 54); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 78); cctx.lineTo(dsX - 14, acY - 88); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 78); cctx.lineTo(dsX + 14, acY - 68); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 54); cctx.lineTo(dsX - 10, acY - 34); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 54); cctx.lineTo(dsX + 10, acY - 34); cctx.stroke();
+        } else {
+          // kneeling beside him
+          cctx.strokeStyle = '#4ade80'; cctx.lineWidth = 4;
+          cctx.beginPath(); cctx.arc(dsX, acY - 66, 10, 0, Math.PI * 2); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 56); cctx.lineTo(dsX, acY - 26); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 46); cctx.lineTo(dsX - 16, acY - 34); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 46); cctx.lineTo(dsX + 16, acY - 34); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 26); cctx.lineTo(dsX - 14, acY - 4); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(dsX, acY - 26); cctx.lineTo(dsX + 14, acY - 4); cctx.stroke();
+        }
+        cctx.fillStyle = '#4ade80'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
+        cctx.fillText('SOLDIER', dsX, acY - 124);
+        cctx.textAlign = 'start';
       } else if (cutsceneData === SOLDIER_WIN_CUTSCENE) {
         // Soldier ending — battlefield with a giant blue Colossal & fallen Gun Friend
         cctx.fillStyle = '#0a0f1a'; cctx.fillRect(0, 0, cw, ch);
@@ -3849,67 +3963,88 @@
         }
         cctx.globalAlpha = 1;
         var sidx = cutsceneIndex;
-        var bcz = sidx >= 3; // after the strike
-        // Blue Colossal (right side) — big
-        var colX = bcz ? cw * 0.72 : cw * 0.78;
-        var colY = ch - 130;
-        var cSwing = bcz ? 0 : Math.sin(t * 0.004) * 0.3;
-        // aura
-        cctx.globalAlpha = 0.12 + Math.sin(t * 0.004) * 0.05; cctx.fillStyle = '#3b82f6';
-        cctx.beginPath(); cctx.arc(colX, colY - 120, 90, 0, Math.PI * 2); cctx.fill(); cctx.globalAlpha = 1;
-        cctx.lineJoin = 'round'; cctx.lineCap = 'round';
-        cctx.strokeStyle = '#60a5fa'; cctx.lineWidth = 9;
-        cctx.beginPath(); cctx.arc(colX, colY - 220, 26, 0, Math.PI * 2); cctx.stroke(); // head
-        cctx.fillStyle = '#ef4444';
-        cctx.beginPath(); cctx.arc(colX + (bcz ? -8 : 8), colY - 222, 4, 0, Math.PI * 2); cctx.fill(); // eye
-        cctx.strokeStyle = '#3b82f6'; cctx.lineWidth = 12;
-        cctx.beginPath(); cctx.moveTo(colX, colY - 194); cctx.lineTo(colX, colY - 80); cctx.stroke(); // body
-        // arm swinging down
-        cctx.beginPath(); cctx.moveTo(colX, colY - 160); cctx.lineTo(colX - 40 + cSwing * 40, colY - 90 + (bcz ? 40 : 0)); cctx.stroke();
-        // giant fist
-        cctx.fillStyle = '#93c5fd';
-        cctx.beginPath(); cctx.arc(colX - 40 + cSwing * 40, colY - 90 + (bcz ? 40 : 0), 16, 0, Math.PI * 2); cctx.fill();
-        // legs
-        cctx.beginPath(); cctx.moveTo(colX, colY - 80); cctx.lineTo(colX - 40, colY + 20); cctx.stroke();
-        cctx.beginPath(); cctx.moveTo(colX, colY - 80); cctx.lineTo(colX + 40, colY + 20); cctx.stroke();
-        // Gun Friend (cyan) — standing before strike, lying after
-        var gfX = cw * 0.42;
-        if (!bcz) {
-          cctx.strokeStyle = '#22d3ee'; cctx.lineWidth = 5;
-          cctx.beginPath(); cctx.arc(gfX, colY - 120, 12, 0, Math.PI * 2); cctx.stroke();
-          cctx.beginPath(); cctx.moveTo(gfX, colY - 108); cctx.lineTo(gfX, colY - 70); cctx.stroke();
-          cctx.beginPath(); cctx.moveTo(gfX, colY - 100); cctx.lineTo(gfX - 16, colY - 88); cctx.stroke();
-          cctx.beginPath(); cctx.moveTo(gfX, colY - 100); cctx.lineTo(gfX + 16, colY - 88); cctx.stroke();
-          cctx.beginPath(); cctx.moveTo(gfX, colY - 70); cctx.lineTo(gfX - 12, colY - 48); cctx.stroke();
-          cctx.beginPath(); cctx.moveTo(gfX, colY - 70); cctx.lineTo(gfX + 12, colY - 48); cctx.stroke();
-          cctx.fillStyle = '#22d3ee'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
-          cctx.fillText('GUN FRIEND', gfX, colY - 150);
-        } else {
-          // lying down + weapon dropped
-          cctx.strokeStyle = '#22d3ee'; cctx.lineWidth = 5;
-          cctx.beginPath(); cctx.arc(gfX - 30, colY - 12, 11, 0, Math.PI * 2); cctx.stroke(); // head
-          cctx.beginPath(); cctx.moveTo(gfX - 20, colY - 12); cctx.lineTo(gfX + 40, colY - 10); cctx.stroke(); // body
-          cctx.beginPath(); cctx.moveTo(gfX + 40, colY - 10); cctx.lineTo(gfX + 62, colY - 2); cctx.stroke();
-          cctx.beginPath(); cctx.moveTo(gfX + 40, colY - 10); cctx.lineTo(gfX + 62, colY - 20); cctx.stroke();
-          cctx.strokeStyle = '#94a3b8'; cctx.lineWidth = 3;
-          cctx.beginPath(); cctx.moveTo(gfX + 70, colY - 6); cctx.lineTo(gfX + 96, colY - 10); cctx.stroke(); // dropped gun
-          cctx.fillStyle = '#22d3ee'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
-          cctx.fillText('GUN FRIEND', gfX + 20, colY - 44);
+        var eGround = ch - 120;
+        // Night over the finished battlefield: stars, a low moon
+        for (var es = 0; es < 46; es++) {
+          var esx = (es * 97 + 13) % cw, esy = (es * 41 + 7) % (eGround - 40);
+          cctx.globalAlpha = 0.22 + Math.sin(t * 0.0015 + es) * 0.18;
+          cctx.fillStyle = '#cbd5e1'; cctx.fillRect(esx, esy, 1.6, 1.6);
         }
-        // Angry soldiers (green) on the left
-        if (sidx >= 5) {
-          for (var sd = 0; sd < 3; sd++) {
-            var sx2 = 90 + sd * 60, sbob = Math.sin(t * 0.02 + sd) * 4;
-            cctx.strokeStyle = '#4ade80'; cctx.lineWidth = 4;
-            cctx.beginPath(); cctx.arc(sx2, colY - 96 + sbob, 10, 0, Math.PI * 2); cctx.stroke();
-            cctx.beginPath(); cctx.moveTo(sx2, colY - 86 + sbob); cctx.lineTo(sx2, colY - 54 + sbob); cctx.stroke();
-            cctx.beginPath(); cctx.moveTo(sx2, colY - 78 + sbob); cctx.lineTo(sx2 - 14, colY - 92 + sbob); cctx.stroke(); // raised fist
-            cctx.beginPath(); cctx.moveTo(sx2, colY - 78 + sbob); cctx.lineTo(sx2 + 14, colY - 92 + sbob); cctx.stroke();
-            cctx.beginPath(); cctx.moveTo(sx2, colY - 54 + sbob); cctx.lineTo(sx2 - 10, colY - 34 + sbob); cctx.stroke();
-            cctx.beginPath(); cctx.moveTo(sx2, colY - 54 + sbob); cctx.lineTo(sx2 + 10, colY - 34 + sbob); cctx.stroke();
-            cctx.fillStyle = '#ef4444'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
-            cctx.fillText('!', sx2, colY - 112 + sbob);
+        cctx.globalAlpha = 0.8; cctx.fillStyle = '#e2e8f0';
+        cctx.beginPath(); cctx.arc(cw * 0.8, 78, 24, 0, Math.PI * 2); cctx.fill();
+        cctx.globalAlpha = 1;
+        cctx.lineJoin = 'round'; cctx.lineCap = 'round';
+        // The Amethyst — whole on the first line, raining shards after it
+        if (sidx === 0) {
+          var aX = cw * 0.74, aY = eGround;
+          cctx.globalAlpha = 0.16 + Math.sin(t * 0.006) * 0.06; cctx.fillStyle = '#a855f7';
+          cctx.beginPath(); cctx.arc(aX, aY - 200, 110, 0, Math.PI * 2); cctx.fill(); cctx.globalAlpha = 1;
+          cctx.strokeStyle = '#a855f7'; cctx.lineWidth = 11;
+          cctx.beginPath(); cctx.arc(aX, aY - 300, 30, 0, Math.PI * 2); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(aX, aY - 270); cctx.lineTo(aX, aY - 110); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(aX, aY - 240); cctx.lineTo(aX - 62, aY - 160); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(aX, aY - 240); cctx.lineTo(aX + 62, aY - 160); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(aX, aY - 110); cctx.lineTo(aX - 52, aY); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(aX, aY - 110); cctx.lineTo(aX + 52, aY); cctx.stroke();
+          // the killing cracks spread as the line plays
+          var crack2 = Math.min(1, (t - cutsceneLineAt) / 1200);
+          cctx.strokeStyle = '#f0abfc'; cctx.lineWidth = 4;
+          cctx.beginPath(); cctx.moveTo(aX - 20, aY - 264); cctx.lineTo(aX + 6, aY - 210); cctx.lineTo(aX - 14, aY - 160); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(aX + 24, aY - 232); cctx.lineTo(aX - 4, aY - 180); cctx.stroke();
+          cctx.globalAlpha = 0.35 + Math.sin(t * 0.02) * 0.3; cctx.strokeStyle = '#e879f9';
+          cctx.beginPath(); cctx.arc(aX, aY - 200, 60 + crack2 * 70, 0, Math.PI * 2); cctx.stroke(); cctx.globalAlpha = 1;
+        } else {
+          for (var sh = 0; sh < 10; sh++) {
+            var shp = ((t * 0.00035 + sh * 0.13) % 1);
+            var shx = cw * 0.5 + sh * 28;
+            var shy = eGround - (1 - shp) * 230;
+            cctx.globalAlpha = 0.85 * (1 - shp * 0.7);
+            cctx.fillStyle = sh % 2 ? '#a855f7' : '#c084fc';
+            cctx.save(); cctx.translate(shx, shy); cctx.rotate(sh + t * 0.002);
+            cctx.fillRect(-5, -8, 10, 16);
+            cctx.restore();
           }
+          cctx.globalAlpha = 0.5; cctx.fillStyle = '#a855f7';
+          for (var sd2 = 0; sd2 < 6; sd2++) cctx.fillRect(cw * 0.44 + sd2 * 40, eGround - 5, 9, 5);
+          cctx.globalAlpha = 1;
+        }
+        // The soldier — swaying on his feet until he says 'Finally', then lying down
+        var solX = cw * 0.34, lie = sidx >= 3;
+        if (!lie) {
+          var sway = Math.sin(t * 0.003) * 2;
+          cctx.strokeStyle = '#4ade80'; cctx.lineWidth = 5;
+          cctx.beginPath(); cctx.arc(solX + sway, eGround - 96, 11, 0, Math.PI * 2); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(solX, eGround - 84); cctx.lineTo(solX - 2, eGround - 44); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(solX, eGround - 74); cctx.lineTo(solX - 16 + sway, eGround - 60); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(solX, eGround - 74); cctx.lineTo(solX + 16 + sway, eGround - 60); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(solX - 2, eGround - 44); cctx.lineTo(solX - 12, eGround); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(solX - 2, eGround - 44); cctx.lineTo(solX + 10, eGround); cctx.stroke();
+          // the rifle still in his hands, barrel drooping
+          cctx.strokeStyle = '#94a3b8'; cctx.lineWidth = 3;
+          cctx.beginPath(); cctx.moveTo(solX - 18, eGround - 40); cctx.lineTo(solX + 24, eGround - 2); cctx.stroke();
+          cctx.fillStyle = '#4ade80'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
+          cctx.fillText('SOLDIER', solX, eGround - 118);
+        } else {
+          // he lies down where he stood
+          cctx.strokeStyle = '#4ade80'; cctx.lineWidth = 5;
+          cctx.beginPath(); cctx.arc(solX - 34, eGround - 10, 10, 0, Math.PI * 2); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(solX - 24, eGround - 10); cctx.lineTo(solX + 34, eGround - 8); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(solX + 34, eGround - 8); cctx.lineTo(solX + 56, eGround - 16); cctx.stroke();
+          cctx.beginPath(); cctx.moveTo(solX - 8, eGround - 10); cctx.lineTo(solX - 22, eGround - 2); cctx.stroke();
+          cctx.strokeStyle = '#94a3b8'; cctx.lineWidth = 3;
+          cctx.beginPath(); cctx.moveTo(solX + 40, eGround - 4); cctx.lineTo(solX + 74, eGround - 8); cctx.stroke();
+          cctx.fillStyle = '#4ade80'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
+          cctx.fillText('SOLDIER', solX + 4, eGround - 44);
+        }
+        // His friend's grave: a rifle in the dirt with a helmet on top of it
+        if (sidx >= 5) {
+          var gvX = cw * 0.62;
+          cctx.strokeStyle = '#475569'; cctx.lineWidth = 4;
+          cctx.beginPath(); cctx.moveTo(gvX, eGround); cctx.lineTo(gvX, eGround - 56); cctx.stroke();
+          cctx.fillStyle = '#22d3ee';
+          cctx.beginPath(); cctx.arc(gvX, eGround - 62, 9, Math.PI, Math.PI * 2); cctx.fill();
+          cctx.font = 'bold 11px monospace'; cctx.textAlign = 'center';
+          cctx.fillText('GUN FRIEND', gvX, eGround - 78);
         }
         cctx.textAlign = 'start';
       } else {
@@ -4648,7 +4783,7 @@
         var reward = campaignLevel * 200;
         totalPoints += reward; savePoints();
         if (soldierFinal) {
-          // Ending cutscene: a blue Colossal strikes down the Gun Friend, gunners rage
+          // Ending cutscene: the Amethyst dies — and so does the starving soldier
           gameState = 'cutscene'; campaignMode = false;
           scoreEl.textContent = '🏆 YOU WIN!'; killsEl.textContent = '';
           setTimeout(function() {
