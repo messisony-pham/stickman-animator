@@ -746,7 +746,7 @@
         <button id="mobBtnE" class="mob-btn mob-ability">E</button>
         <button id="mobBtnSoulStormE" class="mob-btn mob-ability" style="display:none;">E</button>
       </div>
-      <!-- Punch and kick are joysticks: drag the stick where you want to hit, let go. -->
+      <!-- Punch and kick are joysticks: press to hit, drag to aim, keep holding to keep firing. -->
       <div class="flex gap-2 items-center">
         <div id="mobBtnAtk" class="mob-stick" data-stick="punch"><span class="mob-stick-icon">👊</span><span class="mob-knob"></span></div>
         <div id="mobBtnKick" class="mob-stick" data-stick="kick"><span class="mob-stick-icon">🦵</span><span class="mob-knob"></span></div>
@@ -1372,7 +1372,9 @@
     const SKINS = [
       { id: 'fighter_ghost', char: 'fighter', name: 'Ghost', emoji: '👻', cost: 10, desc: 'Dodge 5 hits / 15s' },
       { id: 'fighter_werewolf', char: 'fighter', name: 'Werewolf', emoji: '🐺', cost: 15, desc: 'Claws: +35% DMG under 50% HP' },
-      { id: 'fighter_hollow', char: 'fighter', name: 'The Hollow', emoji: '🎃', cost: 20, desc: '×3 DMG & SPD · S: SKY LASER' },
+      // The Hollow is priced explicitly: it is the one skin that does NOT take the
+      // 50% candy discount, it costs a flat 150.
+      { id: 'fighter_hollow', char: 'fighter', name: 'The Hollow', emoji: '🎃', cost: 20, price: 150, desc: '×3 DMG & SPD · S: SKY LASER' },
       { id: 'fighter_zombie', char: 'fighter', name: 'Zombie', emoji: '🧟', cost: 12, desc: 'Undead: +25% HP, −12% SPD' },
       { id: 'soldier_skeleton', char: 'soldier', name: 'Skeleton', emoji: '💀', cost: 10, desc: 'Soldier +20% HP' },
       { id: 'mage_witch', char: 'mage', name: 'Witch', emoji: '🧙', cost: 13, desc: 'Mage +20% DMG' },
@@ -3088,22 +3090,22 @@
     // follows the thumb and the drag sets which way you face, so a phone player can pick
     // a target instead of only hitting whatever happens to be in front. A plain tap (no
     // real drag) still throws the straight attack, so mashing keeps working.
-    const MOB_STICK_RADIUS = 30, MOB_STICK_DEADZONE = 6;
+    const MOB_STICK_RADIUS = 30, MOB_STICK_DEADZONE = 6, MOB_STICK_REPEAT_MS = 110;
     function mobStick(id, fire) {
       var el = document.getElementById(id);
       if (!el) return;
       var knob = el.querySelector('.mob-knob');
-      var active = null;
+      var active = null, repeatId = null;
       function setKnob(dx, dy) { if (knob) knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; }
+      function stopRepeat() { if (repeatId) { clearInterval(repeatId); repeatId = null; } }
+      function repeatFire() { if (active) fire(); }
       function release(e) {
         if (!active) return;
         if (e && e.cancelable) e.preventDefault();
-        var dx = active.dx;
         active = null;
+        stopRepeat();
         el.classList.remove('mob-drag');
         setKnob(0, 0);
-        if (Math.abs(dx) > MOB_STICK_DEADZONE) stick.facing = dx > 0 ? 1 : -1;
-        fire();
       }
       el.addEventListener('pointerdown', function (e) {
         if (e && e.cancelable) e.preventDefault();
@@ -3112,6 +3114,12 @@
         try { el.setPointerCapture(e.pointerId); } catch (err) {}
         el.classList.add('mob-drag');
         setKnob(0, 0);
+        // DRAGGING IS ATTACKING: the first hit leaves the moment you press, and holding
+        // the stick keeps firing in whatever direction you drag it. Each character's own
+        // attack cooldown still decides how often that actually lands.
+        fire();
+        stopRepeat();
+        repeatId = setInterval(repeatFire, MOB_STICK_REPEAT_MS);
       });
       el.addEventListener('pointermove', function (e) {
         if (!active || e.pointerId !== active.id) return;
@@ -14358,7 +14366,7 @@
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'text-left p-2 rounded-lg border-2 transition-colors ' + (equipped ? 'border-orange-400 bg-orange-900/40' : owned ? 'border-slate-600 bg-slate-700/50 hover:border-orange-400' : 'border-slate-700 bg-slate-800 hover:border-orange-500');
-        var skCost = sk.cost * SKIN_COST_MULT;
+        var skCost = sk.price || sk.cost * SKIN_COST_MULT;
         btn.innerHTML = '<div class="text-lg">' + sk.emoji + '</div><div class="text-[11px] font-bold text-white">' + sk.name + '</div><div class="text-[9px] text-slate-400 capitalize">' + sk.char + '</div><div class="text-[9px] text-orange-300">' + sk.desc + '</div><div class="text-[9px] mt-0.5 ' + (equipped ? 'text-emerald-400' : 'text-amber-400') + '">' + (equipped ? '✓ EQUIPPED' : owned ? 'Click to equip' : skCost + '🍬') + '</div>';
         btn.addEventListener('click', function() {
           if (selectedSkin === sk.id) { selectedSkin = ''; saveSkins(); }

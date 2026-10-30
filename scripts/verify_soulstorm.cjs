@@ -1375,6 +1375,9 @@ function run(file) {
     // ---- The Hollow ---------------------------------------------------------
     check(file + ': the Hollow skin is in the skin grid',
       /id: 'fighter_hollow', char: 'fighter', name: 'The Hollow'/.test(html));
+    check(file + ': the Hollow costs a flat 150 candy',
+      /id: 'fighter_hollow'[\s\S]{0,160}price: 150/.test(html) &&
+      /var skCost = sk\.price \|\| sk\.cost \* SKIN_COST_MULT;/.test(html));
     check(file + ': the Hollow is +200% damage AND +200% speed',
       /function hollowOn\(\) \{ return selectedChar === 'fighter' && selectedSkin === 'fighter_hollow'; \}/.test(html) &&
       /if \(hollowOn\(\)\) return 3;/.test(html) &&
@@ -1407,8 +1410,15 @@ function run(file) {
       /if \(Math\.abs\(dx\) > MOB_STICK_DEADZONE\) stick\.facing = dx > 0 \? 1 : -1;/.test(html) &&
       /el\.addEventListener\('pointermove'/.test(html) &&
       /el\.setPointerCapture\(e\.pointerId\)/.test(html));
-    check(file + ': a plain tap still fires the attack',
-      /function release\(e\)[\s\S]{0,420}fire\(\);/.test(html));
+    // Pressing fires at once, dragging aims, and holding keeps firing — so the stick
+    // both shoots on press and keeps shooting while it is dragged around.
+    check(file + ': pressing and dragging fires, and holding keeps firing',
+      num(/MOB_STICK_REPEAT_MS = (\d+)/) === 110 &&
+      /\/\/ DRAGGING IS ATTACKING[\s\S]{0,400}fire\(\);/.test(html) &&
+      /repeatId = setInterval\(repeatFire, MOB_STICK_REPEAT_MS\);/.test(html) &&
+      /function stopRepeat\(\) \{ if \(repeatId\) \{ clearInterval\(repeatId\); repeatId = null; \} \}/.test(html) &&
+      /function release\(e\)[\s\S]{0,260}stopRepeat\(\)/.test(html),
+      'repeat=' + num(/MOB_STICK_REPEAT_MS = (\d+)/));
   });
 }
 
