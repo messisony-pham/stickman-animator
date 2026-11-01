@@ -1503,6 +1503,122 @@ function run(file) {
       /Math\.ceil\(hollowLaser\.cool \/ 60\)/.test(html) &&
       /SKY LASER READY/.test(html),
       'burn=' + num(/HOLLOW_LASER_BURN = (\d+)/) + ' cool=' + num(/HOLLOW_LASER_COOLDOWN = (\d+)/));
+
+    // ---- 100 achievements + the saved record -------------------------------
+    // Counted off the source so the total can never drift from the copy that says 100.
+    var achTiers = (html.match(/goals: \[([^\]]+)\]/g) || []).map(function (g) {
+      return g.replace(/[^,]/g, '').length + 1; // commas + 1 = number of tiers
+    });
+    var achSum = achTiers.reduce(function (a, b) { return a + b; }, 0);
+    check(file + ': there are exactly 100 achievements',
+      achSum === 100 &&
+      achTiers.length === 14 &&
+      /var ACH_TOTAL = ACHIEVEMENTS\.length;/.test(html) &&
+      /var ACH_TRACKS = \[/.test(html) &&
+      /ACHIEVEMENTS\.push\(\{/.test(html),
+      'tiers=' + achTiers.length + ' total=' + achSum);
+    check(file + ': achievements are recorded, not just shown',
+      /var ACH_KEY = 'sm_ach_unlocked';/.test(html) &&
+      /achRecord\[a\.id\] = Date\.now\(\);/.test(html) &&
+      /localStorage\.setItem\(ACH_KEY, JSON\.stringify\(achRecord\)\)/.test(html) &&
+      /when\.toLocaleDateString\(\)/.test(html) &&
+      /if \(time % 30 === 0\) checkAchievements\(true\);/.test(html) &&
+      /lifeBump\('bosses'\)/.test(html));
+    check(file + ': the record screen filters all / unlocked / locked',
+      /id="achList"/.test(html) &&
+      /data-achfilter="all"/.test(html) &&
+      /data-achfilter="unlocked"/.test(html) &&
+      /data-achfilter="locked"/.test(html) &&
+      /function setAchFilter\(f\)/.test(html) &&
+      /function renderAchievements\(\)/.test(html) &&
+      /btn\.addEventListener\('click', function \(\) \{ setAchFilter\(btn\.getAttribute\('data-achfilter'\)\); \}\)/.test(html));
+
+    // ---- Adapt trait -------------------------------------------------------
+    check(file + ': Adapt is a mythic trait worth x7.5 damage',
+      /\{ id: 'adapt',\s+name: 'Adapt',\s+emoji: '🧬',\s+rarity: 'mythic',\s+weight: 0\.25,\s+mult: 7\.5,/.test(html) &&
+      /id: 'adapt',[\s\S]{0,140}rarity: 'mythic'/.test(html) &&
+      /mythic:    \{ label: 'Mythic',/.test(html));
+
+    // ---- Multiverse map + its song -----------------------------------------
+    check(file + ': the multiverse map exists and is painted',
+      /if \(activeBg === 'multiverse'\) \{/.test(html) &&
+      /Perspective grid floor/.test(html) &&
+      /Ringed planet/.test(html) &&
+      /id="bgSetMultiverse"/.test(html) &&
+      /bgMultiBtn\.addEventListener\('click', function\(\) \{ selectBg\('multiverse'\); \}\)/.test(html) &&
+      /halloween: 'bgSetHalloween', multiverse: 'bgSetMultiverse'/.test(html));
+    check(file + ': the multiverse map brings a banger of its own',
+      /function multiverseBar\(ac, dest, t0, bar, step\)/.test(html) &&
+      num(/multiverse: \{ bpm: (\d+)/) === 140 &&
+      num(/multiverse: \{ bpm: \d+, vol: 0\.(\d+)/) >= 30 &&
+      /case 'multiverse': return 'multiverse';/.test(html) &&
+      /\{ id: 'multiverse',\s+name: 'Multiverse Collapse'/.test(html) &&
+      /if \(s % 4 === 0\) _mKick\(ac, dest, t, 0\.72\);/.test(html));
+
+    // ---- one button per family of screens ----------------------------------
+    check(file + ': rank, music, map and skin live behind ONE Customize button',
+      /id="customizeBtn"/.test(html) &&
+      /id="customizeScreen"/.test(html) &&
+      /data-custo="skin"/.test(html) &&
+      /data-custo="music"/.test(html) &&
+      /data-custo="bg"/.test(html) &&
+      /data-custo="rank"/.test(html) &&
+      /function openCustomizeTab\(tab\)/.test(html) &&
+      /function backToCustomize\(\)/.test(html) &&
+      /document\.getElementById\('skinClose'\)\.addEventListener\('click', function\(\) \{ backToCustomize\(\); \}\)/.test(html) &&
+      /document\.getElementById\('musicClose'\)\.addEventListener\('click', function\(\) \{ backToCustomize\(\); \}\)/.test(html) &&
+      /document\.getElementById\('rankClose'\)\.addEventListener\('click', function\(\) \{ backToCustomize\(\); \}\)/.test(html) &&
+      // the single old buttons are gone
+      /id="skinBtn"/.test(html) === false &&
+      /id="musicBtn"/.test(html) === false &&
+      /id="rankListBtn"/.test(html) === false);
+    check(file + ': the Background grid is hosted by the Map tab',
+      /id="bgGridHost"/.test(html) &&
+      /function moveBgGrid\(\) \{\s*var host = document\.getElementById\('bgGridHost'\);/.test(html) &&
+      /var block = document\.getElementById\('bgBlock'\);/.test(html) &&
+      /if \(host && block && block\.parentNode !== host\) host\.appendChild\(block\);/.test(html));
+    check(file + ': Daily and Taoist quests share one Quests button with tabs',
+      /id="questsBtn"/.test(html) &&
+      /id="questScreen"/.test(html) &&
+      /data-quest="daily"/.test(html) &&
+      /data-quest="taoist"/.test(html) &&
+      /function openQuestsTab\(tab\)/.test(html) &&
+      /function backToQuests\(\)/.test(html) &&
+      /document\.getElementById\('dailyQuestClose'\)\.addEventListener\('click', function\(\) \{ backToQuests\(\); \}\)/.test(html) &&
+      /document\.getElementById\('taoistQuestClose'\)\.addEventListener\('click', function\(\) \{ backToQuests\(\); \}\)/.test(html) &&
+      /id="dailyQuestBtn"/.test(html) === false &&
+      /id="taoistQuestBtn"/.test(html) === false);
+
+    // ---- INSANE rework -----------------------------------------------------
+    check(file + ': insane spawns 5 x 100 HP dummies every 5s',
+      num(/BIG_DUMMY_HP = (\d+)/) === 100 &&
+      num(/INSANE_BIG_COUNT = (\d+)/) === 5 &&
+      num(/INSANE_BIG_INTERVAL = (\d+)/) === 300 &&
+      /for \(var bi = 0; bi < INSANE_BIG_COUNT; bi\+\+\)/.test(html) &&
+      /var nd = createDummy\(bx, \{ big: true, hp: BIG_DUMMY_HP, speed: BIG_DUMMY_SPD \}\);/.test(html) &&
+      // The advertised 100 HP is enforced after createDummy, which would otherwise apply
+      // the mode's 1.5x and make the wave 150 HP.
+      /nd\.hp = nd\.maxHp = BIG_DUMMY_HP;/.test(html) &&
+      /dummies\.push\(nd\);/.test(html),
+      'hp=' + num(/BIG_DUMMY_HP = (\d+)/) + ' count=' + num(/INSANE_BIG_COUNT = (\d+)/));
+    check(file + ': insane fields the 3 boss-rush heavyweights together',
+      num(/INSANE_TRIO_INTERVAL = (\d+)/) === 3600 &&
+      /function spawnInsaneTrio\(\)/.test(html) &&
+      /type: 'giant'/.test(html) &&
+      /type: 'colossal', animTime: 0, vy: 0, dmgReduction: COLOSSAL_RESIST/.test(html) &&
+      /type: 'amethyst', animTime: 0, vy: 0, state: 'chase', dmgReduction: AMETHYST_RESIST/.test(html) &&
+      /if \(insaneTrioTimer >= INSANE_TRIO_INTERVAL\) \{ insaneTrioTimer = 0; spawnInsaneTrio\(\); \}/.test(html) &&
+      /3 STRONG BOSSES — BOSS RUSH TRIO/.test(html) &&
+      /spawnInsaneGiant\(\)/.test(html) === false);
+
+    // ---- phone jump button ------------------------------------------------
+    var dpadAt = html.indexOf('id="dpadArea"');
+    var actAt = html.indexOf('id="actionArea"');
+    check(file + ': the phone JUMP button moved to the right thumb',
+      actAt > dpadAt &&
+      /id="dpadJump"/.test(html.slice(actAt, actAt + 400)) &&
+      /dpadJump/.test(html.slice(dpadAt, actAt)) === false &&
+      /\.mob-jump \{ width: 150px; height: 44px;/.test(html));
   });
 }
 

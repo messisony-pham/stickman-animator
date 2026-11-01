@@ -80,7 +80,8 @@
     }
     .mob-btn.mob-down { transform: scale(0.9); background: rgba(250,204,21,0.55); border-color: rgba(255,255,255,0.95); }
     .mob-dir { width: 54px; height: 54px; font-size: 18px; }
-    .mob-jump { width: 100%; height: 44px; border-radius: 14px; font-size: 13px; letter-spacing: .04em; }
+    /* JUMP sits with the RIGHT thumb cluster (attacks live there), not over the move pad. */
+    .mob-jump { width: 150px; height: 44px; border-radius: 14px; font-size: 13px; letter-spacing: .04em; }
     .mob-ability { width: 40px; height: 40px; border-radius: 12px; font-size: 11px; }
     .mob-big { width: 62px; height: 62px; font-size: 22px; }
     .mob-small { width: 38px; height: 38px; border-radius: 12px; font-size: 14px; }
@@ -152,7 +153,7 @@
     @media (max-width: 400px) {
       #dpadArea { width: 104px; }
       .mob-dir { width: 46px; height: 46px; }
-      .mob-jump { height: 40px; }
+      .mob-jump { height: 40px; width: 128px; }
       #mobAbilityRow { gap: 4px; }
       .mob-ability { width: 34px; height: 34px; font-size: 10px; }
       .mob-big { width: 56px; height: 56px; font-size: 20px; }
@@ -161,7 +162,7 @@
     }
     @media (orientation: landscape) and (max-height: 560px) {
       .mob-dir { width: 50px; height: 50px; }
-      .mob-jump { height: 38px; }
+      .mob-jump { height: 38px; width: 132px; }
       .mob-ability { width: 36px; height: 36px; }
       .mob-big { width: 56px; height: 56px; }
       .mob-stick { width: 58px; height: 58px; }
@@ -290,14 +291,12 @@
       </div>
       <div class="flex gap-2 justify-center mb-3 flex-wrap">
         <button id="settingsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-300 font-bold text-sm transition-all hover:border-slate-400 hover:text-white">⚙️ Settings</button>
-        <button id="skinBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-400 text-purple-300 font-bold text-sm transition-all hover:border-purple-300">👕 Skin</button>
+        <button id="customizeBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-400 text-purple-300 font-bold text-sm transition-all hover:border-purple-300 hover:text-purple-100">🎛️ Customize</button>
+        <button id="achievementsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-yellow-400 text-yellow-300 font-bold text-sm transition-all hover:border-yellow-300 hover:text-yellow-100">🏆 Achievements</button>
         <button id="halloweenShopBtn" class="hidden px-4 py-1.5 rounded-lg bg-orange-800 border-2 border-orange-500 text-orange-100 font-bold text-sm transition-all hover:border-orange-300">🎃 Spooky Shop</button>
         <button id="pumpkinBossBtn" class="hidden px-4 py-1.5 rounded-lg bg-red-900 border-2 border-orange-500 text-orange-100 font-bold text-sm transition-all hover:border-orange-300">🎃 Fight Boss</button>
         <button id="campaignBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-500 text-purple-400 font-bold text-sm transition-all hover:border-purple-400 hover:text-purple-300">📖 Campaign</button>
-        <button id="musicBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-cyan-400 text-cyan-300 font-bold text-sm transition-all hover:border-cyan-300 hover:text-cyan-100">🎵 Music</button>
-        <button id="rankListBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-amber-400 text-amber-300 font-bold text-sm transition-all hover:border-amber-300 hover:text-amber-100">🎖️ Rank</button>
-        <button id="dailyQuestBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-400 text-emerald-300 font-bold text-sm transition-all hover:border-emerald-300 hover:text-emerald-100">📅 Daily</button>
-        <button id="taoistQuestBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-lime-400 text-lime-300 font-bold text-sm transition-all hover:border-lime-300 hover:text-lime-100">☯️ Taoist Quest</button>
+        <button id="questsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-400 text-emerald-300 font-bold text-sm transition-all hover:border-emerald-300 hover:text-emerald-100">📜 Quests</button>
       </div>
       <button id="playBtn" class="px-10 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-orange-500/30 mb-4">
         ▶ PLAY
@@ -317,11 +316,69 @@
     </div>
   </div>
 
+  <!-- Customize Hub — one button, four tabs. Each tab opens the real panel on top
+       of this hub and that panel's Done button comes back here. -->
+  <div id="customizeScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
+    <div class="bg-slate-800 border-2 border-purple-500 rounded-2xl p-6 w-[420px] max-w-[95vw] shadow-2xl max-h-[92dvh] overflow-y-auto">
+      <h2 class="text-white font-bold text-xl mb-1 text-center">🎛️ CUSTOMIZE</h2>
+      <p class="text-[10px] text-slate-400 text-center mb-4">Skins, music, map and rank — pick a tab.</p>
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <button data-custo="skin" class="custoBtn py-3 rounded-xl bg-slate-700 border-2 border-orange-500 text-orange-200 font-bold text-sm transition-all hover:border-orange-300">👕<br><span class="text-[11px]">Skin</span></button>
+        <button data-custo="music" class="custoBtn py-3 rounded-xl bg-slate-700 border-2 border-cyan-500 text-cyan-200 font-bold text-sm transition-all hover:border-cyan-300">🎵<br><span class="text-[11px]">Music</span></button>
+        <button data-custo="bg" class="custoBtn py-3 rounded-xl bg-slate-700 border-2 border-emerald-500 text-emerald-200 font-bold text-sm transition-all hover:border-emerald-300">🗺️<br><span class="text-[11px]">Map</span></button>
+        <button data-custo="rank" class="custoBtn py-3 rounded-xl bg-slate-700 border-2 border-amber-500 text-amber-200 font-bold text-sm transition-all hover:border-amber-300">🎖️<br><span class="text-[11px]">Rank</span></button>
+      </div>
+      <p id="customizeSummary" class="text-[10px] text-slate-500 text-center leading-relaxed">—</p>
+      <button id="customizeClose" class="w-full mt-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-all">✅ Done</button>
+    </div>
+  </div>
+
+  <!-- Map / Background picker (its grid is moved here from Settings) -->
+  <div id="bgScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
+    <div class="bg-slate-800 border-2 border-emerald-500 rounded-2xl p-5 w-[400px] max-w-[95vw] shadow-2xl max-h-[92dvh] overflow-y-auto">
+      <h2 class="text-white font-bold text-lg mb-1 text-center">🗺️ MAP</h2>
+      <p class="text-[10px] text-slate-400 text-center mb-3">Each map brings its own music.</p>
+      <div id="bgGridHost"></div>
+      <button id="bgClose" class="w-full mt-3 py-2 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-bold text-sm transition-all">⬅ Back</button>
+    </div>
+  </div>
+
+  <!-- Quests Hub — Daily and Taoist behind one button, with tabs -->
+  <div id="questScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
+    <div class="bg-slate-800 border-2 border-emerald-500 rounded-2xl p-6 w-[420px] max-w-[95vw] shadow-2xl max-h-[92dvh] overflow-y-auto">
+      <h2 class="text-white font-bold text-xl mb-1 text-center">📜 QUESTS</h2>
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <button data-quest="daily" class="questBtn py-2 rounded-xl bg-slate-700 border-2 border-emerald-500 text-emerald-200 font-bold text-sm transition-all hover:border-emerald-300">📅 Daily</button>
+        <button data-quest="taoist" class="questBtn py-2 rounded-xl bg-slate-700 border-2 border-lime-500 text-lime-200 font-bold text-sm transition-all hover:border-lime-300">☯️ Taoist</button>
+      </div>
+      <p id="questSummary" class="text-[10px] text-slate-400 text-center leading-relaxed mb-1">—</p>
+      <button id="questClose" class="w-full mt-2 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-all">✅ Done</button>
+    </div>
+  </div>
+
+  <!-- Achievement record -->
+  <div id="achievementScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.88);">
+    <div class="bg-slate-800 border-2 border-yellow-500 rounded-2xl p-5 w-[460px] max-w-[96vw] shadow-2xl max-h-[92dvh] flex flex-col">
+      <h2 class="text-white font-bold text-lg text-center">🏆 ACHIEVEMENTS</h2>
+      <p class="text-[10px] text-slate-400 text-center mb-2">Unlocked <span id="achUnlocked" class="text-yellow-300 font-bold">0</span>/<span id="achTotal">100</span> · every unlock is saved on this device</p>
+      <div class="w-full bg-slate-900 rounded-full h-2 mb-2"><div id="achBar" class="bg-yellow-400 h-2 rounded-full" style="width:0%"></div></div>
+      <div class="flex gap-1.5 mb-2">
+        <button data-achfilter="all" class="achFilter flex-1 py-1 rounded-lg border-2 text-[10px] font-bold border-yellow-400 text-yellow-200">All</button>
+        <button data-achfilter="unlocked" class="achFilter flex-1 py-1 rounded-lg border-2 text-[10px] font-bold border-slate-600 text-slate-300">Unlocked</button>
+        <button data-achfilter="locked" class="achFilter flex-1 py-1 rounded-lg border-2 text-[10px] font-bold border-slate-600 text-slate-300">Locked</button>
+      </div>
+      <div id="achList" class="space-y-1 overflow-y-auto flex-1" style="min-height:180px;"></div>
+      <button id="achClose" class="w-full mt-2 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-all">✅ Done</button>
+    </div>
+  </div>
+
   <!-- Settings Overlay -->
   <div id="settingsScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.75);">
     <div class="bg-slate-800 border-2 border-slate-600 rounded-2xl p-6 w-80 max-w-[92vw] shadow-2xl max-h-[92dvh] overflow-y-auto">
       <h2 class="text-white font-bold text-lg mb-4 text-center">⚙️ Settings</h2>
-      <div class="mb-4">
+      <!-- The whole Background block is moved into the Customize → Map tab on load,
+           so it lives in one place instead of being split across two menus. -->
+      <div id="bgBlock" class="mb-4">
         <p class="text-slate-300 text-sm font-bold mb-2">Background</p>
         <div class="grid grid-cols-3 gap-2">
           <button id="bgSetPlain" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🌳 Plain</button>
@@ -338,6 +395,7 @@
           <button id="bgSetMoistHill" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">⛰️ Moist Hill</button>
           <button id="bgSetShockyRoad" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">⚡ Shocky Road</button>
           <button id="bgSetHalloween" class="bgSettingBtn hidden py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-orange-400">🎃 Halloween</button>
+          <button id="bgSetMultiverse" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-fuchsia-500 text-fuchsia-200 text-xs font-bold transition-all hover:border-fuchsia-300">🌌 Multiverse</button>
           <button id="bgSetCheese" class="bgSettingBtn bgSetLocked py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🧀 Cheese 🔒</button>
         </div>
         <p id="bgCheeseHint" class="text-[9px] text-slate-500 mt-1 text-center hidden">🧀 Unlock Cheese background with code: CHEESEHOLY</p>
@@ -735,16 +793,16 @@
   <!-- Mobile Controls Overlay — laid out so both thumbs reach everything on a
        phone held sideways, and so the two clusters never overlap on a 320px screen. -->
   <div id="mobileControls" class="fixed inset-0 hidden pointer-events-none" style="z-index:35;">
-    <!-- Movement pad (left thumb): jump above, left/right below -->
+    <!-- Movement pad (left thumb): left/right only — jumping moved to the right thumb -->
     <div id="dpadArea" class="absolute pointer-events-auto flex flex-col" style="left:max(10px, env(safe-area-inset-left)); bottom:max(10px, env(safe-area-inset-bottom));">
-      <button id="dpadJump" class="mob-btn mob-jump mb-1.5">▲ JUMP</button>
       <div class="flex gap-2 justify-center">
         <button id="dpadLeft" class="mob-btn mob-dir">◀</button>
         <button id="dpadRight" class="mob-btn mob-dir">▶</button>
       </div>
     </div>
-    <!-- Action pad (right thumb): abilities above, attacks below -->
+    <!-- Action pad (right thumb): jump above, abilities, attacks below -->
     <div id="actionArea" class="absolute pointer-events-auto flex flex-col items-end" style="right:max(10px, env(safe-area-inset-right)); bottom:max(10px, env(safe-area-inset-bottom));">
+      <button id="dpadJump" class="mob-btn mob-jump mb-1.5">▲ JUMP</button>
       <div id="mobAbilityRow" class="flex mb-1.5">
         <button id="mobBtn1" class="mob-btn mob-ability">1</button>
         <button id="mobBtn2" class="mob-btn mob-ability">2</button>
@@ -1568,7 +1626,8 @@
       { id: 'super',     name: 'Super',     emoji: '🌟',  rarity: 'epic',      weight: 5.5 / 3, mult: 2.1, color: '#f472b6', desc: 'Fighter/Super/Hyper get ×1.5 more DMG (×3.2)' },
       { id: 'absolute',  name: 'Absolute',  emoji: '🛡️', rarity: 'legendary', weight: 2 / 2,  mult: 3.0,  color: '#fbbf24', desc: '3s IMMORTAL every 10s' },
       { id: 'cosmic',    name: 'Cosmic',    emoji: '🌌',  rarity: 'legendary', weight: 2 / 2,  mult: 3.5,  color: '#818cf8' },
-      { id: 'cheese',    name: 'Cheese',    emoji: '🧀',  rarity: 'mythic',    weight: 0.5,    mult: 5.0,  color: '#eab308' }
+      { id: 'cheese',    name: 'Cheese',    emoji: '🧀',  rarity: 'mythic',    weight: 0.5,    mult: 5.0,  color: '#eab308' },
+      { id: 'adapt',     name: 'Adapt',     emoji: '🧬',  rarity: 'mythic',    weight: 0.25,   mult: 7.5,  color: '#22d3ee', desc: '×7.5 DMG — the strongest roll in the game' }
     ];
     const RARITY_META = {
       common:    { label: 'Common',    color: '#94a3b8' },
@@ -1731,7 +1790,7 @@
     // Shop "Auto Shield" upgrade: brief total immunity on a 10s cycle.
     let shopShieldCD = 0, shopShieldActive = 0;
     // Insane-mode spawn clocks (frames @60fps).
-    let insaneBigTimer = 0, insaneEliteTimer = 0, insaneGiantTimer = 0, insaneColossalTimer = 0;
+    let insaneBigTimer = 0, insaneEliteTimer = 0, insaneTrioTimer = 0;
     // Halloween mode's two pumpkin clocks (mini every 3s, big every 9s).
     let halloweenMiniTimer = 0, halloweenBigTimer = 0;
     let mageFireballs = [], mageFrostOrbs = [], lightningBolts = [], mageLightningCD = 0, mageFrostCD = 0, mageTeleportCD = 0, mageMeteorCD = 0, mageIceShielded = false, mageIceTimer = 0;
@@ -2549,6 +2608,37 @@
         if (s === 7 || s === 13) _mNote(ac, dest, 1318.51, 'sine', 0.028, t, step * 0.4);
       }
     }
+    // ===== MULTIVERSE — 140 BPM synthwave banger: four-on-the-floor, gated pad,
+    // octave-bouncing bass and a 16th-note saw arp that climbs every phrase.
+    var MV_ROOTS = [110.00, 87.31, 130.81, 98.00]; // A2 F2 C3 G2
+    var MV_ARP = [440.00, 523.25, 659.26, 880.00, 659.26, 523.25, 440.00, 392.00];
+    function multiverseBar(ac, dest, t0, bar, step) {
+      var root = MV_ROOTS[bar % MV_ROOTS.length];
+      // Wide sustained pad (root + fifth + octave) under everything
+      _mViolin(ac, dest, root, 0.05, t0, step * 16);
+      _mViolin(ac, dest, root * 1.5, 0.045, t0, step * 16);
+      _mViolin(ac, dest, root * 2, 0.035, t0, step * 16);
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        // Four on the floor, snare on 2 and 4
+        if (s % 4 === 0) _mKick(ac, dest, t, 0.72);
+        if (s % 4 === 2) _mSnare(ac, dest, t, 0.42);
+        if (s % 4 === 1) _mHat(ac, dest, t, 0.11);
+        // Octave-bouncing sub bass
+        _mNote(ac, dest, (s % 4 === 2 ? root * 2 : root), 'sawtooth', 0.17, t, step * 0.55);
+        // 16th-note saw arp, an octave up in the second half of each phrase
+        _mNote(ac, dest, MV_ARP[s % MV_ARP.length] * (bar % 8 > 3 ? 2 : 1), 'square', 0.05, t, step * 0.8);
+        // Bright stabs on the 1 and the 3-and
+        if (s === 0 || s === 10) {
+          _mDist(ac, dest, root * 2, 0.085, t, step * 1.4);
+          _mDist(ac, dest, root * 3, 0.065, t, step * 1.4);
+        }
+        if (s === 15 && bar % 4 === 3) _mTom(ac, dest, t, 0.36);
+      }
+      // Rising lead run into the next phrase + an airy sweep at the top of each 8
+      if (bar % 4 === 3) _mNote(ac, dest, 1318.51, 'sawtooth', 0.055, t0 + step * 13, step * 3);
+      if (bar % 8 === 0) _mNoise(ac, dest, t0, 0.55, 5200, 0.1);
+    }
     var THEME_TRACKS = {
       chill: { bpm: 84, vol: 0.3, rain: false, bar: chillBar },
       desert: { bpm: 108, vol: 0.3, rain: false, bar: desertBar },
@@ -2569,7 +2659,8 @@
       pumpkin_midhi: { bpm: 126, vol: 0.32, rain: false, bar: pumpkinMidHighBar },
       pumpkin_boss: { bpm: 188, vol: 0.34, rain: false, bar: pumpkinBangerBar },
       pumpkin_soul: { bpm: 210, vol: 0.46, rain: false, bar: pumpkinSoulBar },
-      bossrush: { bpm: 196, vol: 0.36, rain: false, bar: bossrushBar }
+      bossrush: { bpm: 196, vol: 0.36, rain: false, bar: bossrushBar },
+      multiverse: { bpm: 140, vol: 0.34, rain: false, bar: multiverseBar }
     };
     function startThemeMusic(theme) {
       if (!theme) return;
@@ -2623,6 +2714,7 @@
         case 'desert': return 'desert';
         case 'cave': return 'cave';
         case 'landscape': return 'landscape';
+        case 'multiverse': return 'multiverse';
         default: return 'chill'; // plain + house
       }
     }
@@ -3007,7 +3099,7 @@
         btn.classList.remove('ring-2', 'ring-amber-400');
         btn.classList.add('border-slate-600');
       });
-      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', desert: 'bgSetDesert', cave: 'bgSetCave', landscape: 'bgSetLandscape', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween' };
+      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', desert: 'bgSetDesert', cave: 'bgSetCave', landscape: 'bgSetLandscape', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween', multiverse: 'bgSetMultiverse' };
       var el = document.getElementById(map[b]);
       if (el) { el.classList.add('ring-2', 'ring-amber-400'); el.classList.remove('border-slate-600'); }
     }
@@ -3333,6 +3425,7 @@
     document.getElementById('bgSetHouse').addEventListener('click', function() { selectBg('house'); });
     var bgDesertBtn = document.getElementById('bgSetDesert'); if (bgDesertBtn) bgDesertBtn.addEventListener('click', function() { selectBg('desert'); });
     var bgCaveBtn = document.getElementById('bgSetCave'); if (bgCaveBtn) bgCaveBtn.addEventListener('click', function() { selectBg('cave'); });
+    var bgMultiBtn = document.getElementById('bgSetMultiverse'); if (bgMultiBtn) bgMultiBtn.addEventListener('click', function() { selectBg('multiverse'); });
     var bgLandscapeBtn = document.getElementById('bgSetLandscape'); if (bgLandscapeBtn) bgLandscapeBtn.addEventListener('click', function() { selectBg('landscape'); });
     document.getElementById('bgSetVolcano').addEventListener('click', function() { selectBg('volcano'); });
     document.getElementById('bgSetFlamePit').addEventListener('click', function() { selectBg('flame_pit'); });
@@ -5341,8 +5434,12 @@
     // and the ANCIENT COLOSSAL (halves all damage it takes) every 100s.
     const INSANE_ENEMY_MULT = 1.5;
     const INSANE_BIG_INTERVAL = 300, INSANE_ELITE_INTERVAL = 720;
-    const INSANE_GIANT_INTERVAL = 1500, INSANE_COLOSSAL_INTERVAL = 6000;
-    const BIG_DUMMY_HP = 260, BIG_DUMMY_SPD = 0.8;
+    // INSANE now fields the three BOSS RUSH heavyweights together every minute instead of
+    // growing one giant at a time: the Giant, the Ancient Colossal and the Amethyst.
+    const INSANE_TRIO_INTERVAL = 3600; // 60s
+    const INSANE_TRIO_HP_MULT = 0.85;  // a touch softer than the solo campaign versions
+    const INSANE_BIG_COUNT = 5;
+    const BIG_DUMMY_HP = 100, BIG_DUMMY_SPD = 0.8;
     const DARK_NINJA_HP = 110, DARK_NINJA_SPD = 3.1, DARK_NINJA_DMG = 14, DARK_NINJA_KUNAI_DMG = 9, DARK_NINJA_CD = 110;
     const SUPER_SPEED_HP = 180, SUPER_TANK_HP = 900;
     const GIANT_HP = 750, GIANT_DMG = 45;
@@ -8112,7 +8209,7 @@
       createParticles(boss.x, GROUND_Y - 30, 8, c);
       var bossFloor = boss.type === 'darkuniverse' ? (boss.minHp || -500) : 0;
       if (boss.hp <= bossFloor) {
-        boss.alive = false; kills++; totalKills++;
+        boss.alive = false; kills++; totalKills++; lifeBump('bosses');
         if (boss.type === 'darkuniverse') {
           phantomMissionActive = false; darkOrbs = [];
           createTextParticle(CW / 2, CH / 2 - 40, '🌑 DARK UNIVERSE DEFEATED!', '#a78bfa', 30);
@@ -8995,11 +9092,18 @@
     }
     // ==================== INSANE MODE SPAWNER ====================
     function spawnInsaneBigDummies() {
-      for (var bi = 0; bi < 2; bi++) {
-        var bx = Math.random() > 0.5 ? -60 - bi * 50 : CW + 60 + bi * 50;
-        dummies.push(createDummy(bx, { big: true, hp: BIG_DUMMY_HP, speed: BIG_DUMMY_SPD }));
+      // Five 100 HP dummies every 5s, alternating in from both edges in a loose column.
+      for (var bi = 0; bi < INSANE_BIG_COUNT; bi++) {
+        var fromLeft = bi % 2 === 0;
+        var step = Math.floor(bi / 2);
+        var bx = fromLeft ? -60 - step * 55 : CW + 60 + step * 55;
+        var nd = createDummy(bx, { big: true, hp: BIG_DUMMY_HP, speed: BIG_DUMMY_SPD });
+        // These five are exactly 100 HP as advertised — the insane 1.5x is not applied to
+        // them, or the wave would read as 150 HP and the label would be a lie.
+        nd.hp = nd.maxHp = BIG_DUMMY_HP;
+        dummies.push(nd);
       }
-      createTextParticle(CW / 2, 50, '🟣 2 BIG DUMMIES!', '#a855f7', 16);
+      createTextParticle(CW / 2, 50, '🟣 ' + INSANE_BIG_COUNT + ' DUMMIES (' + BIG_DUMMY_HP + ' HP)!', '#a855f7', 16);
       createParticles(CW / 2, GROUND_Y, 12, '#a855f7');
     }
     function spawnInsaneElites() {
@@ -9009,23 +9113,26 @@
       createTextParticle(CW / 2, 50, '⚡ SUPER SPEED + 🛡 SUPER TANK!', '#c084fc', 16);
       createParticles(CW / 2, GROUND_Y, 16, '#c084fc');
     }
-    function spawnInsaneGiant() {
-      miniBosses.push({ x: stick.x > CW / 2 ? 110 : CW - 110, y: GROUND_Y, hp: GIANT_HP, maxHp: GIANT_HP, speed: 1.3, attackCD: 60, hitFlash: 0, alive: true, facing: 1, type: 'giant', animTime: 0, vy: 0 });
-      createTextParticle(CW / 2, 60, '💀 THE GIANT — ' + GIANT_HP + ' HP!', '#7c3aed', 24);
-      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 400);
-    }
-    function spawnInsaneColossal() {
-      miniBosses.push({ x: stick.x > CW / 2 ? 130 : CW - 130, y: GROUND_Y, hp: COLOSSAL_HP, maxHp: COLOSSAL_HP, speed: 0.9, attackCD: 90, hitFlash: 0, alive: true, facing: 1, type: 'colossal', animTime: 0, vy: 0, dmgReduction: COLOSSAL_RESIST });
-      createTextParticle(CW / 2, 60, '🌋 ANCIENT COLOSSAL — ' + COLOSSAL_HP + ' HP', '#0e7490', 22);
-      createTextParticle(CW / 2, 92, '🛡 50% RESIST · ' + COLOSSAL_DMG + ' DMG', '#22d3ee', 14);
+    // The three BOSS RUSH heavyweights, on the field at the same time.
+    function spawnInsaneTrio() {
+      if (miniBosses.some(function(m) { return m.alive && (m.type === 'giant' || m.type === 'colossal' || m.type === 'amethyst'); })) return;
+      var side = function(off) { return stick.x > CW / 2 ? off : CW - off; };
+      var gHp = Math.round(GIANT_HP * INSANE_TRIO_HP_MULT);
+      var cHp = Math.round(COLOSSAL_HP * INSANE_TRIO_HP_MULT);
+      var aHp = Math.round(AMETHYST_HP * INSANE_TRIO_HP_MULT);
+      miniBosses.push({ x: side(110), y: GROUND_Y, hp: gHp, maxHp: gHp, speed: 1.3, attackCD: 60, hitFlash: 0, alive: true, facing: 1, type: 'giant', animTime: 0, vy: 0 });
+      miniBosses.push({ x: side(230), y: GROUND_Y, hp: cHp, maxHp: cHp, speed: 0.9, attackCD: 90, hitFlash: 0, alive: true, facing: 1, type: 'colossal', animTime: 0, vy: 0, dmgReduction: COLOSSAL_RESIST });
+      miniBosses.push({ x: CW / 2, y: GROUND_Y, hp: aHp, maxHp: aHp, speed: AMETHYST_SPD, attackCD: 150, hitFlash: 0, alive: true, facing: -1, type: 'amethyst', animTime: 0, vy: 0, state: 'chase', dmgReduction: AMETHYST_RESIST, jumpCount: 0, contactCD: 0 });
+      createTextParticle(CW / 2, 60, '💀 3 STRONG BOSSES — BOSS RUSH TRIO!', '#a855f7', 24);
+      createTextParticle(CW / 2, 92, '💀 GIANT ' + gHp + ' · 🌋 COLOSSAL ' + cHp + ' · 💠 AMETHYST ' + aHp, '#c084fc', 13);
+      createParticles(CW / 2, GROUND_Y, 40, '#a855f7');
       canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 600);
     }
     function updateInsaneSpawns() {
-      insaneBigTimer++; insaneEliteTimer++; insaneGiantTimer++; insaneColossalTimer++;
+      insaneBigTimer++; insaneEliteTimer++; insaneTrioTimer++;
       if (insaneBigTimer >= INSANE_BIG_INTERVAL) { insaneBigTimer = 0; spawnInsaneBigDummies(); }
       if (insaneEliteTimer >= INSANE_ELITE_INTERVAL) { insaneEliteTimer = 0; spawnInsaneElites(); }
-      if (insaneGiantTimer >= INSANE_GIANT_INTERVAL && !miniBosses.some(function(m) { return m.alive && m.type === 'giant'; })) { insaneGiantTimer = 0; spawnInsaneGiant(); }
-      if (insaneColossalTimer >= INSANE_COLOSSAL_INTERVAL && !miniBosses.some(function(m) { return m.alive && m.type === 'colossal'; })) { insaneColossalTimer = 0; spawnInsaneColossal(); }
+      if (insaneTrioTimer >= INSANE_TRIO_INTERVAL) { insaneTrioTimer = 0; spawnInsaneTrio(); }
     }
     // Bought Auto Shield: 2s of total immunity (+1s per extra shop level) every 10s.
     function updateShopShield() {
@@ -10010,6 +10117,7 @@
       updateHollowLaser();
       updateMobAim();
       refreshMobSButton();
+      if (time % 30 === 0) checkAchievements(true);
       if (gameMode === 'insane' && !campaignMode && !phantomMissionActive) updateInsaneSpawns();
       if (halloweenOn() && !campaignMode && !phantomMissionActive) updateHalloweenSpawns();
       tickCandyFromKills();
@@ -10798,6 +10906,71 @@
           var dsy = 60 + ((ds * 37) % (GROUND_Y - 80));
           ctx.fillRect(dsx, dsy, 2, 2);
         }
+      }
+      // ===== MULTIVERSE — deep space: drifting nebulae, a starfield, a ringed planet,
+      // portal rings and a perspective grid floor rushing toward the player.
+      if (activeBg === 'multiverse') {
+        var mvSky = ctx.createLinearGradient(0, 0, 0, GROUND_Y + 15);
+        mvSky.addColorStop(0, '#06010f');
+        mvSky.addColorStop(0.5, '#1b0740');
+        mvSky.addColorStop(1, '#2d1060');
+        ctx.fillStyle = mvSky; ctx.fillRect(0, 0, CW, GROUND_Y + 15);
+        // Nebula clouds
+        for (var nb = 0; nb < 3; nb++) {
+          var nbx = ((nb * 300 + time * (0.12 + nb * 0.04)) % (CW + 400)) - 200;
+          var nby = 90 + nb * 58;
+          var ng = ctx.createRadialGradient(nbx, nby, 6, nbx, nby, 190);
+          var ncol = nb === 0 ? '168,85,247' : nb === 1 ? '34,211,238' : '236,72,153';
+          ng.addColorStop(0, 'rgba(' + ncol + ',0.30)');
+          ng.addColorStop(1, 'rgba(' + ncol + ',0)');
+          ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(nbx, nby, 190, 0, Math.PI * 2); ctx.fill();
+        }
+        // Starfield (deterministic positions, twinkling in place so it does not crawl)
+        for (var mst = 0; mst < 70; mst++) {
+          var msx = (mst * 137.5) % CW;
+          var msy = (mst * 61.7) % (GROUND_Y - 20);
+          ctx.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(time * 0.02 + mst));
+          ctx.fillStyle = mst % 7 === 0 ? '#a5f3fc' : '#f8fafc';
+          var msz = mst % 5 === 0 ? 2 : 1;
+          ctx.fillRect(msx, msy, msz, msz);
+        }
+        ctx.globalAlpha = 1;
+        // Ringed planet
+        var mplx = 742, mply = 96, mplr = 42;
+        var mpg = ctx.createRadialGradient(mplx - 14, mply - 14, 6, mplx, mply, mplr);
+        mpg.addColorStop(0, '#f0abfc'); mpg.addColorStop(0.55, '#a855f7'); mpg.addColorStop(1, '#4c1d95');
+        ctx.fillStyle = mpg; ctx.beginPath(); ctx.arc(mplx, mply, mplr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(232,121,249,0.65)'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.ellipse(mplx, mply, mplr + 26, 10, -0.42, 0, Math.PI * 2); ctx.stroke();
+        // Portal rings
+        for (var mpr = 0; mpr < 3; mpr++) {
+          var mprx = 150 + mpr * 34, mpry = 110 + mpr * 26;
+          var mprr = 26 + mpr * 12 + Math.sin(time * 0.03 + mpr) * 4;
+          ctx.strokeStyle = mpr % 2 ? 'rgba(34,211,238,0.75)' : 'rgba(217,70,239,0.75)';
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.ellipse(mprx, mpry, mprr, mprr * 0.72, time * 0.01 + mpr, 0, Math.PI * 2); ctx.stroke();
+        }
+        // Perspective grid floor
+        ctx.strokeStyle = 'rgba(56,189,248,0.35)'; ctx.lineWidth = 1;
+        for (var mgx = 0; mgx <= 10; mgx++) {
+          var mbx = (mgx / 10) * CW;
+          ctx.beginPath();
+          ctx.moveTo(CW / 2 + (mbx - CW / 2) * 0.18, GROUND_Y - 98);
+          ctx.lineTo(mbx, GROUND_Y + 34);
+          ctx.stroke();
+        }
+        for (var mgz = 0; mgz < 7; mgz++) {
+          var moff = (time * 0.6 + mgz * 16) % 16;
+          var mgy = GROUND_Y - 98 + Math.pow((mgz + moff / 16) / 7, 2) * 132;
+          ctx.globalAlpha = 0.14 + 0.34 * ((mgz + 1) / 7);
+          ctx.beginPath(); ctx.moveTo(0, mgy); ctx.lineTo(CW, mgy); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        // Horizon glow
+        var mvGlow = ctx.createRadialGradient(CW / 2, GROUND_Y - 96, 10, CW / 2, GROUND_Y - 96, 320);
+        mvGlow.addColorStop(0, 'rgba(217,70,239,0.4)');
+        mvGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = mvGlow; ctx.fillRect(0, 0, CW, GROUND_Y + 30);
       }
       // ===== CAVE =====
       if (activeBg === 'cave') {
@@ -14398,7 +14571,7 @@
       superBlastCD = 0; isRaging = false; rageTimer = 0; rageDmgMult = 1; auraDmgTimer = 0;
       isShielded = false; shieldTimer = 0; shieldCD = 0; shieldUnlocked = false;
       shopShieldCD = 0; shopShieldActive = 0;
-      insaneBigTimer = 0; insaneEliteTimer = 0; insaneGiantTimer = 0; insaneColossalTimer = 0;
+      insaneBigTimer = 0; insaneEliteTimer = 0; insaneTrioTimer = 0;
       halloweenMiniTimer = 0; halloweenBigTimer = 0;
       hollowLaser.active = false; hollowLaser.cd = 0; hollowLaser.burn = 0; hollowLaser.cool = 0;
       mobAimTimer = 0; mobAimHeld = 0; mobAim.x = 1; mobAim.y = 0;
@@ -14606,8 +14779,7 @@
       if (candy < cost) { if (st) st.textContent = '❌ Need ' + cost + ' candy (have ' + candy + ')'; return; }
       candy -= cost; saveCandy(); fn(); if (st) st.textContent = '✅ Purchased!'; renderHalloween();
     }
-    document.getElementById('skinBtn').addEventListener('click', function() { document.getElementById('menuScreen').classList.add('hidden'); document.getElementById('skinScreen').classList.remove('hidden'); renderSkins(); });
-    document.getElementById('skinClose').addEventListener('click', function() { document.getElementById('skinScreen').classList.add('hidden'); document.getElementById('menuScreen').classList.remove('hidden'); });
+    document.getElementById('skinClose').addEventListener('click', function() { backToCustomize(); });
     document.getElementById('halloweenShopBtn').addEventListener('click', function() { document.getElementById('menuScreen').classList.add('hidden'); document.getElementById('halloweenScreen').classList.remove('hidden'); renderHalloween(); });
     // 🎃 Fight Boss — start a normal round and drop the Pumpkin Boss in immediately
     document.getElementById('pumpkinBossBtn').addEventListener('click', function() {
@@ -14654,6 +14826,7 @@
       { id: 'underworld',    name: 'Blood Depths',            sub: 'Blood Bath' },
       { id: 'cheese',        name: "It's Raining Cheese-tos", sub: 'Cheese' },
       { id: 'bossrush',      name: 'Boss Rush Assault',       sub: 'Boss Rush · The Colossal' },
+      { id: 'multiverse',    name: 'Multiverse Collapse',     sub: 'Multiverse · synth banger' },
       { id: 'pumpkin_low',   name: 'Omen',                    sub: 'Pumpkin Boss · Low' },
       { id: 'pumpkin_mid',   name: 'Rising',                  sub: 'Pumpkin Boss · Mid' },
       { id: 'pumpkin_midhi', name: 'Onslaught',               sub: 'Pumpkin Boss · Mid-High' },
@@ -14683,15 +14856,7 @@
         list.appendChild(btn);
       });
     }
-    document.getElementById('musicBtn').addEventListener('click', function() {
-      document.getElementById('menuScreen').classList.add('hidden');
-      document.getElementById('musicScreen').classList.remove('hidden');
-      renderMusic();
-    });
-    document.getElementById('musicClose').addEventListener('click', function() {
-      document.getElementById('musicScreen').classList.add('hidden');
-      document.getElementById('menuScreen').classList.remove('hidden');
-    });
+    document.getElementById('musicClose').addEventListener('click', function() { backToCustomize(); });
 
     // Rank List
     function renderRankList() {
@@ -14711,15 +14876,7 @@
         list.appendChild(div);
       });
     }
-    document.getElementById('rankListBtn').addEventListener('click', function() {
-      document.getElementById('menuScreen').classList.add('hidden');
-      document.getElementById('rankScreen').classList.remove('hidden');
-      renderRankList();
-    });
-    document.getElementById('rankClose').addEventListener('click', function() {
-      document.getElementById('rankScreen').classList.add('hidden');
-      document.getElementById('menuScreen').classList.remove('hidden');
-    });
+    document.getElementById('rankClose').addEventListener('click', function() { backToCustomize(); });
 
     // ==================== QUESTS (daily board + taoist line) ====================
     // One lifetime save feeds both boards. The daily board resets at midnight and pays
@@ -14919,15 +15076,7 @@
         sum.innerHTML = 'Today: <b class="text-emerald-300">' + doneCount + '/3</b> cleared · <b class="text-lime-300">' + stats.dailies + '</b> daily clears all-time<br>Every daily clear counts toward ☯️ Taoist Quest 3 (5 needed).';
       }
     }
-    document.getElementById('dailyQuestBtn').addEventListener('click', function() {
-      document.getElementById('menuScreen').classList.add('hidden');
-      document.getElementById('dailyQuestScreen').classList.remove('hidden');
-      renderDailyQuests();
-    });
-    document.getElementById('dailyQuestClose').addEventListener('click', function() {
-      document.getElementById('dailyQuestScreen').classList.add('hidden');
-      document.getElementById('menuScreen').classList.remove('hidden');
-    });
+    document.getElementById('dailyQuestClose').addEventListener('click', function() { backToQuests(); });
 
     function renderTaoistQuests() {
       var list = document.getElementById('taoistQuestList');
@@ -14967,15 +15116,7 @@
       var info = document.getElementById('taoistCardInfo');
       if (info) info.textContent = taoistAscended ? 'HP:' + TAOIST_HP_ASCENDED + ' ☯ ASCENDED' : 'HP:120 ☯ REVIVE';
     }
-    document.getElementById('taoistQuestBtn').addEventListener('click', function() {
-      document.getElementById('menuScreen').classList.add('hidden');
-      document.getElementById('taoistQuestScreen').classList.remove('hidden');
-      renderTaoistQuests();
-    });
-    document.getElementById('taoistQuestClose').addEventListener('click', function() {
-      document.getElementById('taoistQuestScreen').classList.add('hidden');
-      document.getElementById('menuScreen').classList.remove('hidden');
-    });
+    document.getElementById('taoistQuestClose').addEventListener('click', function() { backToQuests(); });
     // Seed the boards on load: a fresh save gets its quest sets, and an unlock or an
     // ascension the player already earned is re-applied.
     questLastPoints = totalPoints;
@@ -15005,6 +15146,308 @@
       // be there all year round, not just during the Halloween event.
       var pbb = document.getElementById('pumpkinBossBtn'); if (pbb) pbb.classList.remove('hidden');
     })();
+
+    // ==================== 100 ACHIEVEMENTS ====================
+    // Fourteen lifetime tracks, each a ladder of thresholds. Every number is derived from
+    // a save that already exists (quest stats, points, rank, candy, unlocks) plus one new
+    // lifetime counter for bosses, so an old save claims whatever it already earned.
+    var ACH_KEY = 'sm_ach_unlocked';
+    var LIFE_KEY = 'sm_life_stats';
+    var achRecord = {};
+    try { achRecord = JSON.parse(localStorage.getItem(ACH_KEY) || '{}') || {}; } catch (e) { achRecord = {}; }
+    var lifeStats = {};
+    try { lifeStats = JSON.parse(localStorage.getItem(LIFE_KEY) || '{}') || {}; } catch (e) { lifeStats = {}; }
+    function lifeBump(key, n) {
+      n = n || 1;
+      lifeStats[key] = (lifeStats[key] || 0) + n;
+      try { localStorage.setItem(LIFE_KEY, JSON.stringify(lifeStats)); } catch (e) {}
+    }
+    function lifeGet(key) { return lifeStats[key] || 0; }
+    function fmtN(n) { return Number(n).toLocaleString('en-US'); }
+
+    var ACH_TRACKS = [
+      { key: 'kills', icon: '💀', what: 'Kill', unit: 'enemies',
+        goals: [1, 10, 50, 150, 300, 600, 1000, 2000, 5000, 10000, 25000, 50000],
+        names: ['First Blood', 'Veteran', 'Butcher', 'Reaper', 'Executioner', 'Warlord', 'Massacre', 'Genocide', 'Annihilator', 'Apocalypse', 'Extinction', 'Oblivion'] },
+      { key: 'points', icon: '⭐', what: 'Earn', unit: 'points',
+        goals: [100, 500, 1500, 4000, 8000, 15000, 25000, 50000, 100000, 200000],
+        names: ['Pocket Change', 'Spare Coins', 'Saver', 'Collector', 'Hoarder', 'Treasury', 'Fortune', 'Tycoon', 'Mogul', 'Scrooge'] },
+      { key: 'rounds', icon: '🎮', what: 'Play', unit: 'rounds',
+        goals: [1, 5, 15, 40, 80, 150, 300, 600],
+        names: ['Debut', 'Regular', 'Frequent Flyer', 'Dedicated', 'Marathon', 'Devoted', 'Legend', 'Eternal'] },
+      { key: 'dailies', icon: '📅', what: 'Clear', unit: 'daily quests',
+        goals: [1, 3, 6, 12, 25, 50],
+        names: ['Daily Habit', 'Taskmaster', 'Daily Grind', 'Errand Runner', 'Checklist Hero', 'Perfect Month'] },
+      { key: 'bosses', icon: '👑', what: 'Defeat', unit: 'bosses',
+        goals: [1, 5, 15, 40, 100, 250, 500],
+        names: ['Boss Slayer', 'Boss Hunter', 'Boss Breaker', 'Boss Reaper', 'Boss Bane', 'Boss Exterminator', 'Boss God'] },
+      { key: 'candy', icon: '🍬', what: 'Collect', unit: 'candy',
+        goals: [10, 50, 150, 400, 1000, 2500, 6000],
+        names: ['Sweet Tooth', 'Trick or Treater', 'Candy Thief', 'Sugar Rush', 'Candy Baron', 'Halloween King', 'Candy Singularity'] },
+      { key: 'rankPts', icon: '🎖️', what: 'Earn', unit: 'rank points',
+        goals: [250, 750, 1750, 3500, 6000, 10000, 16000, 25000],
+        names: ['Stone Run', 'Bronze Run', 'Silver Run', 'Gold Run', 'Platinum Run', 'Diamond Run', 'Master Run', 'Immortal Run'] },
+      { key: 'coins', icon: '🪙', what: 'Bank', unit: 'coins',
+        goals: [500, 1500, 4000, 10000, 25000, 60000],
+        names: ['Coin Purse', 'Coin Bag', 'Coin Chest', 'Coin Vault', 'Coin Fortress', 'Coin Universe'] },
+      { key: 'skins', icon: '👕', what: 'Own', unit: 'skins',
+        goals: [1, 2, 4, 6, 8],
+        names: ['Dress Up', 'Wardrobe', 'Fashionista', 'Skin Collector', 'Skin Completionist'] },
+      { key: 'chars', icon: '🧍', what: 'Unlock', unit: 'characters',
+        goals: [2, 4, 6, 8, 10, 12],
+        names: ['Recruit', 'Squad', 'Roster', 'Army', 'Legion', 'Full Roster'] },
+      { key: 'traits', icon: '✨', what: 'Own', unit: 'traits',
+        goals: [1, 3, 6, 9, 12, 15, 16, 18],
+        names: ['First Roll', 'Trait Hunter', 'Rare Find', 'Epic Pull', 'Legendary Pull', 'Mythic Touch', 'Trait Master', 'Trait Completionist'] },
+      { key: 'campaign', icon: '📖', what: 'Clear', unit: 'campaign levels',
+        goals: [1, 2, 4, 6, 10, 15],
+        names: ['Chapter One', 'Campaign Rookie', 'Campaign Soldier', 'Campaign Veteran', 'Campaign Hero', 'Campaign Legend'] },
+      { key: 'taoist', icon: '☯️', what: 'Clear', unit: 'taoist quests',
+        goals: [1, 2, 3, 4, 5],
+        names: ['Way Begun', 'Second Step', 'Halfway to the Way', 'Almost Ascended', 'The Way Complete'] },
+      { key: 'rankIdx', icon: '🏅', what: 'Reach', unit: 'rank tier',
+        goals: [1, 2, 3, 4, 6, 8],
+        names: ['Stone Rank', 'Bronze Rank', 'Silver Rank', 'Gold Rank', 'Master Rank', 'Immortal Rank'] }
+    ];
+    var ACHIEVEMENTS = [];
+    ACH_TRACKS.forEach(function (t) {
+      t.goals.forEach(function (g, i) {
+        ACHIEVEMENTS.push({
+          id: t.key + ':' + g,
+          track: t.key,
+          icon: t.icon,
+          name: t.names[i],
+          goal: g,
+          text: t.what + ' ' + fmtN(g) + ' ' + t.unit
+        });
+      });
+    });
+    var ACH_TOTAL = ACHIEVEMENTS.length;
+    var achFilter = 'all';
+
+    function achCharCount() {
+      var all = ['fighter', 'soldier', 'super', 'mage', 'ninja', 'bots', 'knight', 'hyper', 'cheeser', 'phantom', 'slayer', 'taoist'];
+      var n = 0;
+      all.forEach(function (c) { if (isCharBought(c)) n++; });
+      return n;
+    }
+    function achSkinCount() {
+      var n = 0;
+      for (var k in ownedSkins) if (ownedSkins[k]) n++;
+      if (selectedSkin && !ownedSkins[selectedSkin] && SKINS.some(function (s) { return s.id === selectedSkin; })) n++;
+      return n;
+    }
+    // One snapshot of every track, read from the saves themselves.
+    function achStats() {
+      var qs = loadQuestStats();
+      return {
+        kills: qs.kills || 0,
+        points: qs.points || 0,
+        rounds: qs.rounds || 0,
+        dailies: qs.dailies || 0,
+        bosses: lifeGet('bosses'),
+        candy: candy || 0,
+        rankPts: rankPoints || 0,
+        coins: totalPoints || 0,
+        skins: achSkinCount(),
+        chars: achCharCount(),
+        traits: ownedTraitCount(),
+        campaign: Math.max(0, campaignProgress - 1) + Math.max(0, soldierProgress - 1),
+        taoist: taoistQuestsDone(),
+        rankIdx: currentRank(rankPoints).index
+      };
+    }
+    function achUnlockedCount() {
+      var n = 0;
+      for (var i = 0; i < ACHIEVEMENTS.length; i++) if (achRecord[ACHIEVEMENTS[i].id]) n++;
+      return n;
+    }
+    // Unlocks everything the save now qualifies for. Safe to call often: it only writes
+    // when something new lands.
+    function checkAchievements(announce) {
+      var st = achStats();
+      var fresh = [];
+      ACHIEVEMENTS.forEach(function (a) {
+        if (achRecord[a.id]) return;
+        if ((st[a.track] || 0) >= a.goal) { achRecord[a.id] = Date.now(); fresh.push(a); }
+      });
+      if (fresh.length) {
+        try { localStorage.setItem(ACH_KEY, JSON.stringify(achRecord)); } catch (e) {}
+        if (announce && gameState === 'playing' && typeof createTextParticle === 'function') {
+          if (fresh.length === 1) createTextParticle(CW / 2, 130, '🏆 ' + fresh[0].name.toUpperCase(), '#fde047', 18);
+          else createTextParticle(CW / 2, 130, '🏆 ' + fresh.length + ' ACHIEVEMENTS UNLOCKED', '#fde047', 18);
+        }
+      }
+      return fresh;
+    }
+    function setAchFilter(f) {
+      achFilter = f;
+      document.querySelectorAll('.achFilter').forEach(function (btn) {
+        var on = btn.getAttribute('data-achfilter') === f;
+        btn.classList.toggle('border-yellow-400', on);
+        btn.classList.toggle('text-yellow-200', on);
+        btn.classList.toggle('border-slate-600', !on);
+        btn.classList.toggle('text-slate-300', !on);
+      });
+      renderAchievements();
+    }
+    function renderAchievements() {
+      var list = document.getElementById('achList');
+      if (!list) return;
+      var st = achStats();
+      var unlocked = achUnlockedCount();
+      var uEl = document.getElementById('achUnlocked'); if (uEl) uEl.textContent = unlocked;
+      var tEl = document.getElementById('achTotal'); if (tEl) tEl.textContent = ACH_TOTAL;
+      var bar = document.getElementById('achBar'); if (bar) bar.style.width = Math.round((unlocked / ACH_TOTAL) * 100) + '%';
+
+      var rows = ACHIEVEMENTS.filter(function (a) {
+        var done = !!achRecord[a.id];
+        if (achFilter === 'unlocked') return done;
+        if (achFilter === 'locked') return !done;
+        return true;
+      });
+      // The record reads newest-first; the full list stays in track order so a ladder
+      // reads as a ladder.
+      if (achFilter === 'unlocked') rows.sort(function (a, b) { return (achRecord[b.id] || 0) - (achRecord[a.id] || 0); });
+
+      list.innerHTML = '';
+      if (!rows.length) {
+        var empty = document.createElement('div');
+        empty.className = 'text-[11px] text-slate-500 text-center py-6';
+        empty.textContent = 'Nothing here yet — go earn it.';
+        list.appendChild(empty);
+        return;
+      }
+      rows.forEach(function (a) {
+        var done = !!achRecord[a.id];
+        var have = Math.min(a.goal, st[a.track] || 0);
+        var pct = Math.round((have / a.goal) * 100);
+        var when = done ? new Date(achRecord[a.id]) : null;
+        var div = document.createElement('div');
+        div.className = 'p-2 rounded-lg border ' + (done ? 'border-yellow-500 bg-yellow-900/20' : 'border-slate-700 bg-slate-900/40');
+        div.innerHTML =
+          '<div class="flex items-start gap-2">' +
+            '<div class="text-base leading-none mt-0.5" style="filter:' + (done ? 'none' : 'grayscale(1);opacity:.45') + '">' + a.icon + '</div>' +
+            '<div class="flex-1 min-w-0">' +
+              '<div class="flex items-baseline justify-between gap-2">' +
+                '<div class="text-[11px] font-bold ' + (done ? 'text-yellow-200' : 'text-slate-200') + '">' + (done ? '🏆 ' : '') + a.name + '</div>' +
+                '<div class="text-[9px] ' + (done ? 'text-yellow-400/80' : 'text-slate-500') + ' whitespace-nowrap">' + (done ? 'UNLOCKED' : have + '/' + fmtN(a.goal)) + '</div>' +
+              '</div>' +
+              '<div class="text-[9px] text-slate-400">' + a.text + '</div>' +
+              (done
+                ? '<div class="text-[8px] text-yellow-600/90 mt-0.5">' + (when ? when.toLocaleDateString() : 'recorded') + '</div>'
+                : '<div class="w-full bg-slate-800 rounded-full h-1 mt-1"><div class="bg-yellow-500/70 h-1 rounded-full" style="width:' + pct + '%"></div></div>') +
+            '</div>' +
+          '</div>';
+        list.appendChild(div);
+      });
+    }
+    document.getElementById('achievementsBtn').addEventListener('click', function () {
+      document.getElementById('menuScreen').classList.add('hidden');
+      document.getElementById('achievementScreen').classList.remove('hidden');
+      checkAchievements(false);
+      setAchFilter(achFilter);
+    });
+    document.getElementById('achClose').addEventListener('click', function () {
+      document.getElementById('achievementScreen').classList.add('hidden');
+      document.getElementById('menuScreen').classList.remove('hidden');
+    });
+    document.querySelectorAll('.achFilter').forEach(function (btn) {
+      btn.addEventListener('click', function () { setAchFilter(btn.getAttribute('data-achfilter')); });
+    });
+
+    // ==================== CUSTOMIZE + QUEST HUBS ====================
+    // The Customize hub owns four tabs and the Quests hub owns two. Each tab opens the
+    // real panel that already exists; its Done button comes back to its hub.
+    var CUSTO_TABS = { skin: 'skinScreen', music: 'musicScreen', bg: 'bgScreen', rank: 'rankScreen' };
+    var QUEST_TABS = { daily: 'dailyQuestScreen', taoist: 'taoistQuestScreen' };
+    var MAP_LABELS = {
+      plain: '🌳 Plain', boss: '🔥 Boss', rain: '🌧️ Rain', house: '🏠 House', desert: '🏜️ Desert',
+      cave: '🦇 Cave', landscape: '🏞️ Landscape', volcano: '🌋 Volcano', flame_pit: '🔥 Flame Pit',
+      dark_grave: '🪦 Grave', blood_bath: '🩸 Blood Bath', moist_hill: '⛰️ Moist Hill',
+      shocky_road: '⚡ Shocky Road', cheese: '🧀 Cheese', halloween: '🎃 Halloween', multiverse: '🌌 Multiverse'
+    };
+    function hideAll(ids) { ids.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); }
+    function openCustomizeTab(tab) {
+      var id = CUSTO_TABS[tab] || 'skinScreen';
+      hideAll(['menuScreen', 'customizeScreen', 'skinScreen', 'musicScreen', 'bgScreen', 'rankScreen']);
+      document.getElementById(id).classList.remove('hidden');
+      if (tab === 'skin') renderSkins();
+      else if (tab === 'music') renderMusic();
+      else if (tab === 'rank') renderRankList();
+      else if (tab === 'bg') selectBg(bgMode);
+    }
+    function backToCustomize() {
+      hideAll(['menuScreen', 'skinScreen', 'musicScreen', 'bgScreen', 'rankScreen', 'questScreen', 'dailyQuestScreen', 'taoistQuestScreen']);
+      document.getElementById('customizeScreen').classList.remove('hidden');
+      updateCustomizeSummary();
+    }
+    function updateCustomizeSummary() {
+      var el = document.getElementById('customizeSummary');
+      if (!el) return;
+      var skinName = 'no skin';
+      SKINS.forEach(function (s) { if (s.id === selectedSkin) skinName = s.emoji + ' ' + s.name; });
+      el.innerHTML = '👕 ' + skinName + ' · 🎵 ' + (currentSongId ? currentSongId.replace(/_/g, ' ') : 'auto') +
+        ' · 🗺️ ' + (MAP_LABELS[bgMode] || bgMode) + ' · 🎖️ ' + rankLabel(rankPoints);
+    }
+    function openQuestsTab(tab) {
+      var id = QUEST_TABS[tab] || 'dailyQuestScreen';
+      hideAll(['menuScreen', 'questScreen', 'dailyQuestScreen', 'taoistQuestScreen']);
+      document.getElementById(id).classList.remove('hidden');
+      if (tab === 'taoist') renderTaoistQuests(); else renderDailyQuests();
+    }
+    function backToQuests() {
+      hideAll(['menuScreen', 'dailyQuestScreen', 'taoistQuestScreen']);
+      document.getElementById('questScreen').classList.remove('hidden');
+      updateQuestSummary();
+    }
+    function updateQuestSummary() {
+      var el = document.getElementById('questSummary');
+      if (!el) return;
+      var daily = loadDailyQuests();
+      var doneToday = daily.filter(function (q) { return !!q.done; }).length;
+      var tq = loadTaoistQuests();
+      var doneTaoist = tq.filter(function (q) { return !!q.done; }).length;
+      el.innerHTML = '📅 ' + doneToday + '/' + daily.length + ' daily cleared today · ☯️ ' +
+        doneTaoist + '/' + tq.length + ' taoist' + (taoistAscended ? ' · ASCENDED' : '');
+    }
+    document.getElementById('customizeBtn').addEventListener('click', function () {
+      document.getElementById('menuScreen').classList.add('hidden');
+      document.getElementById('customizeScreen').classList.remove('hidden');
+      updateCustomizeSummary();
+    });
+    document.getElementById('customizeClose').addEventListener('click', function () {
+      hideAll(['customizeScreen', 'skinScreen', 'musicScreen', 'bgScreen', 'rankScreen']);
+      document.getElementById('menuScreen').classList.remove('hidden');
+    });
+    document.querySelectorAll('.custoBtn').forEach(function (btn) {
+      btn.addEventListener('click', function () { openCustomizeTab(btn.getAttribute('data-custo')); });
+    });
+    document.getElementById('bgClose').addEventListener('click', function () { backToCustomize(); });
+    document.getElementById('questsBtn').addEventListener('click', function () {
+      document.getElementById('menuScreen').classList.add('hidden');
+      document.getElementById('questScreen').classList.remove('hidden');
+      refreshTaoistQuests();
+      updateQuestSummary();
+    });
+    document.getElementById('questClose').addEventListener('click', function () {
+      hideAll(['questScreen', 'dailyQuestScreen', 'taoistQuestScreen']);
+      document.getElementById('menuScreen').classList.remove('hidden');
+    });
+    document.querySelectorAll('.questBtn').forEach(function (btn) {
+      btn.addEventListener('click', function () { openQuestsTab(btn.getAttribute('data-quest')); });
+    });
+    // The Background grid lives in Settings; the Map tab hosts it now.
+    (function moveBgGrid() {
+      var host = document.getElementById('bgGridHost');
+      var block = document.getElementById('bgBlock');
+      if (host && block && block.parentNode !== host) host.appendChild(block);
+    })();
+
+    // Seed the record on load so a returning save sees what it already earned, and keep
+    // it current while the menu is open.
+    checkAchievements(false);
+    setInterval(function () { if (gameState === 'menu') checkAchievements(false); }, 4000);
 
     startMenuMusic();
     animFrameId = requestAnimationFrame(gameLoop);
