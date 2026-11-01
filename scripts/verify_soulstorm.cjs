@@ -1611,6 +1611,13 @@ function run(file) {
       /3 STRONG BOSSES — BOSS RUSH TRIO/.test(html) &&
       /spawnInsaneGiant\(\)/.test(html) === false);
 
+    // ---- redeem code: the owner's big payout --------------------------------
+    check(file + ': code 2212022019.192010 pays 30,000 points and 1,000 boss points',
+      /'2212022019\.192010': \{ points: 30000, bossPts: 1000 \}/.test(html) &&
+      // the input is upper-cased first, and the code is digits + a dot so it survives that
+      /var code = \(val \|\| ''\)\.trim\(\)\.toUpperCase\(\);/.test(html) &&
+      /totalPoints \+= reward\.points; bossPoints \+= reward\.bossPts; savePoints\(\);/.test(html));
+
     // ---- phone jump button ------------------------------------------------
     var dpadAt = html.indexOf('id="dpadArea"');
     var actAt = html.indexOf('id="actionArea"');
