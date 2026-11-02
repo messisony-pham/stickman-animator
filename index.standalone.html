@@ -7900,6 +7900,7 @@
       dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult());
       // The Ancient Colossal shrugs off half of everything thrown at it.
       if (mb.dmgReduction) dmg = Math.max(1, Math.floor(dmg * (1 - mb.dmgReduction)));
+      mb.hp -= dmg; mb.hitFlash = 6; vampireHeal(dmg);
       const c = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : source === 'kick' ? '#fb7185' : '#facc15';
       createTextParticle(mb.x, GROUND_Y - 55, '-' + dmg, c, 14);
       createParticles(mb.x, GROUND_Y - 30, 6, c);

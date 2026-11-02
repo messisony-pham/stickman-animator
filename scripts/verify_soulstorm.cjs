@@ -293,6 +293,15 @@ function check(name, cond, extra) {
     const dummyFn = (/function dealDamageToDummy\(d, dmg, source\) \{[\s\S]*?\n    \}/.exec(html) || [])[0] || '';
     check(file + ': dealing damage to a dummy never touches a mini-boss',
       dummyFn.length > 300 && !/\bmb\s*\./.test(dummyFn), 'bodyLen=' + dummyFn.length);
+    // Regression: the Halloween strip removed the line that actually applied the damage,
+    // so mini-bosses printed a -dmg number and never lost HP. Fighters showed the number
+    // and nothing died — the tank, necro, snipers, titan and every DEATH heavy were immortal.
+    const mbFn = (/function dealDamageToMiniBoss\(mb, dmg, source\) \{[\s\S]*?\n    \}/.exec(html) || [])[0] || '';
+    check(file + ': damaging a mini-boss actually subtracts its HP',
+      mbFn.length > 300 &&
+      /mb\.hp -= dmg; mb\.hitFlash = 6; vampireHeal\(dmg\);/.test(mbFn) &&
+      mbFn.indexOf('mb.hp -= dmg') < mbFn.indexOf('if (mb.hp <= 0)'),
+      'bodyLen=' + mbFn.length);
     // Energy rate: 0.25 an enemy, 0.5 a boss. The kill counter already pays one enemy's
     // share, so the boss payout is the top-up.
     check(file + ': energy pays 0.25 an enemy and 0.5 a boss',
