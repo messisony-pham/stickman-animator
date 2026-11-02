@@ -1,182 +1,20 @@
 'use strict';
-// Headless harness: runs the REAL Soul Storm code lifted out of the shipped HTML
-// with a stub DOM + virtual clock, so the minigame loop can be driven deterministically.
+// Content checks: every rule below is asserted against the shipped HTML itself, so the
+// two published files can never drift from what was verified.
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 
-function extract(file) {
-  const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
-  const a = s.indexOf('SOUL STORM (pumpkin boss end minigame)');
-  const c = s.indexOf('Soul Storm result pane: retry the pumpkin boss');
-  const d = s.indexOf('MUSIC PLAYER (hear every song)');
-  // the region ends where the next unrelated function begins
-  const b = s.indexOf('function updateDarkUniverseBoss');
-  if (a < 0 || b < 0 || c < 0 || d < 0) throw new Error('markers not found in ' + file);
-  // start each slice at the beginning of the `//` comment line so the comment stays intact
-  return s.slice(s.lastIndexOf('//', a), s.lastIndexOf('\n', b)) + '\n' +
-    s.slice(s.lastIndexOf('//', c), s.lastIndexOf('//', d));
-}
-
-// ------------------------------------------------------------------ stub DOM
-const REG = {};
-function mkEl(id, tag) {
-  const el = {
-    id: id || '', tagName: (tag || 'DIV').toUpperCase(), style: {}, dataset: {},
-    children: [], textContent: '', value: '', _classes: new Set(), _ev: {}, _clicks: 0
-  };
-  el.classList = {
-    add: (c) => el._classes.add(c),
-    remove: (c) => el._classes.delete(c),
-    contains: (c) => el._classes.has(c)
-  };
-  el.appendChild = (ch) => { el.children.push(ch); if (ch.id) REG[ch.id] = ch; return ch; };
-  el.removeChild = () => {};
-  el.remove = () => {};
-  el.addEventListener = (t, fn) => { el._ev[t] = fn; };
-  el.click = () => { el._clicks++; if (el._ev.click) el._ev.click({ preventDefault() {} }); };
-  el.querySelector = (sel) => findSel(el, sel);
-  el.querySelectorAll = (sel) => findSelAll(el, sel);
-  return el;
-}
-function parseSel(sel) {
-  const m = /^([a-z.]*)(?:\[(?:data-)?lane="([^"]+)"\])?$/i.exec(sel);
-  return { cls: m && m[1] ? m[1] : '', lane: m && m[2] ? m[2] : null };
-}
-function matches(el, sel) {
-  const { cls, lane } = parseSel(sel);
-  if (cls.startsWith('.')) {
-    const c = cls.slice(1);
-    if (!(el.className || '').split(/\s+/).includes(c)) return false;
-  } else if (cls && el.tagName !== cls.toUpperCase()) {
-    return false;
-  }
-  if (lane && el.dataset.lane !== lane) return false;
-  return true;
-}
-function findSel(el, sel) { return findSelAll(el, sel)[0] || null; }
-function findSelAll(el, sel) { return (el.children || []).filter((c) => matches(c, sel)); }
-
-// Records the canvas draw calls the warning arrow makes, so the harness can prove
-// the arrow is really painted (direction, length, on-canvas) instead of trusting
-// that the code that draws it exists.
-const pxOf = (v) => Number(String(v || '0').replace('px', ''));
-
-function mkRecCtx() {
-  const rec = { x: 0, y: 0, a: 0, stack: [], rot: [], paths: [], arcs: [], fills: 0, texts: [], _path: null };
-  const abs = (px, py) => ({
-    x: rec.x + px * Math.cos(rec.a) - py * Math.sin(rec.a),
-    y: rec.y + px * Math.sin(rec.a) + py * Math.cos(rec.a)
-  });
-  const ctx = {
-    save() { rec.stack.push({ x: rec.x, y: rec.y, a: rec.a }); },
-    restore() { const s = rec.stack.pop(); if (s) { rec.x = s.x; rec.y = s.y; rec.a = s.a; } },
-    translate(x, y) { rec.x += x; rec.y += y; },
-    rotate(a) { rec.a += a; rec.rot.push(a); },
-    beginPath() { rec._path = []; },
-    moveTo(x, y) { if (rec._path) rec._path.push(abs(x, y)); },
-    lineTo(x, y) { if (rec._path) rec._path.push(abs(x, y)); },
-    closePath() { if (rec._path) { rec.paths.push(rec._path); rec._path = null; } },
-    arc(x, y, r) { rec.arcs.push({ p: abs(x, y), r: r }); },
-    fill() { rec.fills++; },
-    stroke() {},
-    fillRect() {},
-    fillText(t, x, y) { rec.texts.push({ t: t, p: abs(x, y) }); },
-    measureText: () => ({ width: 10 }),
-    setLineDash() {},
-    reset() { rec.x = 0; rec.y = 0; rec.a = 0; rec.stack.length = 0; rec.rot.length = 0; rec.paths.length = 0; rec.arcs.length = 0; rec.texts.length = 0; rec.fills = 0; rec._path = null; }
-  };
-  Object.defineProperties(ctx, {
-    globalAlpha: { set() {}, get() { return 1; } },
-    fillStyle: { set(v) { rec.fillStyle = v; }, get() { return rec.fillStyle; } },
-    strokeStyle: { set() {}, get() { return '#000'; } },
-    lineWidth: { set() {}, get() { return 1; } },
-    font: { set() {}, get() { return '10px monospace'; } },
-    textAlign: { set() {}, get() { return 'start'; } },
-    globalCompositeOperation: { set() {}, get() { return 'source-over'; } }
-  });
-  ctx.__rec = rec;
-  return ctx;
-}
-
-function makeCtx() {
-  Object.keys(REG).forEach((k) => delete REG[k]);
-  const ids = ['soulStormArena', 'soulStormHud', 'soulStormTime', 'soulStormSurvive', 'soulStormBlasts',
-    'soulStormETimer', 'soulStormETarget', 'soulStormScreen', 'soulStormResult', 'soulStormResultMsg',
-    'soulStormWin', 'soulStormWinMsg', 'soulStormInstr', 'mobBtnSoulStormE', 'soulStormRetryBtn',
-    'soulStormMenuBtn', 'gameoverScreen', 'menuScreen', 'gameUI', 'pumpkinBossBtn', 'gameoverMsg'];
-  ids.forEach((id) => { REG[id] = mkEl(id); });
-  REG.gameUI._classes.add('hidden');
-
-  const document = {
-    getElementById: (id) => REG[id] || null,
-    createElement: (tag) => mkEl('', tag),
-    querySelector: (sel) => null
-  };
-
-  let now = 0;
-  const rafQ = [];
-  const timers = [];
-  let timerSeq = 1;
-
-  const sandbox = {
-    document,
-    console,
-    Math,
-    JSON,
-    performance: { now: () => now },
-    requestAnimationFrame: (fn) => { rafQ.push(fn); return rafQ.length; },
-    cancelAnimationFrame: () => {},
-    setTimeout: (fn, ms) => { const id = timerSeq++; timers.push({ id, fn, at: now + (ms || 0) }); return id; },
-    clearTimeout: (id) => { const i = timers.findIndex((t) => t.id === id); if (i >= 0) timers.splice(i, 1); },
-    // game globals the region touches
-    rhythmRestartTimer: null, rhythmActive: false, rhythmRAF: null, rhythmEnded: false,
-    pendingPumpkinReward: null, gameMode: 'normal', gameUI: REG.gameUI, menuScreen: REG.menuScreen,
-    gameState: 'menu', animFrameId: null, campaignMode: false, activeCampaignType: 'fighter',
-    score: 0, kills: 0, scoreEl: mkEl(), killsEl: mkEl(), totalPoints: 0, bossPoints: 0,
-    savePoints() {}, saveCandy() {}, addCandy() {}, updateMenuPoints() {}, updateCharLockUI() {},
-    checkUltimateUnlock() {}, checkBossSpawn() {}, checkCampaignWin() {}, applyThemeMusic() {},
-    startMenuMusic() {}, stopThemeMUsic() {}, stopThemeMusic() {}, stopBossMusic() {},
-    startBossMusic() {}, bossMusicPlaying: false, exitSoulTestCalls: 0,
-    // frame-guard helpers the shipped loops call (defined outside the region)
-    LOOP_ERRORS: { gameLoop: 0, soulStormStep: 0, rhythmStep: 0, pumpkinRewards: 0 },
-    loopErrors: [], reportLoopError(where) { sandbox.loopErrors.push(where); },
-    resumeLoopCalls: 0, resumeGameLoop() { sandbox.resumeLoopCalls++; },
-    exitSoulTest() { sandbox.exitSoulTestCalls++; },
-    mkEl
-  };
-  sandbox.window = sandbox;
-  // `winPane` style lookups used by launchSoulStorm
-  sandbox.SOUL_STORM_END_E_TARGET = 35;
-  return { sandbox, rafQ, timers, getNow: () => now, setNow: (v) => { now = v; } };
-}
-
-function makeRunner(regionSource) {
-  const ctx = makeCtx();
-  const script = new vm.Script(regionSource, { filename: 'soulstorm-region.js' });
-  const vmCtx = vm.createContext(ctx.sandbox);
-  script.runInContext(vmCtx);
-  const S = ctx.sandbox;
-  const errors = [];
-  const origErr = process.stderr.write.bind(process.stderr);
-
-  function frame(ms) {
-    const now = ctx.getNow() + (ms || 50);
-    ctx.setNow(now);
-    // due timers first (mutate in place: setTimeout pushes into this same array)
-    const due = [];
-    for (let i = ctx.timers.length - 1; i >= 0; i--) {
-      if (ctx.timers[i].at <= now) due.push(ctx.timers.splice(i, 1)[0]);
-    }
-    due.forEach((t) => { try { t.fn(); } catch (e) { errors.push('timer: ' + e.message); } });
-    const q = ctx.rafQ.splice(0, ctx.rafQ.length);
-    q.forEach((fn) => { try { fn(now); } catch (e) { errors.push('raf: ' + e.message); } });
-    return q.length;
-  }
-  return { S, ctx, frame, errors };
-}
+// A Windows checkout hands back CRLF, so every regex below that spans two lines
+// (`});\n`) would silently miss. Normalise once, at the read, so the same suite
+// verifies the same text on every machine.
+const fsRawRead = fs.readFileSync;
+fs.readFileSync = function () {
+  const out = fsRawRead.apply(fs, arguments);
+  return typeof out === 'string' ? out.replace(/\r\n/g, '\n') : out;
+};
 
 // --------------------------------------------------------------------- lint
 // Finds names used before their own `const`/`let` declaration inside a function.
@@ -231,679 +69,6 @@ let pass = 0, fail = 0;
 function check(name, cond, extra) {
   if (cond) { pass++; console.log('  ✓ ' + name); }
   else { fail++; console.log('  ✗ ' + name + (extra ? '  — ' + extra : '')); }
-}
-
-function run(file) {
-  console.log('\n===== ' + file + ' =====');
-  const region = extract(file);
-  let src = region;
-  if (file === 'index.standalone.html') src = region; // same marker slice
-
-  // --- A: launch + one frame must not throw (the freeze regression) ---------
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.buildSoulStormArena();
-    S.launchSoulStorm();
-    check('launchSoulStorm shows the screen', S.gameState === 'minigame');
-    check('launchSoulStorm starts the loop', S.soulStormActive === true);
-    frame(16);
-    check('frame 1 throws nothing', errors.length === 0, errors.join('; '));
-    check('loop reschedules itself', S.soulStormRAF !== null);
-    for (let i = 0; i < 5; i++) frame(16);
-    check('survival timer advances', S.soulStormSurvived > 0, 'got ' + S.soulStormSurvived);
-    check('5 more frames throw nothing', errors.length === 0, errors.join('; '));
-    // first rAF timestamps can predate the launch timestamp; dt must never be negative
-    const { S: S2, frame: f2 } = makeRunner(src);
-    S2.launchSoulStorm();
-    f2(-15); f2(-10); f2(5); f2(20);
-    check('negative rAF skew never rewinds the timer', S2.soulStormSurvived >= 0,
-      'survived=' + S2.soulStormSurvived);
-  }
-
-  // --- B: holding a direction out of the warned zone survives -------------
-  // The point slides while ◀/▶ is held, so the harness holds the way OUT of the
-  // warned zone, exactly like a player would, and must lose no hearts doing it.
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.launchSoulStorm();
-    let warningsSeen = 0, movedOff = 0;
-    const release = () => { S.soulStormSetHeld('left', false); S.soulStormSetHeld('right', false); };
-    // Hold exactly the direction the on-screen hint names, so this asserts the HINT is
-    // safe to follow — including at a wall, where the only way out is the inner side.
-    const escapeHeld = (zoneX) => (S.soulStormEscapeDir(zoneX) < 0 ? 'left' : 'right');
-    for (let i = 0; i < 6000 && !S.soulStormEnded && S.soulStormSurvived < S.SOUL_STORM_SURVIVE; i++) {
-      const w = S.soulStormWarning;
-      if (w) {
-        warningsSeen++;
-        if (Math.abs(S.soulStormPointX - w.zone) <= S.SOUL_STORM_ZONE_W / 2) {
-          const dir = escapeHeld(w.zone);
-          S.soulStormSetHeld(dir, true);
-          S.soulStormSetHeld(dir === 'left' ? 'right' : 'left', false);
-          movedOff++;
-        } else {
-          release();
-        }
-      } else {
-        release();
-      }
-      frame(16);
-    }
-    // A zone hugging a wall can only be escaped on the inner side: the hint has to say so.
-    {
-      const minX = S.SOUL_STORM_POINT_R + S.SOUL_STORM_ZONE_EDGE;
-      S.soulStormPointX = minX;
-      const leftZone = S.SOUL_STORM_ZONE_W / 2 + S.SOUL_STORM_ZONE_EDGE;
-      check('a zone against the left wall hints RIGHT, not into the wall',
-        S.soulStormEscapeDir(leftZone) === 1, 'dir=' + S.soulStormEscapeDir(leftZone));
-      S.soulStormPointX = S.SOUL_STORM_ARENA_W - minX;
-      const rightZone = S.SOUL_STORM_ARENA_W - (S.SOUL_STORM_ZONE_W / 2 + S.SOUL_STORM_ZONE_EDGE);
-      check('a zone against the right wall hints LEFT, not into the wall',
-        S.soulStormEscapeDir(rightZone) === -1, 'dir=' + S.soulStormEscapeDir(rightZone));
-      S.soulStormPointX = S.SOUL_STORM_ARENA_W / 2;
-      check('a mid-track zone hints away from its own centre',
-        S.soulStormEscapeDir(S.SOUL_STORM_ARENA_W / 2 - 20) === 1 &&
-        S.soulStormEscapeDir(S.SOUL_STORM_ARENA_W / 2 + 20) === -1);
-    }
-    check('warnings were shown', warningsSeen > 0);
-    check('blasts were fired', S.soulStormBlastsFired > 0);
-    check('the point really had to move out of a zone', movedOff > 0, 'moved=' + movedOff);
-    check('holding the way out costs no hearts', S.soulStormHits === 0, 'hits=' + S.soulStormHits);
-    check('survived the full window', S.soulStormSurvived >= S.SOUL_STORM_SURVIVE - 0.06, 'survived=' + S.soulStormSurvived.toFixed(2));
-    check('reached the E gauntlet', S.soulStormEActive === true);
-    check('E button is shown in the arena', !!REG.soulStormArena.querySelector('button[data-lane="e"]') &&
-      REG.soulStormArena.querySelector('button[data-lane="e"]').style.display === 'flex');
-    check('the ◀ ▶ pads are hidden during the E gauntlet',
-      REG.soulStormArena.querySelectorAll('.soulStormPad').every((p) => p.style.display === 'none'),
-      REG.soulStormArena.querySelectorAll('.soulStormPad').map((p) => p.dataset.pad + ':' + p.style.display).join(','));
-    check('no runtime errors during survival', errors.length === 0, errors.join('; '));
-  }
-
-  // --- C: one miss costs a heart, three misses ends the run -------------
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.launchSoulStorm();
-    let graceBlasts = null;
-    // grace: nothing may blast before SOUL_STORM_START_GRACE seconds
-    for (let i = 0; i < 200 && !S.soulStormEnded; i++) {
-      frame(50);
-      if (graceBlasts === null && S.soulStormSurvived >= S.SOUL_STORM_START_GRACE - 0.06) graceBlasts = S.soulStormBlastsFired;
-      if (graceBlasts !== null) break;
-    }
-    check('no blasts during the GET READY grace window', graceBlasts === 0, 'blasts=' + graceBlasts);
-
-    // first resolution with no dodge must NOT end the run
-    const { S: S3, frame: f3 } = makeRunner(src);
-    S3.launchSoulStorm();
-    let firstMissEnded = null, firstMissHits = null;
-    // The point never moves here, but the zones are random, so a miss can take a while to
-    // happen: step until one does (a 60s cap) instead of assuming a fixed number of frames.
-    // Steering INTO the warned zone makes every blast land, so the heart count is down to
-    // the player being careless rather than to where the random zone happened to fall.
-    const missInto = () => {
-      const w = S3.soulStormWarning;
-      if (!w) {
-        S3.soulStormSetHeld('left', false); S3.soulStormSetHeld('right', false);
-        return;
-      }
-      S3.soulStormSetHeld(S3.soulStormPointX < w.zone ? 'right' : 'left', true);
-    };
-    for (let i = 0; i < 1200 && !S3.soulStormEnded; i++) {
-      missInto();
-      f3(50);
-      if (S3.soulStormHits === 1 && firstMissEnded === null) {
-        firstMissEnded = S3.soulStormEnded;
-        firstMissHits = S3.soulStormHits;
-        break;
-      }
-    }
-    check('one missed blast survives (hearts)', firstMissEnded === false, 'ended=' + firstMissEnded + ' hits=' + firstMissHits);
-    check('hits counter tracked', firstMissHits === 1, 'hits=' + firstMissHits);
-
-    // keep missing until the hearts run out
-    for (let i = 0; i < 2000 && !S3.soulStormEnded; i++) { missInto(); f3(50); }
-    check('running out of hearts fails the run', S3.soulStormEnded === true && S3.soulStormWin === false);
-    check('exactly SOUL_STORM_HITS_ALLOWED misses were taken', S3.soulStormHits === S3.SOUL_STORM_HITS_ALLOWED,
-      'hits=' + S3.soulStormHits + ' allowed=' + S3.SOUL_STORM_HITS_ALLOWED);
-
-    const { S: S4, frame: f4, errors: e4 } = makeRunner(src);
-    S4.launchSoulStorm();
-    for (let i = 0; i < 2000 && !S4.soulStormEnded; i++) { f4(50); }
-    check('lose path has no errors', e4.length === 0, e4.join('; '));  check('lose path shows the result pane', !REG.soulStormResult.classList.contains('hidden'));
-    // the run is over: the loop must be dead, not left holding a stale frame id
-    check('lose path leaves no pending minigame frame', S4.soulStormRAF === null,
-      'raf=' + S4.soulStormRAF);
-    }
-
-  // --- D: E gauntlet win ------------------------------------------------
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.pendingPumpkinReward = { candy: 7, points: 500, bossPoints: 5, score: 500 };
-    REG.gameUI.classList.remove('hidden'); // in-game: the minigame must return to gameplay
-    S.launchSoulStorm();
-    frame(50); // warm-up frame latches the timestamp
-    S.soulStormSurvived = S.SOUL_STORM_SURVIVE - 0.01;
-    frame(50);
-    check('E gauntlet started', S.soulStormEActive === true);
-    check('queued blasts cleared on entering gauntlet', S.soulStormPendingBlasts.length === 0 && S.soulStormWarning === null);
-    for (let i = 0; i < S.SOUL_STORM_END_E_TARGET; i++) S.soulStormPressE();
-    check('35 E presses wins', S.soulStormWin === true && S.soulStormEnded === true);
-    for (let i = 0; i < 30; i++) frame(50); // flush the 1100ms reward timeout
-    check('rewards paid out', S.pendingPumpkinReward === null);
-    check('win RESUMES the parked main game loop', S.resumeLoopCalls === 1, 'calls=' + S.resumeLoopCalls);
-    check('win path has no errors', errors.length === 0, errors.join('; '));
-  }
-
-  // --- E: E gauntlet timeout loses, result pane usable -------------------
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.launchSoulStorm();
-    frame(50); // warm-up frame
-    S.soulStormSurvived = S.SOUL_STORM_SURVIVE - 0.01;
-    frame(50);
-    for (let i = 0; i < 320 && !S.soulStormEnded; i++) frame(50);
-    for (let i = 0; i < 20; i++) frame(50);
-    check('E timeout loses', S.soulStormEnded === true && S.soulStormWin === false);
-    check('result pane shown on failure', !REG.soulStormResult.classList.contains('hidden'));
-    check('timeout path has no errors', errors.length === 0, errors.join('; '));
-  }
-
-  // --- E2: E timeout must end the run exactly ONCE ------------------------
-  // Regression: the "TOO LATE" branch runs on every frame after the timer
-  // expires, so without a one-shot guard it queued dozens of soulStormEnd
-  // calls (measured 22 in a real browser), each restarting the music and
-  // creating a new AudioContext.
-  {
-    const { S, frame, errors } = makeRunner(src);
-    let endCalls = 0;
-    const origEnd = S.soulStormEnd;
-    S.soulStormEnd = function (w) { endCalls++; return origEnd(w); };
-
-    S.launchSoulStorm();
-    frame(50);
-    S.soulStormSurvived = S.SOUL_STORM_SURVIVE - 0.01;
-    frame(50);
-    for (let i = 0; i < 320 && !S.soulStormEnded; i++) frame(50);
-    for (let i = 0; i < 60; i++) frame(50); // keep stepping long after the deadline
-    check('E timeout calls soulStormEnd exactly once', endCalls === 1, 'calls=' + endCalls);
-    check('E timeout one-shot leaves no errors', errors.length === 0, errors.join('; '));
-
-    // A fresh run must re-arm the guard, not inherit it.
-    const before = endCalls;
-    S.launchSoulStorm();
-    frame(50);
-    S.soulStormSurvived = S.SOUL_STORM_SURVIVE - 0.01;
-    frame(50);
-    for (let i = 0; i < 320 && !S.soulStormEnded; i++) frame(50);
-    for (let i = 0; i < 60; i++) frame(50);
-    check('second run also ends exactly once', endCalls - before === 1, 'calls=' + (endCalls - before));
-  }
-
-  // --- E3: a frame that throws must NOT kill the minigame loop -------------
-  // Regression: the loop arms its next frame from inside its own body, so a single
-  // thrown error used to drop the chain and freeze the arena on its last frame.
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.launchSoulStorm();
-    frame(50);
-    const survivedBefore = S.soulStormSurvived;
-    const realDraw = S.soulStormDrawIndicators;
-    let threw = 0;
-    S.soulStormDrawIndicators = function () { threw++; throw new Error('simulated frame error'); };
-    for (let i = 0; i < 10; i++) frame(50);
-    check('the simulated error was actually raised', threw === 10, 'threw=' + threw);
-    check('a throwing frame is reported', S.loopErrors.filter((w) => w === 'soulStormStep').length === 10,
-      'reports=' + JSON.stringify(S.loopErrors));
-    check('a throwing frame does not escape the loop', errors.length === 0, errors.join('; '));
-    check('the loop is still armed after 10 bad frames', S.soulStormRAF !== null);
-    check('the survival timer still advanced through the bad frames', S.soulStormSurvived > survivedBefore,
-      'before=' + survivedBefore + ' after=' + S.soulStormSurvived);
-    // and it recovers fully once the fault is gone
-    S.soulStormDrawIndicators = realDraw;
-    const before = S.soulStormSurvived;
-    for (let i = 0; i < 5; i++) frame(50);
-    check('the minigame keeps running after the fault clears', S.soulStormSurvived > before,
-      'before=' + before + ' after=' + S.soulStormSurvived);
-    check('recovery frame throws nothing', errors.length === 0, errors.join('; '));
-  }
-
-  // --- E3b: a frame whose ARM throws must still leave a live loop ----------
-  // The arm happens at the end of the frame, so an error there used to be the worst
-  // case: the id was never scheduled, the loop stopped and the arena froze.
-  {
-    const { S, ctx, frame, errors } = makeRunner(src);
-    S.launchSoulStorm();
-    frame(50);
-    const origRaf = ctx.sandbox.requestAnimationFrame;
-    let throwOnce = true;
-    ctx.sandbox.requestAnimationFrame = function (fn) {
-      if (throwOnce) { throwOnce = false; throw new Error('simulated arm failure'); }
-      return origRaf(fn);
-    };
-    frame(50);
-    check('an arm failure is reported', S.loopErrors.indexOf('soulStormStep') >= 0, JSON.stringify(S.loopErrors));
-    check('an arm failure does not escape the loop', errors.length === 0, errors.join('; '));
-    check('the loop is still armed after an arm failure', S.soulStormRAF !== null, 'raf=' + S.soulStormRAF);
-    ctx.sandbox.requestAnimationFrame = origRaf;
-    const beforeArmFail = S.soulStormSurvived;
-    for (let i = 0; i < 6; i++) frame(50);
-    check('the minigame keeps running after an arm failure', S.soulStormSurvived > beforeArmFail,
-      'before=' + beforeArmFail + ' after=' + S.soulStormSurvived);
-    S.soulStormEnd(true);
-    check('no stale minigame frame id once the run ends', S.soulStormRAF === null, 'raf=' + S.soulStormRAF);
-  }
-
-  // --- E4: a reward-chain error must still resume the parked game loop -----
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.pendingPumpkinReward = { candy: 3, points: 500, bossPoints: 5, score: 500 };
-    REG.gameUI.classList.remove('hidden');
-    S.applyThemeMusic = function () { throw new Error('simulated music failure'); };
-    S.launchSoulStorm();
-    frame(50);
-    S.soulStormSurvived = S.SOUL_STORM_SURVIVE - 0.01;
-    frame(50);
-    for (let i = 0; i < S.SOUL_STORM_END_E_TARGET; i++) S.soulStormPressE();
-    for (let i = 0; i < 30; i++) frame(50);
-    check('reward-chain error is reported', S.loopErrors.indexOf('pumpkinRewards') >= 0,
-      'reports=' + JSON.stringify(S.loopErrors));
-    check('game loop still resumes when the reward chain throws', S.resumeLoopCalls === 1,
-      'calls=' + S.resumeLoopCalls);
-    check('reward payout completed before the failure', S.pendingPumpkinReward === null);
-    check('reward-chain error does not escape', errors.length === 0, errors.join('; '));
-  }
-
-  // --- F: retry / menu teardown -----------------------------------------
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.launchSoulStorm();
-    frame(50); // warm-up frame
-    S.soulStormSurvived = S.SOUL_STORM_SURVIVE - 0.01;
-    frame(50);
-    for (let i = 0; i < 320 && !S.soulStormEnded; i++) frame(50);
-    for (let i = 0; i < 20; i++) frame(50);
-    REG.soulStormRetryBtn.click();
-    check('RETRY does not throw', errors.length === 0, errors.join('; '));
-    check('RETRY resets minigame state', S.soulStormActive === false && S.soulStormEnded === true);
-    check('RETRY hides the overlay', REG.soulStormScreen.classList.contains('hidden'));
-    check('RETRY re-arms the pumpkin boss', REG.pumpkinBossBtn._clicks === 1, 'clicks=' + REG.pumpkinBossBtn._clicks);
-    S.launchSoulStorm();
-    REG.soulStormMenuBtn.click();
-    check('MENU returns to menu reset', S.exitSoulTestCalls === 1);
-  }
-
-  // --- H: real soul form -> minigame handoff ------------------------------
-  // The soul form is an ATTACKABLE 5,000 HP phase now: it must be killed with damage
-  // to reach Soul Storm. The old 20s auto-death must be gone (it decided the fight
-  // for the player) and only the stall safety net may advance the fight.
-  function wireBoss(S, C) {
-    Object.assign(S, {
-      GROUND_Y: 400, CW: 800, time: 0, CH: 500, stick: { x: 100, y: 400 },
-      bullets: [], dummies: [], miniBosses: [], PUMPKIN_BLAST_DMG: 20, PUMPKIN_ORB_DMG: 8,
-      PUMPKIN_ORB_TIME: 1200, PUMPKIN_HEAL_INTERVAL: 420, PUMPKIN_PHASE_HP: C.phaseHp,
-      PUMPKIN_PHASES: C.phases, PUMPKIN_SOUL_HP: C.soulHp, PUMPKIN_SOUL_TIMEOUT: C.soulTimeout,
-      PUMPKIN_ORB_SHOT_CD: C.orbShotCd,
-      spawnPumpkinMinion() {}, createParticles() {}, createTextParticle() {}, createExplosion() {},
-      damagePlayer() {}, stopPumpkinMusic() {}, startPumpkinMusic() {}, bumpPumpkinMusic() {},
-      getShopUpgradeEffect() { return 1; }, getTraitMult() { return 1; }, pickupDmgMult() { return 1; },
-      vampireHeal() {}
-    });
-  }
-  const mkPumpkin = (C, over) => Object.assign({
-    x: 300, y: 400, baseY: 400, hp: C.phaseHp, maxHp: C.phaseHp, alive: true, type: 'pumpkin',
-    phase: C.phases, orbMode: false, orbTimer: 0, orbShootCD: 0, soulTimer: 0,
-    hitFlash: 0, speed: 1.2, attackCD: 60, healCD: 420, minionCD: 180,
-    slamCD: 260, slamActive: false, slamVy: 0, phaseFlash: 0, facing: -1, animTime: 0
-  }, over || {});
-  {
-    const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    const kStart = s.indexOf('function dealDamageToMiniBoss(mb, dmg, source)');
-    const kEnd = s.indexOf('function updateMiniBosses()');
-    if (kStart < 0 || kEnd < 0) throw new Error('boss slice markers missing in ' + file);
-    const bossSlice = s.slice(kStart, s.lastIndexOf('\n', kEnd));
-    const num = (re, fallback) => { const m = re.exec(s); return m ? Number(m[1]) : fallback; };
-    const C = {
-      soulHp: num(/PUMPKIN_SOUL_HP\s*=\s*(\d+)/, 0),
-      soulTimeout: num(/PUMPKIN_SOUL_TIMEOUT\s*=\s*(\d+)/, 0),
-      phaseHp: num(/PUMPKIN_PHASE_HP\s*=\s*(\d+)/, 2500),
-      phases: num(/PUMPKIN_PHASES\s*=\s*(\d+)/, 5),
-      orbShotCd: num(/PUMPKIN_ORB_SHOT_CD\s*=\s*(\d+)/, 16)
-    };
-    check('PUMPKIN_SOUL_HP ships as 5000', C.soulHp === 5000, 'got ' + C.soulHp);
-    check('PUMPKIN_ORB_SHOT_CD ships a usable blast cadence',
-      C.orbShotCd > 0 && C.orbShotCd <= 60, 'got ' + C.orbShotCd);
-    check('the soul form is no longer flagged invulnerable in the damage path',
-      !/orbMode\)\s*\{\s*createTextParticle\(mb\.x, mb\.y - 20, '[^']*IMMUNE/.test(s));
-    check('the old "orbTimer expiring kills the boss" rule is gone',
-      !/if \(mb\.orbTimer <= 0\) killPumpkinBoss\(mb\);/.test(s));
-    check('a stall safety net exists for the soul fight',
-      /PUMPKIN_SOUL_TIMEOUT/.test(s) && /mb\.soulTimer >= PUMPKIN_SOUL_TIMEOUT\) killPumpkinBoss\(mb\)/.test(s));
-    // The soul form's blasts must be telegraphed by a LONG arrow that charges over
-    // the real blast cooldown and is clamped so it can never run off the canvas.
-    check('the soul form telegraphs its blasts with a long charge arrow',
-      /var warnAim = Math\.atan2\(\(stick\.y - 30\) - gy, stick\.x - dx\)/.test(s) &&
-      /ctx\.rotate\(warnAim\)/.test(s) && /ctx\.moveTo\(34, -7\)/.test(s));
-    check('the warning arrow charges over the real blast cooldown',
-      /PUMPKIN_ORB_SHOT_CD\s*=\s*(\d+)/.test(s) && /mb\.orbShootCD = PUMPKIN_ORB_SHOT_CD;/.test(s));
-    check('the warning arrow is clamped to the canvas', /var warnEdge = 620/.test(s));
-
-    // A) damaging the last physical phase turns the boss into the 5,000 HP soul form
-    const { S, frame, errors } = makeRunner(src + '\n' + bossSlice);
-    wireBoss(S, C);
-    const soul = mkPumpkin(C);
-    S.dealDamageToMiniBoss(soul, C.phaseHp, 'test');
-    check('clearing the last phase enters the soul form', soul.orbMode === true, 'orb=' + soul.orbMode);
-    check('the soul form starts at 5,000 HP', soul.hp === 5000 && soul.maxHp === 5000,
-      'hp=' + soul.hp + ' maxHp=' + soul.maxHp);
-
-    // B) attacks land on the soul form instead of bouncing off as IMMUNE
-    const hpBefore = soul.hp;
-    S.dealDamageToMiniBoss(soul, 500, 'shoot');
-    check('the soul form takes real damage', soul.hp === hpBefore - 500, 'hp=' + soul.hp);
-    check('hits still flash the soul form', soul.hitFlash === 6, 'hitFlash=' + soul.hitFlash);
-
-    // C) finishing its 5,000 HP is what sends the player into the minigame
-    S.dealDamageToMiniBoss(soul, soul.hp, 'test');
-    check('defeating the soul form kills the boss', soul.alive === false, 'alive=' + soul.alive);
-    check('defeating the soul form launches Soul Storm', S.soulStormActive === true && S.gameState === 'minigame');
-    check('previous game state replaced', S.gameState !== 'playing');
-    frame(50); frame(50);
-    check('minigame timer runs after the handoff', S.soulStormSurvived > 0, 'got ' + S.soulStormSurvived);
-    check('handoff has no runtime errors', errors.length === 0, errors.join('; '));
-    check('pending reward deferred, not paid', S.pendingPumpkinReward !== null);
-
-    // D) an untouched soul form must NOT auto-die on the old 20s timer
-    const { S: S2 } = makeRunner(src + '\n' + bossSlice);
-    wireBoss(S2, C);
-    const lazy = mkPumpkin(C, { orbMode: true, hp: C.soulHp, maxHp: C.soulHp, orbTimer: 1, orbShootCD: 0 });
-    for (let i = 0; i < 40; i++) S2.updatePumpkinBoss(lazy, 200);
-    check('orb form fires an 8-damage orb', S2.bullets.length > 0 && S2.bullets.every((b) => b.dmg === 8),
-      'bullets=' + JSON.stringify(S2.bullets.map((b) => b.dmg).slice(0, 3)));
-    check('an unkilled soul form survives its old 20s timer', lazy.alive === true && lazy.orbMode === true,
-      'alive=' + lazy.alive + ' frame=' + lazy.orbTimer);
-    check('the soul form keeps its 5,000 HP pool while it fights', lazy.hp === 5000, 'hp=' + lazy.hp);
-    for (let i = 0; i < C.soulTimeout + 5; i++) S2.updatePumpkinBoss(lazy, 200);
-    check('the stall safety net eventually advances the fight', lazy.alive === false, 'alive=' + lazy.alive);
-  }
-
-  // --- G: soul-orb damage ------------------------------------------------
-  {
-    const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    const orbConst = /PUMPKIN_ORB_DMG\s*=\s*(\d+)/.exec(s);
-    const orbUse = /mb\.orbMode\) \{[\s\S]{0,1200}?dmg: PUMPKIN_ORB_DMG/.test(s);
-    const otherShots = (s.match(/dmg: PUMPKIN_BLAST_DMG/g) || []).length;
-    check('PUMPKIN_ORB_DMG === 8', orbConst && Number(orbConst[1]) === 8, orbConst ? orbConst[1] : 'missing');
-    check('soul-orb shots use PUMPKIN_ORB_DMG', orbUse);
-    check('normal pumpkin shots keep PUMPKIN_BLAST_DMG', otherShots === 1, 'found ' + otherShots);
-    check('boss death path still calls launchSoulStorm', /killPumpkinBoss[\s\S]{0,900}launchSoulStorm\(\)/.test(s));
-  }
-
-  // --- J: the long warning arrow really draws, aimed at the player -----------
-  // drawMiniBoss is run against a recording canvas so the painted polygon (not the
-  // source text) is what gets asserted: it must start at the orb, point at the
-  // player, stay on the canvas, and grow as the next blast charges.
-  {
-    const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    const ds = s.indexOf('function drawMiniBoss(mb)');
-    const de = s.indexOf('function updatePumpkinBoss');
-    if (ds < 0 || de < 0) throw new Error('drawMiniBoss markers missing in ' + file);
-    const num = (re, fallback) => { const m = re.exec(s); return m ? Number(m[1]) : fallback; };
-    const rec = mkRecCtx();
-    const { S } = makeRunner(src + '\n' + s.slice(ds, s.lastIndexOf('\n', de)));
-    const C2 = {
-      phaseHp: num(/PUMPKIN_PHASE_HP\s*=\s*(\d+)/, 2500), phases: num(/PUMPKIN_PHASES\s*=\s*(\d+)/, 5),
-      soulHp: num(/PUMPKIN_SOUL_HP\s*=\s*(\d+)/, 5000), soulTimeout: num(/PUMPKIN_SOUL_TIMEOUT\s*=\s*(\d+)/, 7200),
-      orbShotCd: num(/PUMPKIN_ORB_SHOT_CD\s*=\s*(\d+)/, 16)
-    };
-    wireBoss(S, C2);
-    S.PUMPKIN_SOUL_HP = C2.soulHp;
-    S.PUMPKIN_ORB_SHOT_CD = C2.orbShotCd;
-    S.CW = 900; S.CH = 500; S.time = 12;
-    S.ctx = rec;
-    S.stick = { x: 700, y: 400 };
-    const orb = mkPumpkin(C2, {
-      x: 300, y: 210, baseY: 210, orbMode: true, hp: C2.soulHp, maxHp: C2.soulHp
-    });
-    const paint = (cd) => {
-      orb.orbShootCD = cd;
-      rec.reset();
-      S.drawMiniBoss(orb);
-      const p = rec.__rec.paths[0];
-      return p && p.length === 7 ? p : null;   // 7 points == the arrow polygon
-    };
-    const charged = paint(0);
-    const idle = paint(S.PUMPKIN_ORB_SHOT_CD);
-    check('the warning arrow paints a 7-point arrow polygon', !!charged && !!idle);
-    if (charged) {
-      const toPlayer = Math.atan2(370 - 210, 700 - 300);
-      const tip = charged[3];
-      const tail = charged[0];
-      const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
-      const tipAngle = Math.atan2(tip.y - 210, tip.x - 300);
-      const offAxis = Math.abs(Math.atan2(Math.sin(tipAngle - toPlayer), Math.cos(tipAngle - toPlayer)));
-      check('the arrow emanates from the soul form (tail sits just outside the orb)',
-        dist(tail, { x: 300, y: 210 }) > 30 && dist(tail, { x: 300, y: 210 }) < 40, 'tail dist=' + dist(tail, { x: 300, y: 210 }).toFixed(1));
-      check('the arrow points straight at the player', offAxis < 0.02, 'off-axis=' + offAxis.toFixed(4));
-      check('the arrow is long (>250px)', dist(tip, { x: 300, y: 210 }) > 250, 'len=' + dist(tip, { x: 300, y: 210 }).toFixed(1));
-      check('the arrow stays on the canvas', tip.x >= 0 && tip.x <= S.CW && tip.y >= 0 && tip.y <= S.CH,
-        'tip=' + tip.x.toFixed(1) + ',' + tip.y.toFixed(1));
-      check('the arrow grows as the next blast charges',
-        dist(charged[3], { x: 300, y: 210 }) > dist(idle[3], { x: 300, y: 210 }) + 100,
-        'charged=' + dist(charged[3], { x: 300, y: 210 }).toFixed(1) + ' idle=' + dist(idle[3], { x: 300, y: 210 }).toFixed(1));
-    }
-  }
-
-  // --- K: the minigame's LONG warning arrow ------------------------------
-  // The Soul Storm warning used to be colour + text only. Every lane now owns a
-  // long arrow that appears for the warning window, charges amber -> red as the
-  // blast closes in, and puts its head on the lane button that is about to go off.
-  {
-    const raw = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    check('the source ships a long minigame warning arrow',
-      /soulStormArrow absolute pointer-events-none/.test(raw) && /a\.wrap\.style\.left = \(w\.zone - 30\)/.test(raw));
-
-    const { S, frame, errors } = makeRunner(src);
-    S.buildSoulStormArena();
-    S.launchSoulStorm();
-    const arrows = () => REG.soulStormArena.querySelectorAll('.soulStormArrow');
-    const shown = () => arrows().filter((a) => a.style.display === 'block');
-    const px = (v) => Number(String(v || '0').replace('px', ''));
-    const arrowZone = (a) => px(a.style.left) + 30;      // 60px wide wrap, centred on the zone
-    frame(16);
-    check('exactly one long warning arrow is built', arrows().length === 1, 'found ' + arrows().length);
-    check('no arrow is up during GET READY', shown().length === 0, 'shown=' + shown().length);
-    let warned = null;
-    for (let i = 0; i < 120 && !warned; i++) { frame(50); if (S.soulStormWarning) warned = S.soulStormWarning.zone; }
-    check('a zone gets warned', typeof warned === 'number', 'warned=' + warned);
-    const up = shown();
-    check('exactly one long arrow is on screen', up.length === 1, 'shown=' + up.length);
-    check('the arrow is aimed at the warned zone', up.length === 1 && Math.abs(arrowZone(up[0]) - warned) <= 1,
-      'arrow=' + (up[0] && arrowZone(up[0])) + ' warned=' + warned);
-    const a = up[0] || mkEl();
-    const kids = (a.children || []).map((c) => c.className);
-    check('the arrow has a shaft and an arrow head', a.children.length === 2 &&
-      /soulStormArrowShaft/.test(kids[0]) && /soulStormArrowHead/.test(kids[1]), kids.join('|'));
-    check('the head points DOWN at the track (CSS triangle)',
-      /^30px solid #/.test(a.children[1] && a.children[1].style.borderTop || ''), a.children[1] && a.children[1].style.borderTop);
-    check('the arrow is long, not a stub', px(a.style.height) >= 200, 'height=' + a.style.height);
-    check('the head lands inside the track', px(a.style.top) + px(a.style.height) >= S.SOUL_STORM_TRACK_Y &&
-      px(a.style.top) + px(a.style.height) <= S.SOUL_STORM_TRACK_Y + S.SOUL_STORM_TRACK_H,
-      'bottom=' + (px(a.style.top) + px(a.style.height)) + ' track=' + S.SOUL_STORM_TRACK_Y + '..' + (S.SOUL_STORM_TRACK_Y + S.SOUL_STORM_TRACK_H));
-    check('the arrow charges as the warning counts down', /^scaleY\(/.test(a.style.transform || ''), 'transform=' + a.style.transform);
-    check('the arrow shaft deepens toward the head',
-      /^linear-gradient\(to bottom/.test(a.children[0].style.background || ''), a.children[0].style.background);
-
-    // Drive the whole survival phase: the arrow must be re-aimed at every warned zone,
-    // must never linger between warnings, and must be gone for the E gauntlet and after.
-    let tracked = 0, mismatch = 0, stale = 0, hintMismatch = 0;
-    for (let i = 0; i < 2600 && !S.soulStormEActive && !S.soulStormEnded; i++) {
-      const w = S.soulStormWarning;
-      const visible = shown();
-      if (w) {
-        tracked++;
-        if (visible.length !== 1 || Math.abs(arrowZone(visible[0]) - w.zone) > 1) mismatch++;
-        const inside = Math.abs(S.soulStormPointX - w.zone) <= S.SOUL_STORM_ZONE_W / 2;
-        if (inside) {
-          const dir = S.soulStormEscapeDir(w.zone);
-          // The on-screen hint must name the same way out that actually works.
-          const hint = S.soulStormMoveHint();
-          if (hint.indexOf(dir < 0 ? 'LEFT' : 'RIGHT') < 0) hintMismatch++;
-          S.soulStormSetHeld(dir < 0 ? 'left' : 'right', true);
-        } else { S.soulStormSetHeld('left', false); S.soulStormSetHeld('right', false); }
-      } else if (S.soulStormSurvived >= S.SOUL_STORM_START_GRACE && visible.length) {
-        stale++;
-      }
-      frame(16);
-    }
-    check('the arrow followed every warned zone', tracked > 0 && mismatch === 0, 'tracked=' + tracked + ' mismatches=' + mismatch);
-    check('no arrow lingers between warnings', stale === 0, 'stale frames=' + stale);
-    check('the hint always names the escape that actually works', hintMismatch === 0, 'wrong hints=' + hintMismatch);
-    check('escaping every zone kept every heart', S.soulStormHits === 0, 'hits=' + S.soulStormHits);
-    check('the survival phase reached the E gauntlet', S.soulStormEActive === true);
-    check('no arrow during the E gauntlet', shown().length === 0, 'shown=' + shown().length);
-    for (let i = 0; i < S.SOUL_STORM_END_E_TARGET; i++) S.soulStormPressE();
-    for (let i = 0; i < 40; i++) frame(50);
-    check('the run was won', S.soulStormWin === true);
-    check('no arrow left on the result pane', shown().length === 0, 'shown=' + shown().length);
-    check('the arrow run has no runtime errors', errors.length === 0 && S.loopErrors.length === 0,
-      errors.concat(S.loopErrors).join('; '));
-  }
-
-  // --- L: the point moves with ◀/▶ and the blast hit-rule follows it -------
-  {
-    const { S, frame, errors } = makeRunner(src);
-    S.buildSoulStormArena();
-    S.launchSoulStorm();
-    const startX = S.soulStormPointX;
-    const margin = S.SOUL_STORM_POINT_R + S.SOUL_STORM_ZONE_EDGE;
-    check('the point starts centred on the track', Math.abs(startX - S.SOUL_STORM_ARENA_W / 2) < 0.001, 'x=' + startX);
-    S.soulStormSetHeld('right', true);
-    for (let i = 0; i < 20; i++) frame(16);
-    check('holding ▶ slides the point right', S.soulStormPointX > startX + 20, 'x=' + S.soulStormPointX.toFixed(1));
-    S.soulStormSetHeld('right', false);
-    const released = S.soulStormPointX;
-    for (let i = 0; i < 10; i++) frame(16);
-    check('the point stops when the key is released', S.soulStormPointX === released, 'x=' + S.soulStormPointX.toFixed(1));
-    S.soulStormSetHeld('left', true);
-    for (let i = 0; i < 300; i++) frame(16);
-    S.soulStormSetHeld('left', false);
-    check('the point cannot leave the track', Math.abs(S.soulStormPointX - margin) < 0.001, 'x=' + S.soulStormPointX);
-    check('the point is drawn where the model says it is',
-      REG.soulStormPoint && pxOf(REG.soulStormPoint.style.left) === S.soulStormPointX - S.SOUL_STORM_POINT_R,
-      'dotLeft=' + (REG.soulStormPoint && REG.soulStormPoint.style.left) + ' x=' + S.soulStormPointX);
-
-    // Standing in the warned zone must cost a heart; being clear of it must not.
-    const hitRun = (leave) => {
-      const r = makeRunner(src);
-      const T = r.S;
-      T.launchSoulStorm();
-      let seen = false;
-      for (let i = 0; i < 400 && !seen && !T.soulStormEnded; i++) {
-        if (T.soulStormWarning && T.soulStormSurvived >= T.SOUL_STORM_START_GRACE) {
-          seen = true;
-          T.soulStormPointX = leave ? T.soulStormWarning.zone + T.SOUL_STORM_ZONE_W : T.soulStormWarning.zone;
-        }
-        r.frame(16);
-      }
-      if (!seen) return null;
-      for (let i = 0; i < 400 && !T.soulStormEnded; i++) {
-        if (T.soulStormWarning) {
-          T.soulStormPointX = leave ? T.soulStormWarning.zone + T.SOUL_STORM_ZONE_W : T.soulStormWarning.zone;
-        }
-        r.frame(16);
-        if (!leave && T.soulStormHits >= 1) break;
-      }
-      return T.soulStormHits;
-    };
-    check('standing in the warned zone costs a heart', hitRun(false) === 1);
-    check('being clear of the warned zone is safe', hitRun(true) === 0);
-    check('movement run has no runtime errors', errors.length === 0, errors.join('; '));
-  }
-
-  // --- M: the pumpkin boss is OPT-IN — only the 🎃 Fight Boss button ------------
-  // The boss used to arrive on a Halloween-gated timer, which (depending on tuning)
-  // either never showed up in a normal run or crashed into every mode. The shipped
-  // contract is now the opposite: EASY / NORMAL / HARD, sandbox, boss rush, campaign
-  // and phantom missions never spawn it — only the menu's 🎃 Fight Boss button asks
-  // for it by setting `pumpkinBossRequested`, and the boss walks in on the next
-  // frame. The main loop sits outside the extracted region, so these are
-  // source-level guards (a live browser run covers the behaviour).
-  {
-    const s = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    check('the opt-in request flag exists', /let pumpkinBossRequested = false;/.test(s));
-    check('the old timed spawn interval is gone', !/PUMPKIN_SPAWN_INTERVAL/.test(s));
-    check('the old frame-timer arrival is gone', !/pumpkinTimer/.test(s));
-    check('the single spawn sink waits on the request flag',
-      /if \(pumpkinBossRequested && !pumpkinSpawned\) \{\s*\n\s*pumpkinBossRequested = false; pumpkinSpawned = true; miniBosses\.push\(\{/.test(s));
-    const sinks = (s.match(/pumpkinSpawned = true/g) || []).length;
-    check('the boss can only be spawned from that one sink', sinks === 1, 'found ' + sinks);
-    check('the spawned boss is the pumpkin', /type: 'pumpkin', animTime: 0/.test(s));
-    check('the 🎃 Fight Boss button asks for the boss',
-      /getElementById\('pumpkinBossBtn'\)\.addEventListener\('click'/.test(s) &&
-      /pumpkinBossRequested = true; \/\/ the boss walks in on the very next frame/.test(s));
-    const setters = (s.match(/pumpkinBossRequested = true/g) || []).length;
-    check('only the 🎃 Fight Boss button can request the boss', setters === 1, 'found ' + setters);
-    check('the button is kept visible all year round',
-      /var pbb = document\.getElementById\('pumpkinBossBtn'\); if \(pbb\) pbb\.classList\.remove\('hidden'\);/.test(s));
-  }
-}
-
-['index.html', 'index.standalone.html'].forEach(run);
-
-// --- I: the minigame overlay must be reachable in BOTH shipped files ---------
-// Regression: index.standalone.html shipped with #soulStormScreen nested INSIDE the
-// hidden #rhythmScreen (one </div> was missing and a stray one closed rhythmScreen
-// later). The parent's `hidden` (display:none) meant the arena never rendered while
-// the main game loop was parked for the minigame — the "boss fight minigame freezes"
-// bug, which only ever happened in the standalone file the game is played from.
-{
-  console.log('\n===== overlay reachability =====');
-  ['index.html', 'index.standalone.html'].forEach((file) => {
-    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    const re = /<(\/?)div\b[^>]*>/g;
-    let depth = 0, rhythm = null, soul = null, m;
-    while ((m = re.exec(html))) {
-      if (m[1] === '/') { depth--; continue; }
-      const id = (/\sid="([^"]+)"/.exec(m[0]) || [])[1];
-      if (id === 'rhythmScreen') rhythm = depth + 1;
-      if (id === 'soulStormScreen') soul = depth + 1;
-      depth++;
-    }
-    check(file + ': #soulStormScreen exists', soul !== null);
-    check(file + ': #rhythmScreen exists', rhythm !== null);
-    check(file + ': #soulStormScreen is a SIBLING of #rhythmScreen (not trapped inside the hidden one)',
-      soul !== null && soul === rhythm, 'soulDepth=' + soul + ' rhythmDepth=' + rhythm);
-  });
-}
-
-// --- H: the two shipped files must carry an IDENTICAL Soul Storm region ----
-{
-  console.log('\n===== region parity =====');
-  const regionOf = (f) => {
-    const html = fs.readFileSync(path.join(ROOT, f), 'utf8');
-    const a = html.indexOf('SOUL STORM (pumpkin boss end minigame)');
-    const b = html.indexOf('function updateDarkUniverseBoss');
-    return html.slice(html.lastIndexOf('//', a), html.lastIndexOf('\n', b));
-  };
-  const mainBlock = regionOf('index.html');
-  const mirrorRaw = regionOf('index.standalone.html');
-  // the mirror is the main file's region de-indented by 4 spaces
-  const mirrorAsMain = mirrorRaw.split('\n').map((l) => (l.trim() === '' ? l : '    ' + l)).join('\n');
-  const norm = (x) => x.split('\n').map((l) => l.trim()).join('\n');
-  check('mirror Soul Storm region matches index.html', norm(mirrorAsMain) === norm(mainBlock));
-  check('grace window present in both', /SOUL_STORM_START_GRACE/.test(mainBlock) && /SOUL_STORM_START_GRACE/.test(mirrorRaw));
-  check('hearts present in both', /SOUL_STORM_HITS_ALLOWED/.test(mainBlock) && /SOUL_STORM_HITS_ALLOWED/.test(mirrorRaw));
-
-  // The warning arrow block must be byte-identical in the two shipped files, or the
-  // file the game is actually played from can drift from the published one again.
-  const arrowOf = (f) => {
-    const html = fs.readFileSync(path.join(ROOT, f), 'utf8');
-    const a = html.indexOf('---- LONG WARNING ARROW');
-    const b = html.indexOf('var orbP = 1 + Math.sin(time * 0.3) * 0.15;', a);
-    return a < 0 || b < 0 ? null : html.slice(a, b).split('\n').map((l) => l.trim()).join('\n');
-  };
-  const arrowMain = arrowOf('index.html');
-  check('warning arrow present in both files', arrowMain !== null && arrowOf('index.standalone.html') !== null);
-  check('warning arrow is identical in both files', arrowMain === arrowOf('index.standalone.html'));
 }
 
 // --- N: the mobile layer — the game has to be playable on a phone -----------
@@ -985,7 +150,7 @@ function run(file) {
     'dpad=' + dpadW + ' row=' + rowW);
 }
 
-// --- O: animation rig, sprint, werewolf skin, pumpkin HP, cross-device saves ---
+// --- O: animation rig, sprint, skins, cross-device saves ----------------------
 {
   console.log('\n===== animation / content / saves =====');
   ['index.html', 'index.standalone.html'].forEach((file) => {
@@ -1012,7 +177,7 @@ function run(file) {
       /let landSquash = 0;/.test(html) && /landSquash = Math\.min\(9, 3 \+ stick\.vy \* 0\.6\)/.test(html) &&
       /if \(landSquash > 0\) landSquash = Math\.max\(0, landSquash - 1\.6\)/.test(html));
 
-    // Halloween werewolf skin
+    // Werewolf skin
     check(file + ': the werewolf skin is in the Halloween skin list',
       /id: 'fighter_werewolf', char: 'fighter', name: 'Werewolf'/.test(html));
     check(file + ': the werewolf skin is drawn (ears, snout, claws, tail)',
@@ -1020,16 +185,6 @@ function run(file) {
       /\/\/ Snout/.test(html) && /\/\/ Claws on both hands/.test(html) && /\/\/ Ears/.test(html));
     check(file + ': the werewolf perk is wired to real damage',
       /selectedSkin === 'fighter_werewolf'\) \{\s*\n\s*return \(typeof playerHP === 'number'/.test(html));
-
-    // Pumpkin boss tuning
-    const phaseHp = Number((/const PUMPKIN_PHASE_HP = (\d+);/.exec(html) || [])[1]);
-    const soulHp = Number((/const PUMPKIN_SOUL_HP = (\d+);/.exec(html) || [])[1]);
-    const phases = Number((/const PUMPKIN_PHASES = (\d+);/.exec(html) || [])[1]);
-    check(file + ': the pumpkin boss has 500 HP per phase', phaseHp === 500, 'found ' + phaseHp);
-    check(file + ': every phase refills to that same 500 HP',
-      /mb\.phase\+\+; mb\.hp = PUMPKIN_PHASE_HP;/.test(html), 'phases=' + phases);
-    check(file + ': the soul form is untouched at 5,000 HP', soulHp === 5000, 'found ' + soulHp);
-    check(file + ': the total is 5 x 500 = 2,500', phaseHp * phases === 2500, 'total=' + phaseHp * phases);
 
     // Cross-device / cross-account saves
     check(file + ': storage is wrapped so a blocked localStorage cannot kill the game',
@@ -1059,6 +214,92 @@ function run(file) {
 // one step per animation frame. The real scheduler is lifted out of the shipped file and
 // driven with fake timestamps at 120Hz, 60Hz and 30Hz.
 {
+  console.log('\n===== death mode =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    check(file + ': death mode is a selectable mode with its own button',
+      /<button id="modeDeath"[^>]*>☠️ DEATH<\/button>/.test(html) &&
+      /document\.getElementById\('modeDeath'\)\.addEventListener\('click', \(\) => selectMode\('death'\)\)/.test(html) &&
+      /document\.getElementById\('modeDeath'\)\.className = m === 'death'/.test(html));
+    // 100 waves of the existing 10-second clock: 600 fixed steps each.
+    check(file + ': death mode is 100 waves of 10 seconds',
+      /const DEATH_TOTAL_WAVES = 100;/.test(html) && /const WAVE_FRAMES = 600;/.test(html) &&
+      /if \(wave > DEATH_TOTAL_WAVES && !deathRunWon\) \{/.test(html));
+    // The curve has to rise and still stop: HP 6x, damage 2.5x, i.e. beatable.
+    check(file + ': enemies ramp in HP and damage but the curve is capped',
+      /const DEATH_HP_STEP = 0\.05, DEATH_HP_CAP = 6;/.test(html) &&
+      /const DEATH_DMG_STEP = 0\.015, DEATH_DMG_CAP = 2\.5;/.test(html) &&
+      /if \(deathHpMult\(\) > 1\) baseHp = Math\.round\(baseHp \* deathHpMult\(\)\);/.test(html) &&
+      /if \(deathDmgMult\(\) > 1 && !noDeathScale\) dmg = Math\.max\(1, Math\.round\(dmg \* deathDmgMult\(\)\)\);/.test(html));
+    check(file + ': a boss lands on every tenth wave',
+      /if \(wave % 10 === 0\) spawnDeathBoss\(wave\);/.test(html) &&
+      /function spawnDeathBoss\(w\) \{/.test(html) &&
+      // Bosses scale on a gentler curve than the trash, so the wave-100 trio stays a fight.
+      /function deathBossHpMult\(\) \{ return deathOn\(\) \? Math\.min\(2\.5, 1 \+ 0\.02 \* \(deathWave\(\) - 1\)\) : 1; \}/.test(html) &&
+      /var mult = deathBossHpMult\(\);/.test(html) &&
+      /if \(deathOn\(\)\) return; \/\/ death mode fields its own bosses every 10th wave/.test(html));
+    check(file + ': the field gets denser and faster every wave',
+      /deathOn\(\) \? Math\.min\(9, 3 \+ Math\.floor\(wave \/ 12\)\) : SPAWN_COUNT/.test(html) &&
+      /var spawnGap = deathOn\(\) \? Math\.max\(180, Math\.round\(SPAWN_INTERVAL \/ \(1 \+ 0\.04 \* wave\)\)\) : SPAWN_INTERVAL;/.test(html) &&
+      /wave >= 20 && r < 0\.16/.test(html) && /wave >= 3 && r < 0\.70/.test(html));
+    // Every enemy from every mode: heavies cycle, the horde arrives, and the tank/speed
+    // pair keeps its normal-mode stats instead of riding the death ramp.
+    check(file + ': every enemy from every mode shows up in death mode',
+      /var DEATH_HEAVY_ROSTER = \['necro', 'sniper', 'medic', 'big_gunner', 'giant_gunner', 'titan_gunner', 'titan', 'boss'\];/.test(html) &&
+      /var type = DEATH_HEAVY_ROSTER\[deathHeavyIdx % DEATH_HEAVY_ROSTER\.length\];/.test(html) &&
+      /function spawnDeathZombies\(\)/.test(html) &&
+      /function updateDeathSpawns\(\)/.test(html) &&
+      /if \(deathOn\(\) && !campaignMode && !phantomMissionActive\) updateDeathSpawns\(\);/.test(html) &&
+      /deathRunWon = false; deathHeavyTimer = 0; deathHeavyIdx = 0; deathZombieTimer = 0;/.test(html));
+    check(file + ': the tank and speed pair is never made harder in death mode',
+      /deathOn\(\) && \(mb\.type === 'tank' \|\| mb\.type === 'speed'\)\);/.test(html) &&
+      /if \(deathDmgMult\(\) > 1 && !noDeathScale\)/.test(html) &&
+      // their HP comes straight from the shared constants, with no death multiplier applied
+      /hp: gameMode === 'easy' \? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' \? EASY_TANK_HP : TANK_HP, speed: TANK_SPD/.test(html) &&
+      /hp: gameMode === 'easy' \? EASY_SPEED_HP : SPEED_HP, maxHp: gameMode === 'easy' \? EASY_SPEED_HP : SPEED_HP, speed: SPEED_SPD/.test(html));
+    check(file + ': clearing wave 100 is a win with a payout, then endless',
+      /totalPoints \+= 5000; bossPoints \+= 25; savePoints\(\);/.test(html) &&
+      /localStorage\.setItem\('sm_deathCleared', 'true'\)/.test(html) &&
+      /'endless continues — good luck'/.test(html));
+    check(file + ': the best wave is kept and shown in the menu',
+      /let deathBest = loadNum\('sm_deathBest'\);/.test(html) &&
+      /localStorage\.setItem\('sm_deathBest', deathBest\)/.test(html) &&
+      /id="deathBestLine"/.test(html) &&
+      /updateDeathBestLine\(\);\n    \/\/ ==================== SKIN UI/.test(html));
+    check(file + ': the death HUD shows the wave clock, and the death screen shows the wave',
+      /'☠️ WAVE ' \+ wave \+ \(wave <= DEATH_TOTAL_WAVES/.test(html) &&
+      /'☠️ Wave ' \+ wave \+ ' \/ ' \+ DEATH_TOTAL_WAVES/.test(html));
+  });
+
+  console.log('\n===== boot safety =====');
+  // Regression: a removed feature left `bar: bossrushBar` pointing at a function that no
+  // longer existed. The ReferenceError killed the whole boot IIFE, so the menu showed 0
+  // points and PLAY did nothing. Every soundtrack bar named in the theme table must exist.
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const table = (/var THEME_TRACKS = \{[\s\S]*?\n    \};/.exec(html) || [])[0] || '';
+    const bars = [...table.matchAll(/bar: ([A-Za-z_$][\w$]*)/g)].map((m) => m[1]);
+    const missing = bars.filter((b) => !new RegExp('function ' + b + '\\(ac, dest, t0, bar, step\\)').test(html));
+    check(file + ': every soundtrack bar in the theme table is a real function',
+      bars.length >= 12 && missing.length === 0, 'bars=' + bars.length + ' missing=' + missing.join(','));
+    // And the energy balance is painted on load, not only after the first kill.
+    check(file + ': the energy balance is painted on load',
+      /updateMenuPoints\(\); updateCharLockUI\(\); updateCandyUI\(\);/.test(html));
+    // The ninja's dash button must call a function that exists.
+    check(file + ': the ninja dash button calls a real function',
+      /selectedChar === 'ninja' \? performNinjaFarDash\(\)/.test(html));
+    // Regression: a stray mini-boss line landed inside dealDamageToDummy and threw
+    // `mb is not defined` on every punch, so nothing could ever be killed.
+    const dummyFn = (/function dealDamageToDummy\(d, dmg, source\) \{[\s\S]*?\n    \}/.exec(html) || [])[0] || '';
+    check(file + ': dealing damage to a dummy never touches a mini-boss',
+      dummyFn.length > 300 && !/\bmb\s*\./.test(dummyFn), 'bodyLen=' + dummyFn.length);
+    // Energy rate: 0.25 an enemy, 0.5 a boss. The kill counter already pays one enemy's
+    // share, so the boss payout is the top-up.
+    check(file + ': energy pays 0.25 an enemy and 0.5 a boss',
+      /var ENERGY_PER_KILL = 0\.25, ENERGY_PER_BOSS = 0\.5;/.test(html) &&
+      /function addEnergyForBoss\(\) \{ addCandy\(ENERGY_PER_BOSS - ENERGY_PER_KILL\); \}/.test(html));
+  });
+
   console.log('\n===== frame clock =====');
   ['index.html', 'index.standalone.html'].forEach((file) => {
     const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -1306,82 +547,62 @@ function run(file) {
   });
 }
 
-// --- W: HALLOWEEN mode, the candy economy, The Hollow and the drag sticks ------.
+// --- W: skins, energy points, The Hollow and the drag sticks ------------------
 {
-  console.log('\n===== halloween mode =====');
+  console.log('\n===== skins / energy / hollow / sticks =====');
   ['index.html', 'index.standalone.html'].forEach((file) => {
     const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
     const num = (re) => Number((re.exec(html) || [])[1]);
 
-    check(file + ': the menu offers a HALLOWEEN mode and it really switches mode',
-      /id="modeHalloween"/.test(html) &&
-      /getElementById\('modeHalloween'\)\.addEventListener\('click', \(\) => selectMode\('halloween'\)\)/.test(html) &&
-      /getElementById\('modeHalloween'\)\.className = m === 'halloween'/.test(html) &&
-      /gameMode === 'halloween' \? ' 🎃HALL'/.test(html));
-
-    check(file + ': a mini pumpkin every 3s and a big one every 9s',
-      num(/HALLOWEEN_MINI_INTERVAL = (\d+)/) === 180 &&
-      num(/HALLOWEEN_BIG_INTERVAL = (\d+)/) === 540 &&
-      /function updateHalloweenSpawns\(\)/.test(html) &&
-      /halloweenMiniTimer >= HALLOWEEN_MINI_INTERVAL\) \{ halloweenMiniTimer = 0; spawnHalloweenPumpkin\(false\); \}/.test(html) &&
-      /halloweenBigTimer >= HALLOWEEN_BIG_INTERVAL\) \{ halloweenBigTimer = 0; spawnHalloweenPumpkin\(true\); \}/.test(html) &&
-      /if \(halloweenOn\(\) && !campaignMode && !phantomMissionActive\) updateHalloweenSpawns\(\);/.test(html),
-      'mini=' + num(/HALLOWEEN_MINI_INTERVAL = (\d+)/) + ' big=' + num(/HALLOWEEN_BIG_INTERVAL = (\d+)/));
-
-    check(file + ': every pumpkin drops a candy every 2s, 15% of them a bag of 10',
-      num(/HALLOWEEN_CANDY_CD = (\d+)/) === 120 &&
-      num(/HALLOWEEN_BAG_CHANCE = ([\d.]+)/) === 0.15 &&
-      num(/HALLOWEEN_BAG_SIZE = (\d+)/) === 10 &&
-      /var bag = Math\.random\(\) < HALLOWEEN_BAG_CHANCE;/.test(html) &&
-      /createPickup\(d\.x, GROUND_Y, bag \? 'candybag' : 'candy1'\)/.test(html) &&
-      /type === 'candy1'[\s\S]{0,120}addCandy\(1\)/.test(html) &&
-      /type === 'candybag'[\s\S]{0,120}addCandy\(HALLOWEEN_BAG_SIZE\)/.test(html),
-      'cd=' + num(/HALLOWEEN_CANDY_CD = (\d+)/) + ' bag%=' + num(/HALLOWEEN_BAG_CHANCE = ([\d.]+)/));
-
-    check(file + ': the pumpkins are drawn and they hit for their own damage',
-      /if \(d\.isPumpkin\) \{/.test(html) && /isPumpkin: true, pumpkinBig: !!big/.test(html) &&
-      /damagePlayer\(d\.pumpkinDmg \|\| MINI_PUMPKIN_DMG, '#fb923c'\)/.test(html) &&
-      num(/MINI_PUMPKIN_HP = (\d+)/) === 70 && num(/BIG_PUMPKIN_HP = (\d+)/) === 320);
-
-    // A pumpkin farm, not a gauntlet: normal waves, titan and boss all stand down.
-    check(file + ': halloween mode freezes the normal spawn clocks and the boss',
-      /allySpawnTimer\+\+; if \(!halloweenOn\(\)\) \{ spawnTimer\+\+;/.test(html) &&
-      /function checkBossSpawn\(\) \{[\s\S]{0,240}if \(halloweenOn\(\)\) return;/.test(html) &&
-      /if \(halloweenOn\(\)\) \{ dummies = \[\]; spawnHalloweenPumpkin\(false\);/.test(html));
-
-    // The mode has to be able to pay candy even outside October.
-    check(file + ': halloween mode earns candy all year round',
-      /function halloweenCandyOn\(\) \{ return isHalloweenEvent\(\) \|\| halloweenOn\(\); \}/.test(html) &&
-      /if \(n <= 0 \|\| !halloweenCandyOn\(\)\) return;/.test(html) &&
-      /gameMode !== 'sandbox' && gameMode !== 'halloween'\) addCandy/.test(html));
-
-    // ---- candy economy ------------------------------------------------------
-    check(file + ': a boss point costs 20 candy and everything else is 50% off',
-      /const CANDY_PRICES = \{ bossPoint: 20, points: 25, maxHp: 25, damage: 38, speed: 30 \};/.test(html) &&
-      /halloweenBuy\(CANDY_PRICES\.bossPoint/.test(html) &&
-      /halloweenBuy\(CANDY_PRICES\.points/.test(html) &&
-      /halloweenBuy\(CANDY_PRICES\.maxHp/.test(html) &&
-      /halloweenBuy\(CANDY_PRICES\.damage/.test(html) &&
-      /halloweenBuy\(CANDY_PRICES\.speed/.test(html) &&
-      num(/SKIN_COST_MULT = (\d+)/) === 2,
-      'skinMult=' + num(/SKIN_COST_MULT = (\d+)/));
-    check(file + ': the shop labels are written from the same price table',
-      /function applyCandyPriceLabels\(\)/.test(html) &&
-      (html.match(/data-candy-price="/g) || []).length === 5 &&
-      /<button id="candyBuyBoss"[\s\S]{0,200}data-candy-price="bossPoint"/.test(html) &&
-      /applyCandyPriceLabels\(\);/.test(html) &&
-      /CANDY_PRICES\[k\] \+ '🍬'/.test(html));
-
-    // ---- The Hollow ---------------------------------------------------------
     check(file + ': the Hollow skin is in the skin grid',
       /id: 'fighter_hollow', char: 'fighter', name: 'The Hollow'/.test(html));
-    check(file + ': the Hollow costs a flat 150 candy',
+    check(file + ': the Hollow costs a flat 150 energy',
       /id: 'fighter_hollow'[\s\S]{0,160}price: 150/.test(html) &&
       /var skCost = sk\.price \|\| sk\.cost \* SKIN_COST_MULT;/.test(html));
-    check(file + ': the Hollow is +200% damage AND +200% speed',
+    check(file + ': the Hollow is x1.3 damage with x3 speed (the x3 damage is gone)',
       /function hollowOn\(\) \{ return selectedSkin === 'fighter_hollow'; \}/.test(html) &&
-      /if \(hollowOn\(\)\) return 3;/.test(html) &&
-      /\* \(hollowOn\(\) \? 3 : 1\)/.test(html));
+      /if \(hollowOn\(\)\) return 1\.3;/.test(html) &&
+      /\* \(hollowOn\(\) \? 3 : 1\)/.test(html) &&
+      /if \(hollowOn\(\)\) return 3;/.test(html) === false);
+
+    // ---- energy points + waves -------------------------------------------
+    check(file + ': energy is earned by playing, not by the calendar',
+      /var ENERGY_PER_KILL = 0\.25, ENERGY_PER_BOSS = 0\.5;/.test(html) &&
+      /function addEnergyForKill\(n\) \{ addCandy\(\(n \|\| 1\) \* ENERGY_PER_KILL\); \}/.test(html) &&
+      /function addEnergyForBoss\(\) \{ addCandy\(ENERGY_PER_BOSS - ENERGY_PER_KILL\); \}/.test(html) &&
+      /if \(gameMode !== 'sandbox'\) addEnergyForBoss\(\);/.test(html) &&
+      /if \(gameMode !== 'sandbox'\) addEnergyForKill\(gained\);/.test(html));
+    check(file + ': energy is saved under its own key and old candy carries over',
+      /let candy = loadNum\('sm_energy'\);/.test(html) &&
+      /var _legacyCandy = loadNum\('sm_candy'\)/.test(html) &&
+      /localStorage\.setItem\('sm_energy', candy\)/.test(html));
+    check(file + ': every skin is priced in energy',
+      /skCost \+ ' ⚡'/.test(html) &&
+      /id="skinEnergy"/.test(html) &&
+      /energy — click to buy \/ equip/.test(html) &&
+      /else if \(candy >= skCost\) \{/.test(html));
+    check(file + ': a wave is 10 seconds and the HUD counts them',
+      /const WAVE_FRAMES = 600;/.test(html) &&
+      /let wave = 1, waveTimer = 0;/.test(html) &&
+      /if \(waveTimer >= WAVE_FRAMES\) \{\s*\n\s*waveTimer = 0; wave\+\+; updateWaveUI\(\);/.test(html) &&
+      /id="waveCount"/.test(html) &&
+      /wave = 1; waveTimer = 0; updateWaveUI\(\);/.test(html));
+    check(file + ': no halloween content is left in the game',
+      /id="modeHalloween"/.test(html) === false &&
+      /id="halloweenShopBtn"/.test(html) === false &&
+      /id="pumpkinBossBtn"/.test(html) === false &&
+      /id="bgSetHalloween"/.test(html) === false &&
+      /PUMPKIN_PHASE_HP/.test(html) === false &&
+      /function halloweenOn\(\)/.test(html) === false &&
+      /SOUL STORM/.test(html) === false &&
+      /sm_candy', candy/.test(html) === false);
+    check(file + ': the skins themselves survive the purge',
+      /const SKINS = \[/.test(html) &&
+      /id: 'fighter_ghost'/.test(html) &&
+      /id: 'fighter_werewolf'/.test(html) &&
+      /id: 'fighter_hollow'/.test(html) &&
+      /id="skinGrid"/.test(html) &&
+      /function renderSkins\(\)/.test(html));
     check(file + ': S drops a draggable mini sky laser for 4 dmg every 0.75s',
       num(/HOLLOW_LASER_DMG = (\d+)/) === 4 &&
       num(/HOLLOW_LASER_TICK = (\d+)/) === 45 &&
@@ -1504,19 +725,41 @@ function run(file) {
       /SKY LASER READY/.test(html),
       'burn=' + num(/HOLLOW_LASER_BURN = (\d+)/) + ' cool=' + num(/HOLLOW_LASER_COOLDOWN = (\d+)/));
 
-    // ---- 100 achievements + the saved record -------------------------------
-    // Counted off the source so the total can never drift from the copy that says 100.
+    // ---- 150 achievements + the saved record -------------------------------
+    // Counted off the source so the total can never drift from the copy that says 150.
     var achTiers = (html.match(/goals: \[([^\]]+)\]/g) || []).map(function (g) {
       return g.replace(/[^,]/g, '').length + 1; // commas + 1 = number of tiers
     });
     var achSum = achTiers.reduce(function (a, b) { return a + b; }, 0);
-    check(file + ': there are exactly 100 achievements',
-      achSum === 100 &&
-      achTiers.length === 14 &&
+    check(file + ': there are exactly 150 achievements',
+      achSum === 150 &&
+      achTiers.length === 16 &&
       /var ACH_TOTAL = ACHIEVEMENTS\.length;/.test(html) &&
       /var ACH_TRACKS = \[/.test(html) &&
       /ACHIEVEMENTS\.push\(\{/.test(html),
       'tiers=' + achTiers.length + ' total=' + achSum);
+    // ---- the 50 wave badges (40 any-mode + 10 death) ------------------------
+    check(file + ': 50 wave achievements, 10 of them death mode',
+      /\{ key: 'waves', icon: '🌊', what: 'Reach', unit: 'waves',/.test(html) &&
+      /\{ key: 'deathWaves', icon: '☠️', what: 'Survive', unit: 'death waves',/.test(html) &&
+      (function () {
+        // 40 any-mode wave tiers + 10 death tiers = the 50 the request asked for.
+        var tr = /\{ key: 'waves'[\s\S]{0,900}?goals: \[([^\]]+)\]/.exec(html);
+        var dt = /\{ key: 'deathWaves'[\s\S]{0,600}?goals: \[([^\]]+)\]/.exec(html);
+        var wn = tr ? tr[1].split(',').length : 0;
+        var dn = dt ? dt[1].split(',').length : 0;
+        return wn === 40 && dn === 10;
+      })() &&
+      // and the wave-50 death badge is the big one on the board
+      /big: t\.key === 'deathWaves' && g === 50,/.test(html) &&
+      /var big = !!a\.big;/.test(html) &&
+      /text-2xl/.test(html) &&
+      /The wave-50 DEATH badge is the biggest on the board, so it gets a big tile\./.test(html));
+    check(file + ': the wave ladder counts in every mode, not just death',
+      /function lifeMax\(key, n\) \{/.test(html) &&
+      /lifeMax\('bestWave', wave\);/.test(html) &&
+      /waves: lifeGet\('bestWave'\),/.test(html) &&
+      /deathWaves: deathBest/.test(html));
     check(file + ': achievements are recorded, not just shown',
       /var ACH_KEY = 'sm_ach_unlocked';/.test(html) &&
       /achRecord\[a\.id\] = Date\.now\(\);/.test(html) &&
@@ -1546,7 +789,7 @@ function run(file) {
       /Ringed planet/.test(html) &&
       /id="bgSetMultiverse"/.test(html) &&
       /bgMultiBtn\.addEventListener\('click', function\(\) \{ selectBg\('multiverse'\); \}\)/.test(html) &&
-      /halloween: 'bgSetHalloween', multiverse: 'bgSetMultiverse'/.test(html));
+      /cheese: 'bgSetCheese', multiverse: 'bgSetMultiverse'/.test(html));
     check(file + ': the multiverse map brings a banger of its own',
       /function multiverseBar\(ac, dest, t0, bar, step\)/.test(html) &&
       num(/multiverse: \{ bpm: (\d+)/) === 140 &&

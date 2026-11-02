@@ -35,7 +35,7 @@
        buttons ended up off-screen and unreachable — which looks exactly like the
        minigame freezing. Top-align and scroll instead on short viewports. */
     @media (max-height: 780px) {
-      #soulStormScreen, #rhythmScreen { justify-content: flex-start; overflow-y: auto; padding: 10px 0; }
+      #rhythmScreen { justify-content: flex-start; overflow-y: auto; padding: 10px 0; }
     }
 
     /* ===================== Mobile / small-screen layer ===================== */
@@ -114,9 +114,9 @@
       #cutsceneUI { position: static; width: 100%; padding-bottom: 10px; margin-top: 10px; }
       #cutsceneBox { max-width: 92vw; padding-left: 14px; padding-right: 14px; }
       #cutsceneHint { font-size: 9px; }
-      #rhythmScreen, #soulStormScreen { justify-content: flex-start; overflow-y: auto; padding: 8px 0; }
-      #rhythmScreen h2, #soulStormScreen h2 { font-size: 18px; }
-      #rhythmScreen > p, #soulStormScreen > p { padding-left: 10px; padding-right: 10px; }
+      #rhythmScreen { justify-content: flex-start; overflow-y: auto; padding: 8px 0; }
+      #rhythmScreen h2 { font-size: 18px; }
+      #rhythmScreen > p { padding-left: 10px; padding-right: 10px; }
     }
     #mobAbilityRow { gap: 6px; }
     /* Portrait: the 16:9 canvas is width-limited on a phone, so centre it between the
@@ -188,7 +188,7 @@
       </div>
       <h1 class="text-4xl font-bold tracking-tight mb-2">Stick Fighter Universe</h1>
       <p class="text-slate-400 text-sm mb-2">Choose your character</p>
-      <div id="menuPoints" class="text-xs text-slate-500 mb-4 flex gap-4 justify-center flex-wrap"><span>🪙 <span id="menuTotalPoints" class="text-amber-400 font-bold">0</span> pts</span><span>🏆 <span id="menuBossPoints" class="text-purple-400 font-bold">0</span> boss pts</span><span id="menuCandyWrap" class="hidden">🍬 <span id="menuCandy" class="text-orange-400 font-bold">0</span> candy</span><span id="menuRankWrap" title="Rank">🎖 <span id="menuRank" class="font-bold">WOOD</span></span></div>
+      <div id="menuPoints" class="text-xs text-slate-500 mb-4 flex gap-4 justify-center flex-wrap"><span>🪙 <span id="menuTotalPoints" class="text-amber-400 font-bold">0</span> pts</span><span>🏆 <span id="menuBossPoints" class="text-purple-400 font-bold">0</span> boss pts</span><span id="menuCandyWrap" title="Energy points — earned by killing enemies">⚡ <span id="menuEnergy" class="text-sky-400 font-bold">0</span> energy</span><span id="menuRankWrap" title="Rank">🎖 <span id="menuRank" class="font-bold">WOOD</span></span></div>
 
       <!-- Character Select Grid -->
       <div class="mb-6">
@@ -285,16 +285,15 @@
         <button id="modeNormal" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-500 text-emerald-400 font-bold text-sm transition-all">🟢 NORMAL</button>
         <button id="modeHard" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all">🔴 HARD</button>
         <button id="modeInsane" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-purple-400 font-bold text-sm transition-all">🟣 INSANE</button>
-        <button id="modeHalloween" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-300 font-bold text-sm transition-all">🎃 HALLOWEEN</button>
         <button id="modeBossRush" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all">🔥 BOSS RUSH</button>
+        <button id="modeDeath" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-800 border-2 border-slate-600 text-rose-400 font-bold text-sm transition-all">☠️ DEATH</button>
         <button id="modeSandbox" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all">🧪 SANDBOX</button>
       </div>
+      <div id="deathBestLine" class="text-[10px] text-rose-400/80 -mt-2 mb-3">☠️ DEATH — 100 waves · best wave 0</div>
       <div class="flex gap-2 justify-center mb-3 flex-wrap">
         <button id="settingsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-300 font-bold text-sm transition-all hover:border-slate-400 hover:text-white">⚙️ Settings</button>
         <button id="customizeBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-400 text-purple-300 font-bold text-sm transition-all hover:border-purple-300 hover:text-purple-100">🎛️ Customize</button>
         <button id="achievementsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-yellow-400 text-yellow-300 font-bold text-sm transition-all hover:border-yellow-300 hover:text-yellow-100">🏆 Achievements</button>
-        <button id="halloweenShopBtn" class="hidden px-4 py-1.5 rounded-lg bg-orange-800 border-2 border-orange-500 text-orange-100 font-bold text-sm transition-all hover:border-orange-300">🎃 Spooky Shop</button>
-        <button id="pumpkinBossBtn" class="hidden px-4 py-1.5 rounded-lg bg-red-900 border-2 border-orange-500 text-orange-100 font-bold text-sm transition-all hover:border-orange-300">🎃 Fight Boss</button>
         <button id="campaignBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-500 text-purple-400 font-bold text-sm transition-all hover:border-purple-400 hover:text-purple-300">📖 Campaign</button>
         <button id="questsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-400 text-emerald-300 font-bold text-sm transition-all hover:border-emerald-300 hover:text-emerald-100">📜 Quests</button>
       </div>
@@ -309,6 +308,7 @@
         <p>🟢 Normal &bull; 🔴 Gunner (ranged) &bull; 🔵 Summoner (spawns minions)</p>
         <p>⛏ Titan every 78s &bull; 🟣 Main Boss @15 kills &bull; 🛡 Tank + ⚡ Speed every 25s</p>
         <p>💣 Kamikaze every 50s &bull; 🦅 Flying Crossbow! &bull; 💀 Necromancer every 30s</p>
+        <p>☠️ Death: 100 waves of 10s — enemies grow every wave, a boss lands every 10th, clear wave 100 to win.</p>
       </div>
       <!-- Build stamp: lets a player confirm that a second device/account is running the
            same update (and the save format it is reading). -->
@@ -360,7 +360,7 @@
   <div id="achievementScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.88);">
     <div class="bg-slate-800 border-2 border-yellow-500 rounded-2xl p-5 w-[460px] max-w-[96vw] shadow-2xl max-h-[92dvh] flex flex-col">
       <h2 class="text-white font-bold text-lg text-center">🏆 ACHIEVEMENTS</h2>
-      <p class="text-[10px] text-slate-400 text-center mb-2">Unlocked <span id="achUnlocked" class="text-yellow-300 font-bold">0</span>/<span id="achTotal">100</span> · every unlock is saved on this device</p>
+      <p class="text-[10px] text-slate-400 text-center mb-2">Unlocked <span id="achUnlocked" class="text-yellow-300 font-bold">0</span>/<span id="achTotal">150</span> · every unlock is saved on this device</p>
       <div class="w-full bg-slate-900 rounded-full h-2 mb-2"><div id="achBar" class="bg-yellow-400 h-2 rounded-full" style="width:0%"></div></div>
       <div class="flex gap-1.5 mb-2">
         <button data-achfilter="all" class="achFilter flex-1 py-1 rounded-lg border-2 text-[10px] font-bold border-yellow-400 text-yellow-200">All</button>
@@ -394,7 +394,6 @@
           <button id="bgSetBloodBath" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🩸 Blood Bath</button>
           <button id="bgSetMoistHill" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">⛰️ Moist Hill</button>
           <button id="bgSetShockyRoad" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">⚡ Shocky Road</button>
-          <button id="bgSetHalloween" class="bgSettingBtn hidden py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-orange-400">🎃 Halloween</button>
           <button id="bgSetMultiverse" class="bgSettingBtn py-2 rounded-lg bg-slate-700 border-2 border-fuchsia-500 text-fuchsia-200 text-xs font-bold transition-all hover:border-fuchsia-300">🌌 Multiverse</button>
           <button id="bgSetCheese" class="bgSettingBtn bgSetLocked py-2 rounded-lg bg-slate-700 border-2 border-slate-600 text-white text-xs font-bold transition-all hover:border-slate-400">🧀 Cheese 🔒</button>
         </div>
@@ -522,37 +521,11 @@
     </div>
   </div>
 
-  <!-- Halloween Spooky Shop Overlay -->
-  <div id="halloweenScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.8);">
-    <div class="bg-slate-800 border-2 border-orange-500 rounded-2xl p-6 w-96 shadow-2xl max-h-[92vh] overflow-y-auto">
-      <h2 class="text-orange-400 font-bold text-lg mb-1 text-center">🎃 SPOOKY SHOP</h2>
-      <p class="text-[10px] text-slate-400 text-center mb-2">Halloween event — spend candy 🍬 · boss points cost 20, everything else is 50% off</p>
-      <div class="text-center mb-3">🍬 <span id="halloweenCandy" class="text-orange-400 font-bold text-lg">0</span> <span class="text-slate-500 text-xs">candy</span></div>
-      <div class="mb-3">
-        <p class="text-xs font-bold text-amber-300 mb-1">💰 EXCHANGE</p>
-        <div class="grid grid-cols-2 gap-2">
-          <button id="candyBuyPoints" class="py-2 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold transition-colors">100 Points<br><span class="text-[9px]" data-candy-price="points">25🍬</span></button>
-          <button id="candyBuyBoss" class="py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold transition-colors">1 Boss Point<br><span class="text-[9px]" data-candy-price="bossPoint">20🍬</span></button>
-        </div>
-      </div>
-      <div class="mb-3">
-        <p class="text-xs font-bold text-amber-300 mb-1">⬆️ UPGRADES (permanent)</p>
-        <div class="grid grid-cols-3 gap-2">
-          <button id="candyUpgHp" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Max HP<br>+10/lv<br><span data-candy-price="maxHp">25🍬</span></button>
-          <button id="candyUpgDmg" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Damage<br>+6%/lv<br><span data-candy-price="damage">38🍬</span></button>
-          <button id="candyUpgSpd" class="py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold transition-colors">Speed<br>+12%/lv<br><span data-candy-price="speed">30🍬</span></button>
-        </div>
-      </div>
-      <p id="halloweenStatus" class="text-[10px] text-orange-300 text-center mb-2 h-4"></p>
-      <button id="halloweenClose" class="w-full py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm border border-slate-500 transition-colors">▶ CLOSE</button>
-    </div>
-  </div>
-
   <!-- Skin Selector Overlay -->
   <div id="skinScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.75);">
     <div class="bg-slate-800 border-2 border-orange-600 rounded-2xl p-6 w-96 shadow-2xl max-h-[92vh] overflow-y-auto">
-      <h2 class="text-white font-bold text-lg mb-1 text-center">👕 Halloween Skins</h2>
-      <p class="text-[10px] text-slate-400 text-center mb-3">🍬 <span id="skinCandy" class="text-orange-400 font-bold">0</span> candy — click to buy / equip. Every skin works on every character.</p>
+      <h2 class="text-white font-bold text-lg mb-1 text-center">👕 Skins</h2>
+      <p class="text-[10px] text-slate-400 text-center mb-3">⚡ <span id="skinEnergy" class="text-sky-400 font-bold">0</span> energy — click to buy / equip. Every skin works on every character. Earn energy by fighting: <b class="text-sky-300">0.25</b> per enemy, <b class="text-sky-300">0.5</b> per boss.</p>
       <div id="skinGrid" class="grid grid-cols-2 gap-2"></div>
       <button id="skinClose" class="w-full mt-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-colors">✅ Done</button>
     </div>
@@ -769,27 +742,6 @@
     </div>
   </div>
 
-  <!-- Pumpkin Boss: Soul Storm dodge minigame -->
-  <div id="soulStormScreen" class="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-black/95">
-    <h2 class="text-2xl font-bold text-amber-200 mb-1">🌪️ SOUL STORM</h2>
-    <p id="soulStormInstr" class="text-slate-400 text-xs mb-3 text-center max-w-sm"></p>
-    <div id="soulStormHud" class="flex gap-5 text-sm font-bold mb-2">
-      <span class="text-slate-300">TIME <span id="soulStormTime" class="text-amber-300">0.0</span>s</span>
-      <span class="text-slate-300">SURVIVE <span id="soulStormSurvive" class="text-emerald-300">0</span>s</span>
-      <span class="text-slate-300">BLASTS <span id="soulStormBlasts" class="text-rose-300">0</span></span>
-    </div>
-    <div id="soulStormWin" class="hidden text-center mb-2">
-      <p id="soulStormWinMsg" class="text-lg font-bold text-emerald-300 mb-1"></p>
-      <p class="text-slate-400 text-xs mb-2">Press <b class="text-amber-300">E</b> <span id="soulStormETarget">35</span> times in <span id="soulStormETimer">12.0</span>s or lose everything.</p>
-    </div>
-    <div id="soulStormArena" class="relative overflow-hidden rounded-lg border-2 border-amber-700" style="width:420px;height:420px;background:#0a0210;"></div>
-    <div id="soulStormResult" class="hidden text-center mt-3">
-      <p id="soulStormResultMsg" class="text-lg font-bold mb-3"></p>
-      <button id="soulStormRetryBtn" class="px-6 py-2 rounded-lg bg-amber-700 hover:bg-amber-600 text-sm font-bold border border-amber-500 mr-2">🔄 RETRY BOSS</button>
-      <button id="soulStormMenuBtn" class="px-6 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-bold border border-slate-500">🏠 MAIN MENU</button>
-    </div>
-  </div>
-
   <!-- Mobile Controls Overlay — laid out so both thumbs reach everything on a
        phone held sideways, and so the two clusters never overlap on a 320px screen. -->
   <div id="mobileControls" class="fixed inset-0 hidden pointer-events-none" style="z-index:35;">
@@ -810,7 +762,6 @@
         <button id="mobBtnF" class="mob-btn mob-ability">F</button>
         <button id="mobBtnE" class="mob-btn mob-ability">E</button>
         <button id="mobBtnS" class="mob-btn mob-ability" style="display:none;">S</button>
-        <button id="mobBtnSoulStormE" class="mob-btn mob-ability" style="display:none;">E</button>
       </div>
       <!-- Punch and kick are joysticks: press to hit, drag to aim, keep holding to keep firing. -->
       <div class="flex gap-2 items-center">
@@ -851,6 +802,10 @@
             </div>
             <span id="expText" class="text-[9px] text-cyan-400 tabular-nums">0%</span>
           </div>
+          <!-- Wave clock, parked right beside the EXP bar. The emoji is the label on a
+               phone, where .hud-lbl is hidden. -->
+          <span class="text-slate-400 text-[9px]" title="Wave — 10 seconds each">🌊</span>
+          <span id="waveCount" class="font-mono text-xs font-bold tabular-nums text-sky-400">1</span>
           <div id="shieldBarWrap" class="hidden items-center gap-1">
             <span class="text-[9px] text-blue-300">🛡</span>
             <div class="w-14 h-1.5 bg-slate-700 rounded-full overflow-hidden border border-slate-600">
@@ -980,7 +935,7 @@
     (function migrateSave() {
       var v = loadNum('sm_saveVersion', 0);
       if (v < SAVE_VERSION) {
-        ['sm_totalPoints', 'sm_bossPoints', 'sm_candy', 'sm_matchCount', 'sm_soldierUses', 'sm_superUses', 'sm_mageUses', 'sm_botsUses', 'sm_knightUses', 'sm_hyperUses', 'sm_cheeserUses', 'sm_phantomUses', 'sm_slayerUses']
+        ['sm_totalPoints', 'sm_bossPoints', 'sm_energy', 'sm_matchCount', 'sm_soldierUses', 'sm_superUses', 'sm_mageUses', 'sm_botsUses', 'sm_knightUses', 'sm_hyperUses', 'sm_cheeserUses', 'sm_phantomUses', 'sm_slayerUses']
           .forEach(function (k) {
             var raw = localStorage.getItem(k);
             if (raw === null || raw === '') return;
@@ -1376,10 +1331,6 @@
       jump:  { emoji: '⬆️', glow: '#a3e63544' },
       ally:  { emoji: '🤝', glow: '#c084fc44' },
       wing:  { emoji: '🪽', glow: '#7dd3fc44' },
-      candy: { emoji: '🍬', glow: '#fb923c55' },
-      // Halloween-mode pumpkin drops: one candy, or the 15% bag worth ten.
-      candy1: { emoji: '🍬', glow: '#fb923c55' },
-      candybag: { emoji: '🍬', glow: '#f9731688' }
     };
 
     let PLAYER_MAX_HP_CURRENT = 100;
@@ -1390,6 +1341,15 @@
     // ==================== STATE ====================
     let gameState = 'menu';
     let score = 0, kills = 0, totalKills = 0;
+    // ==================== WAVES ====================
+    // One wave is 10 seconds of play (600 fixed steps). The counter is cosmetic — it
+    // marks the clock, it does not change spawning.
+    const WAVE_FRAMES = 600;
+    let wave = 1, waveTimer = 0;
+    function updateWaveUI() {
+      var el = document.getElementById('waveCount');
+      if (el) el.textContent = wave;
+    }
     let matchCount = loadNum('sm_matchCount');
     const MATCH_RESET_INTERVAL = 10;
     function incrementMatch() {
@@ -1412,29 +1372,43 @@
     let rankPoints = loadNum('sm_rankPoints', totalPoints);
     function savePoints() { localStorage.setItem('sm_totalPoints', totalPoints); localStorage.setItem('sm_bossPoints', bossPoints); localStorage.setItem('sm_rankPoints', rankPoints); var gp = document.getElementById('gamePoints'); if (gp) { var gc = document.getElementById('gameCoins'), gb = document.getElementById('gameBossPoints'); if (gc && gb) { gc.textContent = totalPoints; gb.textContent = bossPoints + '🏆'; } else gp.textContent = totalPoints + '🪙 ' + bossPoints + '🏆'; } }
 
-    // ==================== HALLOWEEN EVENT (active every October, ends Nov 1) ====================
-    let candy = loadNum('sm_candy');
-    function isHalloweenEvent() { return new Date().getMonth() === 9; }
-    // Candy prices. The boss point is the one premium sink at 20🍬; EVERY other candy
-    // price is 50% of what it used to be. Both the labels and the click handlers read
-    // this table, so a price can never drift between the two.
-    const CANDY_PRICES = { bossPoint: 20, points: 25, maxHp: 25, damage: 38, speed: 30 };
-    function applyCandyPriceLabels() {
-      document.querySelectorAll('[data-candy-price]').forEach(function(el) {
-        var k = el.getAttribute('data-candy-price');
-        if (CANDY_PRICES[k] !== undefined) el.textContent = CANDY_PRICES[k] + '🍬';
+    // ==================== ENERGY POINTS ====================
+    // The currency every skin is bought with. Earned by playing, never by the calendar:
+    // 0.25 per enemy killed and 0.5 per boss. The variable keeps its old internal name
+    // (`candy`) but the save key is energy, and an old candy balance carries over 1:1.
+    var ENERGY_PER_KILL = 0.25, ENERGY_PER_BOSS = 0.5;
+    let candy = loadNum('sm_energy');
+    if (!candy) { var _legacyCandy = loadNum('sm_candy'); if (_legacyCandy > 0) { candy = _legacyCandy; try { localStorage.setItem('sm_energy', candy); } catch (e) {} } }
+    // Energy is fractional, so it is shown trimmed: 12 -> "12", 12.25 -> "12.25".
+    function energyText(n) {
+      var v = Math.round((Number(n) || 0) * 100) / 100;
+      return String(v);
+    }
+    function saveCandy() { try { localStorage.setItem('sm_energy', candy); } catch (e) {} updateCandyUI(); }
+    function updateCandyUI() {
+      ['menuEnergy', 'skinEnergy', 'gameEnergy'].forEach(function (id) {
+        var e = document.getElementById(id); if (e) e.textContent = energyText(candy);
       });
     }
-    function saveCandy() { localStorage.setItem('sm_candy', candy); updateCandyUI(); }
-    function updateCandyUI() {
-      ['menuCandy', 'halloweenCandy'].forEach(function(id) { var e = document.getElementById(id); if (e) e.textContent = candy; });
-    }
     function addCandy(n) {
-      // The October event pays candy, and so does HALLOWEEN mode — otherwise the mode
-      // would hand out a currency nobody can earn outside one month a year.
-      if (n <= 0 || !halloweenCandyOn()) return;
+      if (!(n > 0)) return;
       candy += n; saveCandy();
-      if (gameState === 'playing' && typeof stick !== 'undefined') createTextParticle(stick.x, stick.y - 70, '🍬 +' + n, '#fb923c', 14);
+      if (gameState === 'playing' && typeof stick !== 'undefined') createTextParticle(stick.x, stick.y - 70, '⚡ +' + energyText(n), '#38bdf8', 13);
+    }
+    // Kill rewards. A boss is worth two enemies' worth (0.5 vs 0.25).
+    function addEnergyForKill(n) { addCandy((n || 1) * ENERGY_PER_KILL); }
+    // The kill counter already paid one enemy's share for a boss kill, so this tops the
+    // payout up to a full half point. Enemy = 0.25, boss = 0.5, every time.
+    function addEnergyForBoss() { addCandy(ENERGY_PER_BOSS - ENERGY_PER_KILL); }
+    // Called every frame: kills restart each round, so the delta is taken against the
+    // last value seen. 0.25 per enemy, and bosses pay their 0.5 where they die.
+    function tickCandyFromKills() {
+      if (kills < lastKillsAwarded) lastKillsAwarded = kills;
+      if (kills > lastKillsAwarded) {
+        var gained = kills - lastKillsAwarded;
+        lastKillsAwarded = kills;
+        if (gameMode !== 'sandbox') addEnergyForKill(gained);
+      }
     }
     // EVERY skin is universal: the bonus and the look follow the skin, whoever wears
     // it. (`char` is kept only as the skin's origin, it no longer gates anything.)
@@ -1442,8 +1416,8 @@
       { id: 'fighter_ghost', char: 'fighter', name: 'Ghost', emoji: '👻', cost: 10, desc: 'Dodge 5 hits / 15s' },
       { id: 'fighter_werewolf', char: 'fighter', name: 'Werewolf', emoji: '🐺', cost: 15, desc: 'Claws: +35% DMG under 50% HP' },
       // The Hollow is priced explicitly: it is the one skin that does NOT take the
-      // 50% candy discount, it costs a flat 150.
-      { id: 'fighter_hollow', char: 'fighter', name: 'The Hollow', emoji: '🎃', cost: 20, price: 150, desc: '×3 DMG & SPD · S: SKY LASER' },
+      // energy discount, it costs a flat 150.
+      { id: 'fighter_hollow', char: 'fighter', name: 'The Hollow', emoji: '🎃', cost: 20, price: 150, desc: '×1.3 DMG · ×3 SPD · S: SKY LASER' },
       { id: 'fighter_zombie', char: 'fighter', name: 'Zombie', emoji: '🧟', cost: 12, desc: 'Undead: +25% HP, −12% SPD' },
       { id: 'soldier_skeleton', char: 'soldier', name: 'Skeleton', emoji: '💀', cost: 10, desc: 'Undead bones: +20% HP' },
       { id: 'mage_witch', char: 'mage', name: 'Witch', emoji: '🧙', cost: 13, desc: '+20% DMG' },
@@ -1461,8 +1435,8 @@
         return (typeof playerHP === 'number' && playerHP > 0 && playerHP < PLAYER_MAX_HP_CURRENT * 0.5) ? 1.35 : 1;
       }
       if (selectedSkin === 'mage_witch') return 1.2;
-      // The Hollow's "+200%" is a ×3 multiplier on damage and speed alike.
-      if (hollowOn()) return 3;
+      // The Hollow hits ×1.3 (its speed is still ×3 — the ×3 damage is gone).
+      if (hollowOn()) return 1.3;
       if (selectedSkin === 'hyper_spirit') return 2;
       if (selectedSkin === 'phantom_reaper') return 1.5;
       return 1;
@@ -1574,37 +1548,8 @@
       var r = currentRank(points);
       return r.rank.icon + ' ' + r.rank.name;
     }
-    let ghostDodgeCharges = 0, ghostDodgeTimer = 0, candyDropTimer = 0, lastKillsAwarded = 0, pumpkinSpawned = false;
-    // The Pumpkin Boss is an OPT-IN fight: it only enters a run when the player asks
-    // for it with the 🎃 Fight Boss menu button. EASY / NORMAL / HARD and every other
-    // mode never spawn it, so a normal round plays exactly as it did without it.
-    let pumpkinBossRequested = false;
-    function tickCandyFromKills() {
-      if (kills < lastKillsAwarded) lastKillsAwarded = kills;
-      // Halloween mode pays through the pumpkins themselves, not per kill.
-      if (kills > lastKillsAwarded) { if (gameMode !== 'sandbox' && gameMode !== 'halloween') addCandy(kills - lastKillsAwarded); lastKillsAwarded = kills; }
-    }
-
-    // ==================== PUMPKIN BOSS (Headless Horseman head) ====================
-    // Tuned down to 500 HP per phase (2,500 across the five phases) so the fight is a
-    // real boss battle instead of a 12,500 HP slog. The soul form is deliberately NOT
-    // part of this: it stays a 5,000 HP finale.
-    const PUMPKIN_PHASE_HP = 500;                               // EACH phase has 500 HP
-    const PUMPKIN_PHASES = 5;                                   // 5 phases
-    const PUMPKIN_TOTAL_HP = PUMPKIN_PHASE_HP * PUMPKIN_PHASES; // 2,500 total
-    const PUMPKIN_BLAST_DMG = 20;
-    const PUMPKIN_ORB_DMG = 8;         // soul-form orb blast damage (kept low so the orb phase is survivable)
-    const PUMPKIN_ORB_SHOT_CD = 16;    // frames between soul-form blasts (the warning arrow charges over this)
-    const PUMPKIN_HEAL_INTERVAL = 420; // 7s
-    const PUMPKIN_SOUL_HP = 5000;      // the soul form is a real, attackable 5,000 HP fight
-    const PUMPKIN_SOUL_TIMEOUT = 7200; // 2 min safety net only — the soul form is meant to die to damage
-    const PUMPKIN_ORB_TIME = 1200;     // 20s soul-form aura cycle (visual only — damage decides the fight now)
-    const SKIN_COST_MULT = 2;          // each skin's candy price is 2x (50% off the old 4x)
-    // Pumpkin Boss music: a 3-stage build tied to the fight (LOW -> MID -> full BOSS song)
-    // 0:00 low -> 0:20 mid -> 0:40 mid-high -> 1:00 full boss song (1:30 arc)
-    const PUMPKIN_MUSIC_STAGES = ['pumpkin_low', 'pumpkin_mid', 'pumpkin_midhi', 'pumpkin_boss', 'pumpkin_soul'];
-    const PUMPKIN_MUSIC_TIMES = [20000, 40000, 60000]; // time fallbacks (ms) if the player stalls
-    let pumpkinMusicStage = -1, pumpkinMusicTimers = [];
+    let ghostDodgeCharges = 0, ghostDodgeTimer = 0, lastKillsAwarded = 0;
+    const SKIN_COST_MULT = 2;          // each skin's energy price is 2x its base cost
 
     // ==================== ENCHANTED TRAITS ====================
     // Rolled traits are OWNED PERMANENTLY. Higher rarity = much harder.
@@ -1791,8 +1736,6 @@
     let shopShieldCD = 0, shopShieldActive = 0;
     // Insane-mode spawn clocks (frames @60fps).
     let insaneBigTimer = 0, insaneEliteTimer = 0, insaneTrioTimer = 0;
-    // Halloween mode's two pumpkin clocks (mini every 3s, big every 9s).
-    let halloweenMiniTimer = 0, halloweenBigTimer = 0;
     let mageFireballs = [], mageFrostOrbs = [], lightningBolts = [], mageLightningCD = 0, mageFrostCD = 0, mageTeleportCD = 0, mageMeteorCD = 0, mageIceShielded = false, mageIceTimer = 0;
     // The Amethyst's telegraphed cyan lightning strikes (Soldier Lv 15).
     let amethystBolts = [];
@@ -2234,40 +2177,6 @@
         if (s === 8) _mNoise(ac, dest, t, 0.5, 300, 0.04);
       }
     }
-    function halloweenBar(ac, dest, t0, bar, step) {
-      // Extra-creepy Halloween: layered detuned drones, cackling high pip, organ chords, heartbeat, wind
-      [[73.42, 0.85], [77.78, 0.7], [110, 0.55], [116.54, 0.45]].forEach(function(pair) {
-        var o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = pair[0];
-        var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400;
-        var g = ac.createGain(); g.gain.setValueAtTime(0.0001, t0);
-        g.gain.linearRampToValueAtTime(0.07 * pair[1], t0 + 1.2); g.gain.linearRampToValueAtTime(0.0001, t0 + step * 16);
-        o.connect(lp); lp.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + step * 16 + 0.1);
-      });
-      // Eerie detuned organ chord
-      [220, 261.63, 329.63].forEach(function(f) {
-        var o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f * 0.5;
-        var g = ac.createGain(); g.gain.setValueAtTime(0.0001, t0);
-        g.gain.linearRampToValueAtTime(0.035, t0 + 0.4); g.gain.linearRampToValueAtTime(0.0001, t0 + step * 16);
-        o.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + step * 16 + 0.1);
-      });
-      // Wobbling high cackle
-      var wh = ac.createOscillator(); wh.type = 'square'; wh.frequency.value = 1567.98;
-      var wob = ac.createOscillator(); wob.type = 'sine'; wob.frequency.value = 0.5;
-      var wobG = ac.createGain(); wobG.gain.value = 30; wob.connect(wobG); wobG.connect(wh.frequency);
-      var whg = ac.createGain(); whg.gain.setValueAtTime(0.0001, t0);
-      whg.gain.linearRampToValueAtTime(0.016, t0 + 2); whg.gain.linearRampToValueAtTime(0.0001, t0 + step * 16);
-      wh.connect(whg); whg.connect(dest); wh.start(t0); wh.stop(t0 + step * 16 + 0.1); wob.start(t0); wob.stop(t0 + step * 16 + 0.1);
-      // Spooky melody + heartbeat thumps
-      for (var s = 0; s < 16; s++) {
-        var t = t0 + s * step;
-        if (s % 2 === 0) _mKick(ac, dest, t, 0.09);
-        if (s === 3 || s === 11) _mNote(ac, dest, 622.25, 'sine', 0.05, t, step * 1.6);
-        if (s === 7) _mNote(ac, dest, 466.16, 'triangle', 0.045, t, step * 2);
-        if (s === 0) _mNoise(ac, dest, t, 2.4, 80, 0.07);
-        if (s === 8) _mNoise(ac, dest, t, 0.6, 260, 0.05);
-        if (s === 5 || s === 13) _mViolin(ac, dest, 587.33, 0.03, t, step * 2);
-      }
-    }
     function underworldBar(ac, dest, t0, bar, step) {
       var UWB = [41.2, 41.2, 43.65, 41.2, 49, 49, 46.25, 41.2];
       var UWR = [82.41, 82.41, 87.31, 82.41, 98, 82.41, 77.78, 82.41];
@@ -2382,163 +2291,6 @@
         if (s === 13) _mDist(ac, dest, root * 3, 0.06, t, step * 0.8);
       }
     }
-    // ===== PUMPKIN BOSS THEME (D minor) — one 90-second arc: dread -> build -> boss drop =====
-    // The same motif (D-F-A-C) runs through every stage so the whole thing feels like ONE piece.
-    // Progression: Dm - Bb - F - C.
-
-    // Stage 1 — LOW (0:00-0:20): near-silence. A sustained D pedal, a slow heartbeat, wind, a distant bell.
-    function pumpkinLowBar(ac, dest, t0, bar, step) {
-      [[73.42, 1.0], [110.00, 0.6], [41.20, 0.8]].forEach(function(pair) {
-        var o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = pair[0];
-        var g = ac.createGain(); g.gain.setValueAtTime(0.0001, t0);
-        g.gain.linearRampToValueAtTime(0.06 * pair[1], t0 + 3);
-        g.gain.linearRampToValueAtTime(0.0001, t0 + step * 16);
-        o.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + step * 16 + 0.2);
-      });
-      // Slow heartbeat
-      _mNote(ac, dest, 55, 'sine', 0.2, t0, 0.16);
-      _mNote(ac, dest, 49, 'sine', 0.14, t0 + step * 8, 0.14);
-      // First two notes of the theme, whispered — foreshadowing the drop
-      _mPiano(ac, dest, 293.66, 0.035, t0 + step * 4, step * 2.5);
-      _mPiano(ac, dest, 349.23, 0.03, t0 + step * 7, step * 2.5);
-      // Cold wind + a distant bell
-      _mNoise(ac, dest, t0, step * 16, 80, 0.035);
-      if (bar % 2 === 0) _mNote(ac, dest, 587.33, 'sine', 0.02, t0 + step * 12, step * 3);
-    }
-
-    // Stage 2 — MID (0:20-0:40): the dread finds a pulse. Kick, walking bass, the theme stated on piano.
-    function pumpkinMidBar(ac, dest, t0, bar, step) {
-      var roots = [73.42, 58.27, 87.31, 65.41]; // Dm - Bb - F - C
-      var root = roots[bar % 4];
-      var motif = [293.66, 349.23, 440.00, 523.25];
-      for (var s = 0; s < 16; s++) {
-        var t = t0 + s * step;
-        if (s % 4 === 0) _mKick(ac, dest, t, 0.5);
-        if (s % 4 === 2) _mSnare(ac, dest, t, 0.16);
-        if (s % 2 === 1) _mHat(ac, dest, t, 0.05);
-        if (s % 2 === 0) _mNote(ac, dest, root, 'triangle', 0.16, t, step * 0.8);
-        // The theme, stated plainly on piano
-        if (s % 4 === 0) _mPiano(ac, dest, motif[Math.floor(s / 4) % 4], 0.07, t, step * 2.2);
-        if (s === 14) _mNoise(ac, dest, t, 0.4, 450 + (bar % 4) * 300, 0.04);
-      }
-      if (bar % 4 === 0) _mNoise(ac, dest, t0, 0.5, 3000, 0.07);
-    }
-
-    // Stage 3 — MID-HIGH (0:40-1:00): snare backbeat, driving bass, distorted stabs, soaring violin lead, riser into the drop.
-    function pumpkinMidHighBar(ac, dest, t0, bar, step) {
-      var roots = [73.42, 58.27, 87.31, 65.41];
-      var root = roots[bar % 4];
-      var lead = [587.33, 698.46, 880.00, 783.99];
-      for (var s = 0; s < 16; s++) {
-        var t = t0 + s * step;
-        if (s % 4 === 0) _mKick(ac, dest, t, 0.62);
-        if (s % 4 === 2) _mSnare(ac, dest, t, 0.3);
-        if (s % 2 === 1) _mHat(ac, dest, t, 0.09);
-        if (s === 13 || s === 15) _mTom(ac, dest, t, 0.3);
-        _mNote(ac, dest, root, 'sawtooth', 0.14, t, step * 0.5);
-        if (s % 4 === 0) { _mDist(ac, dest, root * 2, 0.06, t, step * 1.6); _mDist(ac, dest, root * 3, 0.05, t, step * 1.6); }
-        if (s % 4 === 0) _mViolin(ac, dest, lead[Math.floor(s / 4) % 4], 0.045, t, step * 2.4);
-        if (s === 14) _mNoise(ac, dest, t, 0.5, 700 + (bar % 4) * 400, 0.05);
-      }
-      // Long riser across the last bar of each phrase, pulling into the drop
-      if (bar % 4 === 3) _mNoise(ac, dest, t0 + step * 8, step * 8, 1400, 0.09);
-      if (bar % 4 === 0) _mNoise(ac, dest, t0, 0.5, 3200, 0.1);
-    }
-
-    // Stage 4 — BOSS (1:00-1:30): the real fight song. Driving kit, power chords, a memorable syncopated lead riff.
-    function pumpkinBangerBar(ac, dest, t0, bar, step) {
-      var roots = [73.42, 58.27, 87.31, 65.41];
-      var root = roots[bar % 4];
-      // Catchy syncopated lead riff built from the theme motif
-      var riff = [587.33, 0, 698.46, 587.33, 880.00, 0, 783.99, 698.46, 587.33, 0, 523.25, 587.33, 698.46, 880.00, 1046.50, 0];
-      for (var s = 0; s < 16; s++) {
-        var t = t0 + s * step;
-        // Drums
-        if (s % 4 === 0) _mKick(ac, dest, t, 0.68);
-        if (s % 8 === 6) _mKick(ac, dest, t, 0.5);
-        if (s % 4 === 2) _mSnare(ac, dest, t, 0.4);
-        if (s % 2 === 1) _mHat(ac, dest, t, 0.1);
-        if (s === 7 || s === 15) _mTom(ac, dest, t, 0.34);
-        // Driving bass with an octave bounce
-        _mNote(ac, dest, (s % 4 === 2 ? root * 2 : root), 'sawtooth', 0.17, t, step * 0.5);
-        // Distorted power chords following the progression
-        if (s % 4 === 0) { _mDist(ac, dest, root, 0.1, t, step * 1.8); _mDist(ac, dest, root * 1.5, 0.08, t, step * 1.8); }
-        // The hook
-        if (riff[s]) _mNote(ac, dest, riff[s], 'square', 0.09, t, step * 0.9);
-        if (s === 0) _mNoise(ac, dest, t, 0.5, 3200, 0.18);
-      }
-      // Soaring high lead run on the last bar of each phrase — the goosebumps moment
-      if (bar % 4 === 3) {
-        _mNote(ac, dest, 1174.66, 'sawtooth', 0.07, t0 + step * 12, step * 2);
-        _mNote(ac, dest, 1396.91, 'sawtooth', 0.07, t0 + step * 14, step * 2);
-      }
-    }
-
-    // Stage 5 — SOUL ORB: the SAME song, but louder and fully stacked — the boss's last stand.
-    function pumpkinSoulBar(ac, dest, t0, bar, step) {
-      var roots = [73.42, 58.27, 87.31, 65.41];
-      var root = roots[bar % 4];
-      var riff = [587.33, 0, 698.46, 587.33, 880.00, 0, 783.99, 698.46, 587.33, 0, 523.25, 587.33, 698.46, 880.00, 1046.50, 0];
-      // Sustained choir / string chord bed underneath everything
-      _mViolin(ac, dest, root * 2, 0.055, t0, step * 8);
-      _mViolin(ac, dest, root * 3, 0.045, t0, step * 8);
-      if (bar % 2 === 0) _mViolin(ac, dest, root * 4, 0.035, t0, step * 8);
-      for (var s = 0; s < 16; s++) {
-        var t = t0 + s * step;
-        // Double-time drums — kick on every step, snare backbeat + offbeats
-        _mKick(ac, dest, t, 0.7);
-        if (s % 2 === 1) _mSnare(ac, dest, t, 0.3);
-        if (s % 4 === 2) _mSnare(ac, dest, t, 0.44);
-        _mHat(ac, dest, t, 0.09);
-        if (s === 7 || s === 15) _mTom(ac, dest, t, 0.36);
-        // Bass — driving 8ths with an octave bounce
-        _mNote(ac, dest, (s % 4 === 2 ? root * 2 : root), 'sawtooth', 0.19, t, step * 0.5);
-        // Power chords on every beat
-        _mDist(ac, dest, root, 0.1, t, step * 0.9);
-        _mDist(ac, dest, root * 1.5, 0.08, t, step * 0.9);
-        // The hook, doubled an octave up
-        if (riff[s]) { _mNote(ac, dest, riff[s], 'square', 0.1, t, step * 0.9); _mNote(ac, dest, riff[s] * 2, 'sawtooth', 0.05, t, step * 0.9); }
-        // Extra crashes
-        if (s === 0 || s === 8) _mNoise(ac, dest, t, 0.5, 3400, 0.2);
-      }
-      // Screaming high lead run on the last bar of the phrase
-      if (bar % 4 === 3) {
-        _mNote(ac, dest, 1174.66, 'sawtooth', 0.08, t0 + step * 10, step * 2);
-        _mNote(ac, dest, 1396.91, 'sawtooth', 0.08, t0 + step * 12, step * 2);
-        _mNote(ac, dest, 1567.98, 'sawtooth', 0.08, t0 + step * 14, step * 2);
-      }
-    }
-
-    // Boss Rush Assault — the Colossal's theme. Fast, aggressive E-minor assault with a choir bed.
-    function bossrushBar(ac, dest, t0, bar, step) {
-      var roots = [82.41, 82.41, 87.31, 77.78]; // E2 E2 F2 D2
-      var root = roots[bar % 4];
-      var riff = [329.63, 0, 392.00, 329.63, 440.00, 0, 392.00, 329.63, 293.66, 0, 329.63, 392.00, 440.00, 0, 493.88, 440.00];
-      // Choir / string chord bed underneath
-      _mViolin(ac, dest, root * 2, 0.05, t0, step * 8);
-      _mViolin(ac, dest, root * 3, 0.04, t0, step * 8);
-      for (var s = 0; s < 16; s++) {
-        var t = t0 + s * step;
-        // Drums
-        if (s % 4 === 0) _mKick(ac, dest, t, 0.68);
-        if (s % 8 === 6) _mKick(ac, dest, t, 0.5);
-        if (s % 4 === 2) _mSnare(ac, dest, t, 0.4);
-        if (s % 2 === 1) _mHat(ac, dest, t, 0.1);
-        if (s === 7 || s === 15) _mTom(ac, dest, t, 0.34);
-        // Driving bass with an octave bounce
-        _mNote(ac, dest, (s % 4 === 2 ? root * 2 : root), 'sawtooth', 0.18, t, step * 0.5);
-        // Distorted power chords
-        if (s % 4 === 0) { _mDist(ac, dest, root, 0.1, t, step * 1.8); _mDist(ac, dest, root * 1.5, 0.08, t, step * 1.8); }
-        // Lead riff
-        if (riff[s]) _mNote(ac, dest, riff[s], 'square', 0.09, t, step * 0.9);
-        if (s === 0) _mNoise(ac, dest, t, 0.5, 3200, 0.18);
-      }
-      // Soaring lead run on the last bar of each phrase
-      if (bar % 4 === 3) {
-        _mNote(ac, dest, 987.77, 'sawtooth', 0.07, t0 + step * 12, step * 2);
-        _mNote(ac, dest, 1174.66, 'sawtooth', 0.07, t0 + step * 14, step * 2);
-      }
-    }
     // ===== DESERT — Phrygian-dominant caravan groove =====
     // The raised 2nd (Eb over D) is what makes it read as "desert" rather than plain minor.
     var DESERT_SCALE = [146.83, 155.56, 185.00, 196.00, 220.00, 233.08, 261.63, 293.66];
@@ -2639,6 +2391,36 @@
       if (bar % 4 === 3) _mNote(ac, dest, 1318.51, 'sawtooth', 0.055, t0 + step * 13, step * 3);
       if (bar % 8 === 0) _mNoise(ac, dest, t0, 0.55, 5200, 0.1);
     }
+    // ===== BOSS RUSH — 196 BPM, driving bass, distorted power chords and a lead riff
+    function bossrushBar(ac, dest, t0, bar, step) {
+      var roots = [82.41, 82.41, 87.31, 77.78]; // E2 E2 F2 D2
+      var root = roots[bar % 4];
+      var riff = [329.63, 0, 392.00, 329.63, 440.00, 0, 392.00, 329.63, 293.66, 0, 329.63, 392.00, 440.00, 0, 493.88, 440.00];
+      // Choir / string chord bed underneath
+      _mViolin(ac, dest, root * 2, 0.05, t0, step * 8);
+      _mViolin(ac, dest, root * 3, 0.04, t0, step * 8);
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        // Drums
+        if (s % 4 === 0) _mKick(ac, dest, t, 0.68);
+        if (s % 8 === 6) _mKick(ac, dest, t, 0.5);
+        if (s % 4 === 2) _mSnare(ac, dest, t, 0.4);
+        if (s % 2 === 1) _mHat(ac, dest, t, 0.1);
+        if (s === 7 || s === 15) _mTom(ac, dest, t, 0.34);
+        // Driving bass with an octave bounce
+        _mNote(ac, dest, (s % 4 === 2 ? root * 2 : root), 'sawtooth', 0.18, t, step * 0.5);
+        // Distorted power chords
+        if (s % 4 === 0) { _mDist(ac, dest, root, 0.1, t, step * 1.8); _mDist(ac, dest, root * 1.5, 0.08, t, step * 1.8); }
+        // Lead riff
+        if (riff[s]) _mNote(ac, dest, riff[s], 'square', 0.09, t, step * 0.9);
+        if (s === 0) _mNoise(ac, dest, t, 0.5, 3200, 0.18);
+      }
+      // Soaring lead run on the last bar of each phrase
+      if (bar % 4 === 3) {
+        _mNote(ac, dest, 987.77, 'sawtooth', 0.07, t0 + step * 12, step * 2);
+        _mNote(ac, dest, 1174.66, 'sawtooth', 0.07, t0 + step * 14, step * 2);
+      }
+    }
     var THEME_TRACKS = {
       chill: { bpm: 84, vol: 0.3, rain: false, bar: chillBar },
       desert: { bpm: 108, vol: 0.3, rain: false, bar: desertBar },
@@ -2648,17 +2430,11 @@
       boss: { bpm: 170, vol: 0.3, rain: false, bar: bossBar },
       destructive: { bpm: 200, vol: 0.26, rain: false, bar: destructiveBar },
       spooky: { bpm: 72, vol: 0.32, rain: false, bar: spookyBar },
-      halloween: { bpm: 66, vol: 0.34, rain: false, bar: halloweenBar },
       underworld: { bpm: 60, vol: 0.34, rain: false, bar: underworldBar },
       cheese: { bpm: 120, vol: 0.28, rain: false, bar: cheeseBar },
       water: { bpm: 132, vol: 0.28, rain: false, bar: waterBar },
       rock: { bpm: 160, vol: 0.3, rain: false, bar: rockBar },
       menu: { bpm: 70, vol: 0.26, rain: false, bar: menuBar },
-      pumpkin_low: { bpm: 48, vol: 0.28, rain: false, bar: pumpkinLowBar },
-      pumpkin_mid: { bpm: 92, vol: 0.3, rain: false, bar: pumpkinMidBar },
-      pumpkin_midhi: { bpm: 126, vol: 0.32, rain: false, bar: pumpkinMidHighBar },
-      pumpkin_boss: { bpm: 188, vol: 0.34, rain: false, bar: pumpkinBangerBar },
-      pumpkin_soul: { bpm: 210, vol: 0.46, rain: false, bar: pumpkinSoulBar },
       bossrush: { bpm: 196, vol: 0.36, rain: false, bar: bossrushBar },
       multiverse: { bpm: 140, vol: 0.34, rain: false, bar: multiverseBar }
     };
@@ -2706,7 +2482,6 @@
         case 'rain': return 'rain';
         case 'flame_pit': return 'destructive';
         case 'dark_grave': return 'spooky';
-        case 'halloween': return 'halloween';
         case 'blood_bath': return 'underworld';
         case 'moist_hill': return 'water';
         case 'shocky_road': return 'rock';
@@ -2725,27 +2500,6 @@
     }
     function startMenuMusic() {
       try { stopBossMusic(); startThemeMusic('menu'); } catch(e) {}
-    }
-    // Pumpkin Boss music: escalate through LOW -> MID -> BOSS song (never downgrades)
-    function playPumpkinStage(stage) {
-      if (stage < 0 || stage >= PUMPKIN_MUSIC_STAGES.length) return;
-      if (stage === pumpkinMusicStage) return;
-      pumpkinMusicStage = stage;
-      try { startThemeMusic(PUMPKIN_MUSIC_STAGES[stage]); } catch(e) {}
-    }
-    function bumpPumpkinMusic(stage) {
-      if (stage > pumpkinMusicStage) playPumpkinStage(stage);
-    }
-    function startPumpkinMusic() {
-      stopPumpkinMusic();
-      playPumpkinStage(0);
-      pumpkinMusicTimers.push(setTimeout(function() { if (gameState === 'playing') bumpPumpkinMusic(1); }, PUMPKIN_MUSIC_TIMES[0]));
-      pumpkinMusicTimers.push(setTimeout(function() { if (gameState === 'playing') bumpPumpkinMusic(2); }, PUMPKIN_MUSIC_TIMES[1]));
-      pumpkinMusicTimers.push(setTimeout(function() { if (gameState === 'playing') bumpPumpkinMusic(3); }, PUMPKIN_MUSIC_TIMES[2]));
-    }
-    function stopPumpkinMusic() {
-      pumpkinMusicTimers.forEach(function(t) { clearTimeout(t); }); pumpkinMusicTimers = [];
-      pumpkinMusicStage = -1;
     }
     // Resume a suspended context on the first user gesture (autoplay policy)
     document.addEventListener('pointerdown', function() {
@@ -2949,7 +2703,7 @@
       vp = vp || viewportSize();
       var s = Math.min(1, (vp.w - 20) / 420, (vp.h - 190) / 420);
       s = Math.max(0.5, s);
-      ['rhythmArena', 'soulStormArena'].forEach(function (id) {
+      ['rhythmArena'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.style.zoom = s;
@@ -3005,7 +2759,7 @@
       var mc = document.getElementById('mobileControls');
       if (!mc) return;
       var miniOpen = false;
-      ['soulStormScreen', 'rhythmScreen'].forEach(function (id) {
+      ['rhythmScreen'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el && !el.classList.contains('hidden')) miniOpen = true;
       });
@@ -3024,7 +2778,7 @@
     if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeCanvas);
     try {
       var mobWatch = new MutationObserver(function () { syncMobileControls(); });
-      ['gameUI', 'soulStormScreen', 'rhythmScreen', 'pauseScreen', 'gameoverScreen'].forEach(function (id) {
+      ['gameUI', 'rhythmScreen', 'pauseScreen', 'gameoverScreen'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) mobWatch.observe(el, { attributes: true, attributeFilter: ['class'] });
       });
@@ -3064,7 +2818,7 @@
     // stays frozen on its last frame until the page is reloaded. These loops now catch the
     // error, report it, and arm the next frame anyway — one bad frame can never freeze the
     // game again.
-    var LOOP_ERRORS = { gameLoop: 0, soulStormStep: 0, rhythmStep: 0, pumpkinRewards: 0 };
+    var LOOP_ERRORS = { gameLoop: 0, rhythmStep: 0 };
     function reportLoopError(where, err) {
       var n = (LOOP_ERRORS[where] = (LOOP_ERRORS[where] || 0) + 1);
       if (n <= 5 || n % 120 === 0) {
@@ -3079,17 +2833,16 @@
       document.getElementById('modeHard').className = m === 'hard' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-red-500 text-red-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-400 font-bold text-sm transition-all';
       document.getElementById('modeInsane').className = m === 'insane' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-500 text-purple-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-purple-400 font-bold text-sm transition-all';
       document.getElementById('modeBossRush').className = m === 'bossrush' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-orange-500 text-orange-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-400 font-bold text-sm transition-all';
+      document.getElementById('modeDeath').className = m === 'death' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-800 border-2 border-rose-500 text-rose-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-800 border-2 border-slate-600 text-rose-400 font-bold text-sm transition-all';
       document.getElementById('modeSandbox').className = m === 'sandbox' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-fuchsia-500 text-fuchsia-400 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all';
-      document.getElementById('modeHalloween').className = m === 'halloween' ? 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-orange-500 text-orange-300 font-bold text-sm transition-all' : 'mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-orange-300 font-bold text-sm transition-all';
-      refreshHalloweenUI();
     }
     document.getElementById('modeEasy').addEventListener('click', () => selectMode('easy'));
     document.getElementById('modeNormal').addEventListener('click', () => selectMode('normal'));
     document.getElementById('modeHard').addEventListener('click', () => selectMode('hard'));
     document.getElementById('modeInsane').addEventListener('click', () => selectMode('insane'));
     document.getElementById('modeBossRush').addEventListener('click', () => selectMode('bossrush'));
+    document.getElementById('modeDeath').addEventListener('click', () => selectMode('death'));
     document.getElementById('modeSandbox').addEventListener('click', () => selectMode('sandbox'));
-    document.getElementById('modeHalloween').addEventListener('click', () => selectMode('halloween'));
     // Background mode (persisted)
     var bgMode = localStorage.getItem('sm_bgMode') || 'plain';
     function selectBg(b) {
@@ -3099,7 +2852,7 @@
         btn.classList.remove('ring-2', 'ring-amber-400');
         btn.classList.add('border-slate-600');
       });
-      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', desert: 'bgSetDesert', cave: 'bgSetCave', landscape: 'bgSetLandscape', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', halloween: 'bgSetHalloween', multiverse: 'bgSetMultiverse' };
+      var map = { plain: 'bgSetPlain', boss: 'bgSetBoss', rain: 'bgSetRain', house: 'bgSetHouse', desert: 'bgSetDesert', cave: 'bgSetCave', landscape: 'bgSetLandscape', volcano: 'bgSetVolcano', flame_pit: 'bgSetFlamePit', dark_grave: 'bgSetDarkGrave', blood_bath: 'bgSetBloodBath', moist_hill: 'bgSetMoistHill', shocky_road: 'bgSetShockyRoad', cheese: 'bgSetCheese', multiverse: 'bgSetMultiverse' };
       var el = document.getElementById(map[b]);
       if (el) { el.classList.add('ring-2', 'ring-amber-400'); el.classList.remove('border-slate-600'); }
     }
@@ -3399,12 +3152,8 @@
     mobTap('mobBtn2', function() { if (gameState === 'playing') mobAbility2(); });
     mobTap('mobBtn3', function() { if (gameState === 'playing') mobAbility3(); });
     mobTap('mobBtnF', function() { if (gameState === 'playing') mobAbilityF(); });
-    mobTap('mobBtnE', function() {
-      if (gameState === 'minigame' && soulStormActive && soulStormEActive) soulStormPressE();
-      else if (gameState === 'playing') mobAbilityE();
-    });
+    mobTap('mobBtnE', function() { if (gameState === 'playing') mobAbilityE(); });
     mobTap('mobBtnS', function() { if (gameState === 'playing' && hollowOn()) toggleHollowLaser(); });
-    mobTap('mobBtnSoulStormE', function() { if (gameState === 'minigame' && soulStormActive && soulStormEActive) soulStormPressE(); });
     mobTap('mobBtnPause', function() { togglePause(); });
     mobTap('mobBtnShop', function() { if (gameState === 'playing') openShop(); });
     // Character grid — click to select/buy
@@ -5286,7 +5035,7 @@
       var sbToggle = document.getElementById('sandboxToggleBtn');
       if (gameMode === 'sandbox') { sbPanel.classList.remove('hidden'); instrPanel.classList.add('hidden'); if (sbToggle) { sbToggle.classList.remove('hidden'); sbToggle.textContent = '🧪 HIDE UI'; } } else { sbPanel.classList.add('hidden'); instrPanel.classList.remove('hidden'); if (sbToggle) sbToggle.classList.add('hidden'); }
       // Apply character-specific stats
-      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'insane' ? ' 🟣INS' : gameMode === 'halloween' ? ' 🎃HALL' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : gameMode === 'sandbox' ? ' 🧪SB' : '';
+      var modeLabel = gameMode === 'hard' ? ' 🔴H' : gameMode === 'insane' ? ' 🟣INS' : gameMode === 'bossrush' ? ' 🔥BR' : gameMode === 'easy' ? ' 🟢E' : gameMode === 'death' ? ' ☠️D' : gameMode === 'sandbox' ? ' 🧪SB' : '';
       if (selectedChar === 'soldier') {
         PLAYER_MAX_HP_CURRENT = 110;
         document.getElementById('charIcon').textContent = '🎖';
@@ -5449,50 +5198,141 @@
     function insaneHp(hp) { return insaneOn() ? Math.round(hp * INSANE_ENEMY_MULT) : hp; }
     function insaneDmg(d) { return insaneOn() ? Math.max(1, Math.round(d * INSANE_ENEMY_MULT)) : d; }
 
-    // ==================== HALLOWEEN MODE ====================
-    // A pumpkin patch you farm for candy: a mini pumpkin every 3s, a big one every 9s,
-    // and EVERY living pumpkin drops a candy every 2s — 15% of those drops are a bag
-    // worth 10. Kill one early and you get nothing, which is the whole trade-off.
-    // The normal wave / kamikaze / grenader / titan / boss clocks stay frozen here.
-    const HALLOWEEN_MINI_INTERVAL = 180;   // 3s
-    const HALLOWEEN_BIG_INTERVAL = 540;    // 9s
-    const HALLOWEEN_CANDY_CD = 120;        // 2s between drops, per pumpkin
-    const HALLOWEEN_BAG_CHANCE = 0.15, HALLOWEEN_BAG_SIZE = 10;
-    const MINI_PUMPKIN_HP = 70, MINI_PUMPKIN_SPD = 1.8, MINI_PUMPKIN_DMG = 6;
-    const BIG_PUMPKIN_HP = 320, BIG_PUMPKIN_SPD = 1.0, BIG_PUMPKIN_DMG = 12;
-    function halloweenOn() { return gameMode === 'halloween'; }
-    function halloweenCandyOn() { return isHalloweenEvent() || halloweenOn(); }
-    function spawnHalloweenPumpkin(big) {
+    // ==================== DEATH MODE ====================
+    // One wave is 10 seconds (the WAV counter already keeps that clock). Every wave makes
+    // the field tougher and every tenth wave fields a boss, so wave 100 is the wall. The
+    // curve is tuned to stay clearable: HP tops out at 6x and incoming damage at 2.5x, and
+    // the run does not stop at 100 — it keeps climbing as an endless victory lap.
+    const DEATH_TOTAL_WAVES = 100;
+    const DEATH_HP_STEP = 0.05, DEATH_HP_CAP = 6;
+    const DEATH_DMG_STEP = 0.015, DEATH_DMG_CAP = 2.5;
+    let deathBest = loadNum('sm_deathBest');
+    let deathCleared = localStorage.getItem('sm_deathCleared') === 'true';
+    let deathRunWon = false;
+    function deathOn() { return gameMode === 'death'; }
+    function deathWave() { return deathOn() ? wave : 1; }
+    function deathHpMult() { return deathOn() ? Math.min(DEATH_HP_CAP, 1 + DEATH_HP_STEP * (deathWave() - 1)) : 1; }
+    // Bosses are already big, so they ride a gentler curve than the trash — otherwise the
+    // wave-100 trio would be a 20k-HP slab instead of a fight.
+    function deathBossHpMult() { return deathOn() ? Math.min(2.5, 1 + 0.02 * (deathWave() - 1)) : 1; }
+    function deathDmgMult() { return deathOn() ? Math.min(DEATH_DMG_CAP, 1 + DEATH_DMG_STEP * (deathWave() - 1)) : 1; }
+    function updateDeathBestLine() {
+      var el = document.getElementById('deathBestLine');
+      if (!el) return;
+      el.textContent = '☠️ DEATH — ' + DEATH_TOTAL_WAVES + ' waves · best wave ' + deathBest +
+        (deathCleared ? ' · ✅ CLEARED' : '');
+    }
+    // ---- Every enemy from every mode ----
+    // The pair spawner already delivers the tank + speed fodder on its own clock. On top of
+    // that, DEATH mode cycles through the heavies the other modes field — necromancer,
+    // sniper, medic, big gunner, giant gunner, titan gunner, titan and the crown boss — plus
+    // a zombie horde, so the whole bestiary is on the field before the wave 100 wall.
+    const DEATH_HEAVY_INTERVAL = 600;   // one heavy every 10s
+    const DEATH_ZOMBIE_INTERVAL = 480;  // one horde every 8s
+    const DEATH_HEAVY_HP_STEP = 0.02, DEATH_HEAVY_HP_CAP = 1.8;
+    let deathHeavyTimer = 0, deathHeavyIdx = 0, deathZombieTimer = 0;
+    function deathHeavyHp(hp) {
+      if (!deathOn()) return hp;
+      return Math.round(hp * Math.min(DEATH_HEAVY_HP_CAP, 1 + DEATH_HEAVY_HP_STEP * (deathWave() - 1)));
+    }
+    // A cycle, not a roll: over a run you meet every heavy the other modes have.
+    var DEATH_HEAVY_ROSTER = ['necro', 'sniper', 'medic', 'big_gunner', 'giant_gunner', 'titan_gunner', 'titan', 'boss'];
+    var DEATH_HEAVY_LABEL = {
+      necro: '💀 NECROMANCER', sniper: '🎯 SNIPER', medic: '➕ MEDIC', big_gunner: '🔫 BIG GUNNER',
+      giant_gunner: '🔫 GIANT GUNNER', titan_gunner: '🔫 TITAN GUNNER', titan: '⛏ TITAN', boss: '👑 BOSS'
+    };
+    function deathHeavyStats(type) {
+      if (type === 'necro') return { hp: NECRO_HP, spd: NECRO_SPD, extra: { attackCD: NECRO_ATK_CD, summonCD: NECRO_SUMMON_CD } };
+      if (type === 'sniper') return { hp: SNIPER_HP, spd: SNIPER_SPD, extra: {} };
+      if (type === 'medic') return { hp: MEDIC_HP, spd: MEDIC_SPD, extra: {} };
+      if (type === 'big_gunner') return { hp: BIG_GUNNER_HP, spd: BIG_GUNNER_SPD, extra: {} };
+      if (type === 'giant_gunner') return { hp: GIANT_GUNNER_HP, spd: GIANT_GUNNER_SPD, extra: {} };
+      if (type === 'titan_gunner') return { hp: TITAN_GUNNER_HP, spd: 0.5, extra: {} };
+      if (type === 'titan') return { hp: 500, spd: 0.6, extra: {} };
+      return { hp: BOSS_HP, spd: BOSS_SPD, extra: {} };
+    }
+    function spawnDeathHeavy() {
+      if (!deathOn()) return;
+      if (miniBosses.filter(function (m) { return m.alive; }).length > 7) return;
+      var type = DEATH_HEAVY_ROSTER[deathHeavyIdx % DEATH_HEAVY_ROSTER.length];
+      deathHeavyIdx++;
+      var st = deathHeavyStats(type);
+      var hp = deathHeavyHp(st.hp);
       var fromLeft = Math.random() > 0.5;
-      var px = fromLeft ? -50 : CW + 50;
-      dummies.push({
-        x: px, y: GROUND_Y,
-        hp: big ? BIG_PUMPKIN_HP : MINI_PUMPKIN_HP,
-        maxHp: big ? BIG_PUMPKIN_HP : MINI_PUMPKIN_HP,
-        speed: big ? BIG_PUMPKIN_SPD : MINI_PUMPKIN_SPD,
-        attackCD: 40, hitFlash: 0, alive: true,
-        facing: fromLeft ? 1 : -1, isPumpkin: true, pumpkinBig: !!big,
-        pumpkinDmg: big ? BIG_PUMPKIN_DMG : MINI_PUMPKIN_DMG,
-        candyDropCD: HALLOWEEN_CANDY_CD, animTime: 0
-      });
-      createParticles(px, GROUND_Y - 20, big ? 16 : 8, '#fb923c');
-      createTextParticle(CW / 2, big ? 78 : 56, big ? '🎃 BIG PUMPKIN!' : '🎃 mini pumpkin', big ? '#f97316' : '#fb923c', big ? 20 : 12);
+      var x = fromLeft ? 60 : CW - 60;
+      var obj = { x: x, y: GROUND_Y, hp: hp, maxHp: hp, speed: st.spd, attackCD: 60, hitFlash: 0, alive: true, facing: fromLeft ? 1 : -1, type: type, animTime: 0, vy: 0 };
+      for (var k in st.extra) obj[k] = st.extra[k];
+      miniBosses.push(obj);
+      createTextParticle(CW / 2, 50, '☠️ ' + (DEATH_HEAVY_LABEL[type] || type) + ' — WAVE ' + deathWave(), '#fb7185', 15);
+      createParticles(x, GROUND_Y, 12, '#fb7185');
     }
-    function tickPumpkinCandy() {
-      dummies.forEach(function(d) {
-        if (!d.alive || !d.isPumpkin) return;
-        d.candyDropCD--;
-        if (d.candyDropCD > 0) return;
-        d.candyDropCD = HALLOWEEN_CANDY_CD;
-        var bag = Math.random() < HALLOWEEN_BAG_CHANCE;
-        pickups.push(createPickup(d.x, GROUND_Y, bag ? 'candybag' : 'candy1'));
-      });
+    // The necromancer's minions are a normal-mode staple, so DEATH mode gets them too.
+    function spawnDeathZombies() {
+      if (!deathOn()) return;
+      var alive = dummies.filter(function (d) { return d.alive && d.isZombie; }).length;
+      if (alive > 8) return;
+      var n = wave >= 30 ? 3 : 2;
+      for (var i = 0; i < n; i++) {
+        var fromLeft = Math.random() > 0.5;
+        var zx = fromLeft ? 20 : CW - 20;
+        var zHp = Math.round(ZOMBIE_HP * deathHpMult());
+        dummies.push({ x: zx, y: GROUND_Y, hp: zHp, maxHp: zHp, facing: fromLeft ? 1 : -1, state: 'walk', speed: ZOMBIE_SPD, attackCD: ZOMBIE_ATK_CD, hitFlash: 0, alive: true, isZombie: true, isNecroZombie: false, animTime: 0 });
+      }
+      createTextParticle(CW / 2, 50, '🧟 ZOMBIE HORDE', '#22c55e', 14);
     }
-    function updateHalloweenSpawns() {
-      halloweenMiniTimer++; halloweenBigTimer++;
-      if (halloweenMiniTimer >= HALLOWEEN_MINI_INTERVAL) { halloweenMiniTimer = 0; spawnHalloweenPumpkin(false); }
-      if (halloweenBigTimer >= HALLOWEEN_BIG_INTERVAL) { halloweenBigTimer = 0; spawnHalloweenPumpkin(true); }
-      tickPumpkinCandy();
+    function updateDeathSpawns() {
+      deathHeavyTimer++; deathZombieTimer++;
+      if (deathHeavyTimer >= DEATH_HEAVY_INTERVAL) { deathHeavyTimer = 0; spawnDeathHeavy(); }
+      if (deathZombieTimer >= DEATH_ZOMBIE_INTERVAL) { deathZombieTimer = 0; spawnDeathZombies(); }
+    }
+    // The boss ladder: one boss per tenth wave, harder every rung. HP rides the wave curve.
+    function spawnDeathBoss(w) {
+      if (miniBosses.filter(function(m) { return m.alive; }).length > 6) return;
+      var tier = Math.floor(w / 10);
+      var mult = deathBossHpMult();
+      var push = function(type, hp, x, extra) {
+        var o = { x: x, y: GROUND_Y, hp: Math.round(hp * mult), maxHp: Math.round(hp * mult), speed: 1, attackCD: 60, hitFlash: 0, alive: true, facing: stick.x < x ? -1 : 1, type: type, animTime: 0, vy: 0 };
+        if (extra) { for (var k in extra) o[k] = extra[k]; }
+        miniBosses.push(o);
+        return o.hp;
+      };
+      var side = function(off) { return stick.x > CW / 2 ? off : CW - off; };
+      var label = '';
+      if (tier === 1) { label = '🛡 TANK PAIR'; push('tank', TANK_HP, side(90)); push('tank', TANK_HP, side(200)); }
+      else if (tier === 2) { label = '💀 THE GIANT'; push('giant', GIANT_HP, side(120)); }
+      else if (tier === 3) { label = '🌋 ANCIENT COLOSSAL'; push('colossal', COLOSSAL_HP, side(140), { dmgReduction: COLOSSAL_RESIST }); }
+      else if (tier === 4) { label = '💠 THE AMETHYST'; push('amethyst', AMETHYST_HP, side(140), { dmgReduction: AMETHYST_RESIST, state: 'chase', jumpCount: 0, contactCD: 0 }); }
+      else if (tier === 5) { label = '💀 GIANT + 🌋 COLOSSAL'; push('giant', GIANT_HP, side(100)); push('colossal', COLOSSAL_HP, side(230), { dmgReduction: COLOSSAL_RESIST }); }
+      else if (tier === 6) { label = '💠 AMETHYST + 💀 GIANT'; push('amethyst', AMETHYST_HP, CW / 2, { dmgReduction: AMETHYST_RESIST, state: 'chase', jumpCount: 0, contactCD: 0 }); push('giant', GIANT_HP, side(110)); }
+      else if (tier === 7) { label = '🌋 COLOSSAL + 💠 AMETHYST'; push('colossal', COLOSSAL_HP, side(130), { dmgReduction: COLOSSAL_RESIST }); push('amethyst', AMETHYST_HP, side(240), { dmgReduction: AMETHYST_RESIST, state: 'chase', jumpCount: 0, contactCD: 0 }); }
+      else if (tier === 8) { label = '💀🌋💠 TRIO'; push('giant', GIANT_HP, side(90)); push('colossal', COLOSSAL_HP, side(210), { dmgReduction: COLOSSAL_RESIST }); push('amethyst', AMETHYST_HP, CW / 2, { dmgReduction: AMETHYST_RESIST, state: 'chase', jumpCount: 0, contactCD: 0 }); }
+      else if (tier === 9) { label = '💀🌋💠 ELITE TRIO'; push('giant', GIANT_HP * 1.15, side(90)); push('colossal', COLOSSAL_HP * 1.15, side(210), { dmgReduction: COLOSSAL_RESIST }); push('amethyst', AMETHYST_HP * 1.15, CW / 2, { dmgReduction: AMETHYST_RESIST, state: 'chase', jumpCount: 0, contactCD: 0 }); }
+      else { label = '☠️ THE WALL'; push('giant', GIANT_HP * 1.3, side(80)); push('colossal', COLOSSAL_HP * 1.3, side(200), { dmgReduction: COLOSSAL_RESIST }); push('amethyst', AMETHYST_HP * 1.3, CW / 2, { dmgReduction: AMETHYST_RESIST, state: 'chase', jumpCount: 0, contactCD: 0 }); }
+      createTextParticle(CW / 2, 60, label + ' — WAVE ' + w, '#f43f5e', 24);
+      createParticles(CW / 2, GROUND_Y, 30, '#f43f5e');
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 400);
+    }
+    // Called on every wave tick: bosses, the record, and the win at wave 100.
+    function updateDeathRun() {
+      if (!deathOn()) return;
+      if (wave > deathBest) {
+        deathBest = wave;
+        try { localStorage.setItem('sm_deathBest', deathBest); } catch (e) {}
+        updateDeathBestLine();
+      }
+      if (wave % 10 === 0) spawnDeathBoss(wave);
+      if (wave > DEATH_TOTAL_WAVES && !deathRunWon) {
+        deathRunWon = true;
+        deathCleared = true;
+        try { localStorage.setItem('sm_deathCleared', 'true'); } catch (e) {}
+        updateDeathBestLine();
+        totalPoints += 5000; bossPoints += 25; savePoints();
+        createTextParticle(CW / 2, CH / 2 - 60, '🏆 DEATH MODE CLEARED!', '#fde047', 32);
+        createTextParticle(CW / 2, CH / 2 - 25, '100 waves survived · +5000 pts · +25 🏆', '#fde047', 18);
+        createTextParticle(CW / 2, CH / 2 + 5, 'endless continues — good luck', '#fda4af', 14);
+        createParticles(CW / 2, CH / 2, 70, '#fde047');
+        canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 800);
+      }
     }
 
     function createDummy(x, opts = {}) {
@@ -5500,6 +5340,8 @@
       if (gameMode === 'easy' && !opts.isKamikaze && !opts.isGunner && !opts.isCrossbow && !opts.isSummoner) baseHp = EASY_DUMMY_HP;
       // Insane: every enemy is 1.5x tougher (damage is scaled once in damagePlayer).
       baseHp = insaneHp(baseHp);
+      // Death mode: each wave fattens everything on the field.
+      if (deathHpMult() > 1) baseHp = Math.round(baseHp * deathHpMult());
       return {
         x, y: opts.y || GROUND_Y, hp: baseHp, maxHp: baseHp,
         speed: opts.speed || DUMMY_SPD, attackCD: 30 + Math.floor(Math.random() * 30),
@@ -5556,15 +5398,6 @@
       } else if (type === 'wing') {
         pickupWingTimer = PICKUP_WING_DUR;
         createTextParticle(x, y, '🪽 WING FLIGHT!', '#7dd3fc', 16); createParticles(x, y, 10, '#7dd3fc');
-      } else if (type === 'candy1') {
-        addCandy(1);
-        createTextParticle(x, y, '🍬 +1', '#fb923c', 14); createParticles(x, y, 6, '#fb923c');
-      } else if (type === 'candybag') {
-        addCandy(HALLOWEEN_BAG_SIZE);
-        createTextParticle(x, y, '🍬 BAG OF CANDY +' + HALLOWEEN_BAG_SIZE, '#f97316', 18); createParticles(x, y, 16, '#f97316');
-      } else if (type === 'candy') {
-        addCandy(3);
-        createTextParticle(x, y, '🍬 +3 CANDY', '#fb923c', 16); createParticles(x, y, 10, '#fb923c');
       } else {
         var heal = Math.floor(PLAYER_MAX_HP_CURRENT * HEAL_AMOUNT / 100);
         playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + heal);
@@ -5573,7 +5406,6 @@
     }
     function spawnInitialDummies() {
       if (gameMode === 'sandbox') { dummies = []; return; }
-      if (halloweenOn()) { dummies = []; spawnHalloweenPumpkin(false); spawnHalloweenPumpkin(false); return; }
       dummies = gameMode === 'hard' || gameMode === 'insane' ? [createDummy(500), createDummy(650), createDummy(800)] : [createDummy(550), createDummy(700)];
     }
 
@@ -6968,7 +6800,7 @@
       ctx.restore(); // hit-flinch transform
     }
 
-    // Halloween skin costumes — actually worn on the character when equipped
+    // Skin costumes — actually worn on the character when equipped
     function drawSkinCostume(x, y, facing, headY, btY, bbY) {
       if (!selectedSkin) return;
       var t = time;
@@ -7057,7 +6889,7 @@
         ctx.beginPath(); ctx.arc(x + 26 * facing, headY - 26, 9, facing > 0 ? Math.PI * 0.6 : 0, facing > 0 ? Math.PI * 1.5 : Math.PI * 0.9); ctx.stroke();
         ctx.restore();
       } else if (selectedSkin === 'fighter_werewolf') {
-        // ---- Halloween Werewolf -------------------------------------------------
+        // ---- Werewolf -------------------------------------------------
         // Fur ruff, pointed ears, a snout that snaps open on attacks, amber eyes that
         // flare in the dark, claws on both hands and a tail that follows the stride.
         ctx.save();
@@ -7196,76 +7028,6 @@
       // Hit shake — the body recoils for the few frames it's flashing white
       const dx = d.x + (d.hitFlash > 0 ? Math.sin(time * 3.4) * 3.5 * Math.min(1, d.hitFlash / 6) * (d.x > stick.x ? 1 : -1) : 0);
       let bodyColor, headColor, headR = 12, lineW = 3.5, label = '';
-
-      if (d.isPumpkinMinion) {
-        var pcol = d.hitFlash > 0 ? '#fff' : '#fb923c';
-        ctx.fillStyle = pcol; ctx.beginPath(); ctx.arc(dx, GROUND_Y - 16, 11, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#ea580c'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 27); ctx.lineTo(dx, GROUND_Y - 5); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx - 9, GROUND_Y - 20); ctx.lineTo(dx - 9, GROUND_Y - 10); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx + 9, GROUND_Y - 20); ctx.lineTo(dx + 9, GROUND_Y - 10); ctx.stroke();
-        ctx.fillStyle = '#15803d'; ctx.fillRect(dx - 2, GROUND_Y - 30, 4, 5);
-        ctx.fillStyle = '#111';
-        ctx.beginPath(); ctx.moveTo(dx - 6, GROUND_Y - 19); ctx.lineTo(dx - 1, GROUND_Y - 19); ctx.lineTo(dx - 3.5, GROUND_Y - 15); ctx.closePath(); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(dx + 1, GROUND_Y - 19); ctx.lineTo(dx + 6, GROUND_Y - 19); ctx.lineTo(dx + 3.5, GROUND_Y - 15); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = '#7c2d12'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(dx - 4, GROUND_Y - 6); ctx.lineTo(dx - 7, GROUND_Y); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx + 4, GROUND_Y - 6); ctx.lineTo(dx + 7, GROUND_Y); ctx.stroke();
-        var mBw = 24, mPct = d.hp / d.maxHp;
-        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - mBw / 2 - 1, GROUND_Y - 40, mBw + 2, 5);
-        ctx.fillStyle = '#fb923c'; ctx.fillRect(dx - mBw / 2, GROUND_Y - 39, mBw * Math.max(0, mPct), 3);
-        return;
-      }
-
-      // HALLOWEEN mode pumpkins — one rig, two sizes. The big one is a proper bruiser:
-      // lidded jack-o-lantern, ridged sides and a fat health bar over the stem.
-      if (d.isPumpkin) {
-        var pgBig = !!d.pumpkinBig;
-        var pr = pgBig ? 34 : 15;
-        var pcy = GROUND_Y - (pgBig ? pr + 8 : pr + 5);
-        var pHit = d.hitFlash > 0;
-        var pBody = pHit ? '#ffffff' : (pgBig ? '#ea580c' : '#fb923c');
-        var pLine = pHit ? '#ffffff' : '#9a3412';
-        ctx.globalAlpha = pgBig ? 0.2 : 0.13;
-        ctx.fillStyle = '#f97316';
-        ctx.beginPath(); ctx.arc(dx, pcy, pr * 2.1, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-        // Three overlapping lobes read as a pumpkin without needing ellipse().
-        ctx.fillStyle = pBody;
-        ctx.beginPath(); ctx.arc(dx - pr * 0.34, pcy, pr * 0.76, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(dx + pr * 0.34, pcy, pr * 0.76, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(dx, pcy, pr, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = pLine; ctx.lineWidth = pgBig ? 2 : 1.4;
-        ctx.beginPath(); ctx.arc(dx, pcy, pr, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx - pr * 0.34, pcy - pr * 0.62); ctx.lineTo(dx - pr * 0.34, pcy + pr * 0.62); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx + pr * 0.34, pcy - pr * 0.62); ctx.lineTo(dx + pr * 0.34, pcy + pr * 0.62); ctx.stroke();
-        // Stem
-        ctx.strokeStyle = '#15803d'; ctx.lineWidth = pgBig ? 6 : 3; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(dx, pcy - pr * 0.88); ctx.lineTo(dx + pr * 0.2, pcy - pr * 1.3); ctx.stroke();
-        // Jack-o-lantern face
-        ctx.fillStyle = '#3b0764';
-        ctx.beginPath(); ctx.moveTo(dx - pr * 0.52, pcy - pr * 0.22); ctx.lineTo(dx - pr * 0.14, pcy - pr * 0.22); ctx.lineTo(dx - pr * 0.33, pcy + pr * 0.12); ctx.closePath(); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(dx + pr * 0.14, pcy - pr * 0.22); ctx.lineTo(dx + pr * 0.52, pcy - pr * 0.22); ctx.lineTo(dx + pr * 0.33, pcy + pr * 0.12); ctx.closePath(); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(dx - pr * 0.46, pcy + pr * 0.34); ctx.lineTo(dx - pr * 0.2, pcy + pr * 0.34);
-        ctx.lineTo(dx - pr * 0.02, pcy + pr * 0.6); ctx.lineTo(dx + pr * 0.2, pcy + pr * 0.34);
-        ctx.lineTo(dx + pr * 0.46, pcy + pr * 0.34); ctx.lineTo(dx + pr * 0.26, pcy + pr * 0.62);
-        ctx.lineTo(dx - pr * 0.26, pcy + pr * 0.62); ctx.closePath(); ctx.fill();
-        // Legs
-        ctx.strokeStyle = pBody; ctx.lineWidth = pgBig ? 7 : 3.5;
-        ctx.beginPath(); ctx.moveTo(dx - pr * 0.32, pcy + pr * 0.72); ctx.lineTo(dx - pr * 0.5, GROUND_Y); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dx + pr * 0.32, pcy + pr * 0.72); ctx.lineTo(dx + pr * 0.5, GROUND_Y); ctx.stroke();
-        // Health bar (+ a name plate on the big one)
-        var pgW = pgBig ? 78 : 30, pgPct = Math.max(0, d.hp / d.maxHp);
-        var pgY = pcy - pr * 1.5 - 10;
-        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - pgW / 2 - 1, pgY - 1, pgW + 2, pgBig ? 9 : 6);
-        ctx.fillStyle = pgBig ? '#f97316' : '#fb923c'; ctx.fillRect(dx - pgW / 2, pgY, pgW * pgPct, pgBig ? 7 : 4);
-        if (pgBig) {
-          ctx.fillStyle = '#fdba74'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
-          ctx.fillText('BIG PUMPKIN ' + Math.ceil(Math.max(0, d.hp)), dx, pgY - 5); ctx.textAlign = 'start';
-        }
-        return;
-      }
 
       if (d.big) {
         // Insane-mode big dummy: the same rig, twice the presence.
@@ -7567,119 +7329,6 @@
     function drawMiniBoss(mb) {
       if (!mb.alive) return;
       const dx = mb.x + (mb.hitFlash > 0 ? Math.sin(time * 3.2) * 4 * Math.min(1, mb.hitFlash / 6) * (mb.x > stick.x ? 1 : -1) : 0);
-      if (mb.type === 'pumpkin') {
-        var gy = mb.y;
-        // ---- Final soul form: attackable, 5,000 HP (kill it to start the minigame) ----
-        if (mb.orbMode) {
-          // ---- LONG WARNING ARROW ------------------------------------------
-          // The soul form's blasts arrived with no telegraph at all, so a hit felt
-          // random. A long arrow now runs from the orb along its firing line all the
-          // way to the edge of the screen: it re-aims at the player every frame and
-          // charges purple -> amber -> red as the next blast loads, so the shot is
-          // always readable before it leaves.
-          var warnAim = Math.atan2((stick.y - 30) - gy, stick.x - dx);
-          var warnCharge = Math.max(0, Math.min(1, 1 - Math.max(0, mb.orbShootCD) / PUMPKIN_ORB_SHOT_CD));
-          var warnCos = Math.cos(warnAim), warnSin = Math.sin(warnAim);
-          // How far the line may run before it would leave the canvas.
-          var warnEdge = 620;
-          if (warnCos > 0.0001) warnEdge = Math.min(warnEdge, (CW - 12 - dx) / warnCos);
-          if (warnCos < -0.0001) warnEdge = Math.min(warnEdge, (12 - dx) / warnCos);
-          if (warnSin > 0.0001) warnEdge = Math.min(warnEdge, (CH - 12 - gy) / warnSin);
-          if (warnSin < -0.0001) warnEdge = Math.min(warnEdge, (12 - gy) / warnSin);
-          var warnLen = Math.max(70, Math.min(warnEdge, 190 + 250 * warnCharge));
-          var warnCol = warnCharge > 0.72 ? '#f87171' : warnCharge > 0.35 ? '#fbbf24' : '#a855f7';
-          ctx.save();
-          ctx.translate(dx, gy); ctx.rotate(warnAim);
-          ctx.globalAlpha = 0.22 + 0.5 * warnCharge + 0.1 * Math.sin(time * 0.5);
-          ctx.fillStyle = warnCol;
-          ctx.beginPath();
-          ctx.moveTo(34, -7);
-          ctx.lineTo(warnLen - 34, -7);
-          ctx.lineTo(warnLen - 34, -19);
-          ctx.lineTo(warnLen, 0);
-          ctx.lineTo(warnLen - 34, 19);
-          ctx.lineTo(warnLen - 34, 7);
-          ctx.lineTo(34, 7);
-          ctx.closePath(); ctx.fill();
-          // Charge spark at the tip: brightest right before the blast leaves.
-          ctx.globalAlpha = 0.35 + 0.55 * warnCharge;
-          ctx.fillStyle = '#fff';
-          ctx.beginPath(); ctx.arc(warnLen - 6, 0, 3 + 4 * warnCharge, 0, Math.PI * 2); ctx.fill();
-          ctx.restore();
-          // Unrotated label, kept upright so it stays readable at any angle.
-          ctx.save();
-          ctx.globalAlpha = 0.55 + 0.4 * warnCharge;
-          ctx.fillStyle = warnCol; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
-          ctx.fillText(warnCharge > 0.6 ? '⚠ BLAST' : 'AIM', dx + warnCos * 62, gy + warnSin * 62 - 16);
-          ctx.textAlign = 'start';
-          ctx.restore();
-          var orbP = 1 + Math.sin(time * 0.3) * 0.15;
-          ctx.save();
-          ctx.globalAlpha = 0.35; ctx.fillStyle = '#a855f7';
-          ctx.beginPath(); ctx.arc(dx, gy, 74 * orbP, 0, Math.PI * 2); ctx.fill();
-          // rotating spikes
-          for (var si = 0; si < 8; si++) {
-            var sa = time * 0.06 + si * Math.PI / 4;
-            ctx.globalAlpha = 0.85; ctx.fillStyle = '#7c3aed';
-            ctx.beginPath();
-            ctx.moveTo(dx + Math.cos(sa) * 44, gy + Math.sin(sa) * 44);
-            ctx.lineTo(dx + Math.cos(sa + 0.16) * 66, gy + Math.sin(sa + 0.16) * 66);
-            ctx.lineTo(dx + Math.cos(sa - 0.16) * 66, gy + Math.sin(sa - 0.16) * 66);
-            ctx.closePath(); ctx.fill();
-          }
-          ctx.globalAlpha = 0.85; ctx.fillStyle = '#c084fc';
-          ctx.beginPath(); ctx.arc(dx, gy, 40 * orbP, 0, Math.PI * 2); ctx.fill();
-          ctx.globalAlpha = 1; ctx.fillStyle = '#fff';
-          ctx.beginPath(); ctx.arc(dx, gy, 20, 0, Math.PI * 2); ctx.fill();
-          ctx.restore();
-          var ow = 90;
-          ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - ow / 2 - 1, gy - 98, ow + 2, 9);
-          ctx.fillStyle = mb.hitFlash > 0 ? '#fff' : '#c084fc'; ctx.fillRect(dx - ow / 2, gy - 97, ow * Math.max(0, mb.hp / PUMPKIN_SOUL_HP), 7);
-          ctx.fillStyle = '#e9d5ff'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
-          ctx.fillText('💀 SOUL FORM  ' + Math.ceil(Math.max(0, mb.hp)) + ' / ' + PUMPKIN_SOUL_HP, dx, gy - 104); ctx.textAlign = 'start';
-          return;
-        }
-        var phaseCol = ['#f97316', '#fb923c', '#ef4444', '#a855f7', '#e11d48'][Math.min(PUMPKIN_PHASES - 1, mb.phase - 1)];
-        var pkc = mb.hitFlash > 0 ? '#fff' : (mb.phaseFlash > 0 ? '#facc15' : phaseCol);
-        var pPulse = 1 + Math.sin(time * 0.12) * 0.05;
-        // Flying flame / dread aura
-        ctx.globalAlpha = 0.16 + Math.sin(time * 0.08) * 0.06; ctx.fillStyle = phaseCol;
-        ctx.beginPath(); ctx.arc(dx, gy, 52 * pPulse, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-        if (time % 2 === 0) createParticles(dx + (Math.random() - 0.5) * 46, gy + 32, 1, '#f97316');
-        // Pumpkin body — breathing squash on the vertical axis
-        var squash = mb.phaseFlash > 0 ? 0.92 + Math.sin(time * 0.2) * 0.08 : 1;
-        ctx.fillStyle = pkc; ctx.beginPath(); ctx.ellipse(dx, gy, 40, 36 * squash, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ea580c';
-        ctx.beginPath(); ctx.ellipse(dx - 14, gy, 14, 36 * squash, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(dx + 14, gy, 14, 36 * squash, 0, 0, Math.PI * 2); ctx.fill();
-        // Stem — subtle sway
-        ctx.fillStyle = '#15803d'; ctx.fillRect(dx - 5 + Math.sin(time * 0.2) * 2, gy - 44, 10, 12);
-        // Glowing eyes — colour shifts with phase, blink periodically
-        var eyeC = mb.phase >= 4 ? '#ef4444' : mb.phase >= 3 ? '#a855f7' : '#fde047';
-        var blink = Math.floor(time / 180) % 2 === 0;
-        ctx.fillStyle = eyeC;
-        if (blink) {
-          ctx.fillRect(dx - 19, gy - 12, 12, 5);
-          ctx.fillRect(dx + 7, gy - 12, 12, 5);
-        } else {
-          ctx.beginPath(); ctx.moveTo(dx - 19, gy - 12); ctx.lineTo(dx - 7, gy - 12); ctx.lineTo(dx - 13, gy + 1); ctx.closePath(); ctx.fill();
-          ctx.beginPath(); ctx.moveTo(dx + 7, gy - 12); ctx.lineTo(dx + 19, gy - 12); ctx.lineTo(dx + 13, gy + 1); ctx.closePath(); ctx.fill();
-        }
-        // Jagged mouth
-        ctx.beginPath(); ctx.moveTo(dx - 15, gy + 10); ctx.lineTo(dx + 15, gy + 10); ctx.lineTo(dx, gy + 24); ctx.closePath(); ctx.fill();
-        // HP bar (per phase) + phase pips
-        var pBw = 76, pPct = mb.hp / mb.maxHp;
-        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - pBw / 2 - 1, gy - 66, pBw + 2, 9);
-        ctx.fillStyle = phaseCol; ctx.fillRect(dx - pBw / 2, gy - 65, pBw * Math.max(0, pPct), 7);
-        ctx.fillStyle = '#fdba74'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('🎃 PHASE ' + mb.phase + '/' + PUMPKIN_PHASES + '  ' + Math.ceil(mb.hp), dx, gy - 72);
-        for (var pi2 = 0; pi2 < PUMPKIN_PHASES; pi2++) {
-          ctx.fillStyle = pi2 < mb.phase ? '#facc15' : '#475569';
-          ctx.beginPath(); ctx.arc(dx - (PUMPKIN_PHASES - 1) * 5 + pi2 * 10, gy - 78, 3, 0, Math.PI * 2); ctx.fill();
-        }
-        ctx.textAlign = 'start';
-        return;
-      }
       if (mb.type === 'necro') {
         // Necromancer: hooded figure with staff
         const bc = mb.hitFlash > 0 ? '#fff' : '#7c3aed';
@@ -8085,17 +7734,12 @@
       var pulse = 1 + Math.sin(time * 0.15 + p.bobPhase) * 0.12;
       ctx.fillStyle = meta.glow; ctx.beginPath(); ctx.arc(p.x, p.y + bob, 15 * pulse, 0, Math.PI * 2); ctx.fill();
       ctx.font = '18px serif'; ctx.textAlign = 'center'; ctx.fillText(meta.emoji, p.x, p.y + bob + 6); ctx.textAlign = 'start';
-      // A bag is unmistakable: same candy sprite, a fat glow and the ×10 stamped on it.
-      if (p.type === 'candybag') {
-        ctx.fillStyle = '#fdba74'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('BAG ×' + HALLOWEEN_BAG_SIZE, p.x, p.y + bob + 22); ctx.textAlign = 'start';
-      }
       ctx.globalAlpha = 1;
     }
 
     // ==================== DAMAGE ====================
     function playerHpFloor() { return selectedChar === 'phantom' ? PHANTOM_MIN_HP : 0; }
-    function damagePlayer(dmg, color, bypassShield, skipInsane) {
+    function damagePlayer(dmg, color, bypassShield, skipInsane, noDeathScale) {
       if (gameMode === 'sandbox') { createTextParticle(stick.x, stick.y - 55, '🛡 SANDBOX!', '#d946ef', 12); return; }
       if (gracePeriod > 0) return;
       // Bought Auto Shield: completely immortal while it is lit, no damage at all.
@@ -8115,6 +7759,10 @@
       // Insane mode: every enemy hit lands 1.5x harder. The Ancient Colossal's 40 is
       // its stated damage, so it opts out of the mode multiplier.
       if (!skipInsane) dmg = insaneDmg(dmg);
+      // Death mode: incoming damage climbs with the wave, so late waves actually hurt.
+      // The tank and speed pair opt out — they stay the harmless fodder they are in normal
+      // play instead of turning into late-wave executioners.
+      if (deathDmgMult() > 1 && !noDeathScale) dmg = Math.max(1, Math.round(dmg * deathDmgMult()));
       // The taoist's amulet can bless (-35% taken) or curse (+40% taken) him.
       if (selectedChar === 'taoist') dmg = Math.max(1, Math.floor(dmg * taoistTakenMult()));
       if (ninjaIsInvis) { createTextParticle(stick.x, stick.y - 55, '👻 PHASE!', '#94a3b8', 12); return; }
@@ -8211,6 +7859,7 @@
       var bossFloor = boss.type === 'darkuniverse' ? (boss.minHp || -500) : 0;
       if (boss.hp <= bossFloor) {
         boss.alive = false; kills++; totalKills++; lifeBump('bosses');
+        if (gameMode !== 'sandbox') addEnergyForBoss();
         if (boss.type === 'darkuniverse') {
           phantomMissionActive = false; darkOrbs = [];
           createTextParticle(CW / 2, CH / 2 - 40, '🌑 DARK UNIVERSE DEFEATED!', '#a78bfa', 30);
@@ -8221,7 +7870,6 @@
           return;
         }
         if (gameMode !== 'sandbox') { bossPoints += 1; savePoints(); }
-        if (isHalloweenEvent()) addCandy(2);
         scoreEl.textContent = score; killsEl.textContent = kills;
         addUltCharge(10);
         createExplosion(boss.x, GROUND_Y - 30, 60, isTitan ? '#d97706' : '#a855f7');
@@ -8252,37 +7900,6 @@
       dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult());
       // The Ancient Colossal shrugs off half of everything thrown at it.
       if (mb.dmgReduction) dmg = Math.max(1, Math.floor(dmg * (1 - mb.dmgReduction)));
-      if (mb.type === 'pumpkin') {
-        // The soul form is attackable now: taking its 5,000 HP triggers the Soul Storm minigame.
-        if (mb.orbMode) {
-          mb.hp -= dmg; mb.hitFlash = 6; vampireHeal(dmg);
-          createTextParticle(mb.x, mb.y - 30, '-' + dmg, '#c084fc', 14);
-          createParticles(mb.x, mb.y, 6, '#a855f7');
-          if (mb.hp <= 0) { mb.hp = 0; killPumpkinBoss(mb); }
-          return;
-        }
-        mb.hp -= dmg; mb.hitFlash = 6; vampireHeal(dmg);
-        createTextParticle(mb.x, mb.y - 30, '-' + dmg, '#f97316', 14);
-        createParticles(mb.x, mb.y, 6, '#f97316');
-        if (mb.hp <= 0) {
-          if (mb.phase < PUMPKIN_PHASES) {
-            mb.phase++; mb.hp = PUMPKIN_PHASE_HP; mb.phaseFlash = 70; mb.attackCD = 40; mb.minionCD = 40; mb.slamCD = 120;
-            bumpPumpkinMusic(mb.phase >= 5 ? 3 : mb.phase >= 4 ? 2 : mb.phase >= 3 ? 1 : 0);
-            createExplosion(mb.x, mb.y, 80, '#f97316');
-            createTextParticle(mb.x, mb.y - 60, '🎃 PHASE ' + mb.phase + '/' + PUMPKIN_PHASES, '#facc15', 22);
-            createParticles(mb.x, mb.y, 40, '#facc15');
-          } else {
-            mb.hp = PUMPKIN_SOUL_HP; mb.maxHp = PUMPKIN_SOUL_HP; mb.orbMode = true; mb.orbTimer = PUMPKIN_ORB_TIME; mb.orbShootCD = 10; mb.soulTimer = 0;
-            bumpPumpkinMusic(4);
-            createExplosion(mb.x, mb.y, 70, '#a855f7');
-            createTextParticle(mb.x, mb.y - 70, '💀 SOUL FORM! ' + PUMPKIN_SOUL_HP + ' HP', '#a855f7', 22);
-            createTextParticle(mb.x, mb.y - 44, 'KILL IT TO ENTER SOUL STORM', '#e9d5ff', 14);
-            createParticles(mb.x, mb.y, 50, '#a855f7');
-          }
-        }
-        return;
-      }
-      mb.hp -= dmg; mb.hitFlash = 6; vampireHeal(dmg);
       const c = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : source === 'kick' ? '#fb7185' : '#facc15';
       createTextParticle(mb.x, GROUND_Y - 55, '-' + dmg, c, 14);
       createParticles(mb.x, GROUND_Y - 30, 6, c);
@@ -8295,11 +7912,11 @@
           createTextParticle(mb.x, GROUND_Y - 80, gameMode === 'sandbox' ? '💀 NECRO DOWN!' : '💀 NECRO DOWN! +50', '#7c3aed', 18);
           if (gameMode !== 'sandbox') { spawnZombie(mb.x, true); createTextParticle(mb.x, GROUND_Y - 100, '🧟 RISES!', '#22c55e', 14); }
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
-        } else if (mb.type === 'pumpkin') {
-          killPumpkinBoss(mb);
         } else {
           const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : mb.type === 'colossal' ? 300 : mb.type === 'giant' ? 150 : mb.type === 'amethyst' ? 800 : mb.type === 'titan_gunner' ? 400 : 20;
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
+          // A mini-boss is a boss for energy purposes: half a point.
+          if (gameMode !== 'sandbox') addEnergyForBoss();
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
           var killName = mb.type === 'amethyst' ? '💠 AMETHYST SHATTERED' : mb.type === 'titan_gunner' ? '🔫 TITAN GUNNER' : mb.type === 'giant' ? '💀 GIANT' : mb.type === 'colossal' ? '🌋 COLOSSAL' : mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
           createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : mb.type === 'medic' ? '#f8fafc' : mb.type === 'giant_gunner' ? '#dc2626' : mb.type === 'milkson' ? '#ef4444' : '#fb923c');
@@ -8372,15 +7989,6 @@
             damagePlayer(DARK_NINJA_DMG, '#4c1d95');
             d.attackCD = 90;
             createParticles(d.x, GROUND_Y - 30, 5, '#4c1d95');
-          }
-        } else if (d.isPumpkin) {
-          // Pumpkins shuffle straight at you and smack with their own (small) damage.
-          if (dist < DUMMY_CHASE_RANGE) d.x += Math.sign(stick.x - d.x) * d.speed;
-          d.attackCD--;
-          if (d.attackCD <= 0 && dist < DUMMY_ATK_RANGE) {
-            damagePlayer(d.pumpkinDmg || MINI_PUMPKIN_DMG, '#fb923c');
-            d.attackCD = DUMMY_ATTACK_CD;
-            createParticles(d.x, GROUND_Y - 20, 4, '#fb923c');
           }
         } else {
           if (dist < DUMMY_CHASE_RANGE && gameState === 'playing') d.x += Math.sign(stick.x - d.x) * d.speed;
@@ -8498,8 +8106,7 @@
 
     function checkBossSpawn() {
       if (campaignMode || phantomMissionActive) return; // campaign/mission handles its own spawns
-      // Halloween mode is a pumpkin patch, not a gauntlet: no titan, no boss.
-      if (halloweenOn()) return;
+      if (deathOn()) return; // death mode fields its own bosses every 10th wave
       if (boss && boss.alive) return;
       // Titan spawns every 60s
       if (titanTimer >= TITAN_SPAWN_INTERVAL && !boss && gameMode !== 'easy') {
@@ -8571,7 +8178,6 @@
       if (sentinel.hp <= 0) {
         sentinel.alive = false; kills++; totalKills++;
         if (gameMode !== 'sandbox') { bossPoints += 2; savePoints(); score += 300; }
-        if (isHalloweenEvent()) addCandy(2);
         scoreEl.textContent = score; killsEl.textContent = kills;
         addUltCharge(20);
         createExplosion(sentinel.x, GROUND_Y - 30, 80, '#06b6d4');
@@ -8740,105 +8346,6 @@
       var zHp = isNecroZombie ? NECRO_ZOMBIE_HP : ZOMBIE_HP;
       dummies.push({ x: x, y: GROUND_Y, hp: zHp, maxHp: zHp, facing: stick.x < x ? -1 : 1, state: 'walk', speed: zSpd, attackCD: ZOMBIE_ATK_CD, hitFlash: 0, alive: true, isZombie: true, isNecroZombie: isNecroZombie, animTime: 0 });
     }
-    function spawnPumpkinMinion(x) {
-      var cnt = 0; dummies.forEach(function(d) { if (d.alive && d.isPumpkinMinion) cnt++; });
-      if (cnt >= 10) return;
-      x = Math.max(30, Math.min(CW - 30, x));
-      var hp = 30;
-      dummies.push({ x: x, y: GROUND_Y, hp: hp, maxHp: hp, facing: stick.x < x ? -1 : 1, state: 'walk', speed: 1.7, attackCD: 40, hitFlash: 0, alive: true, isPumpkinMinion: true, animTime: 0 });
-    }
-    function killPumpkinBoss(mb) {
-      if (!mb.alive) return;
-      mb.alive = false;
-      stopPumpkinMusic();
-      // Defeating the pumpkin boss enters the Soul Storm minigame instead of instant rewards.
-      pendingPumpkinReward = {
-        candy: 5 + Math.floor(Math.random() * 11), // 5-15 candy
-        points: 500,
-        bossPoints: 5,
-        score: 500
-      };
-      createExplosion(mb.x, mb.y, 110, '#f97316');
-      createParticles(mb.x, mb.y, 60, '#f97316');
-      createTextParticle(CW / 2, 70, '🎃 PUMPKIN BOSS DOWN!', '#f97316', 26);
-      createTextParticle(CW / 2, 100, 'SOUL STORM BEGIN!', '#facc15', 18);
-      launchSoulStorm();
-    }
-    var pendingPumpkinReward = null;
-    function updatePumpkinBoss(mb, dist) {
-      mb.facing = stick.x < mb.x ? -1 : 1;
-      if (mb.phaseFlash > 0) mb.phaseFlash--;
-      // ---- Soul form: attackable (5,000 HP), sprays blasts while you kill it ----
-      if (mb.orbMode) {
-        if (mb.orbTimer > 0) mb.orbTimer--;
-        mb.soulTimer = (mb.soulTimer || 0) + 1;
-        mb.y = mb.baseY - 40 + Math.sin(time * 0.2) * 24;
-        if (time % 3 === 0) createParticles(mb.x + (Math.random() - 0.5) * 70, mb.y + (Math.random() - 0.5) * 70, 1, '#c084fc');
-        mb.orbShootCD--;
-        if (mb.orbShootCD <= 0) {
-          mb.orbShootCD = PUMPKIN_ORB_SHOT_CD;
-          var oa = Math.atan2((stick.y - 30) - mb.y, stick.x - mb.x);
-          var a2 = oa;
-          bullets.push({ x: mb.x, y: mb.y, vx: Math.cos(a2) * 7, vy: Math.sin(a2) * 7, dmg: PUMPKIN_ORB_DMG, life: 160, alive: true });
-          createParticles(mb.x, mb.y, 6, '#a855f7');
-        }
-        // Safety net ONLY: the soul form is meant to be destroyed by damage, but if a
-        // loadout somehow cannot hurt it the fight still advances instead of soft-locking.
-        if (mb.soulTimer >= PUMPKIN_SOUL_TIMEOUT) killPumpkinBoss(mb);
-        return;
-      }
-      // ---- Slam dive ----
-      if (mb.slamActive) {
-        mb.slamVy += 0.85; mb.y += mb.slamVy;
-        if (mb.y >= GROUND_Y - 40) {
-          mb.y = GROUND_Y - 40; mb.slamActive = false; mb.slamVy = 0;
-          createExplosion(mb.x, GROUND_Y - 20, 70, '#f97316');
-          if (Math.abs(stick.x - mb.x) < 140) damagePlayer(25, '#f97316');
-          createTextParticle(mb.x, GROUND_Y - 90, '🎃 SLAM!', '#f97316', 18);
-          createParticles(mb.x, GROUND_Y - 20, 30, '#f97316');
-        }
-        return;
-      }
-      // ---- Flying hover + bob ----
-      mb.y = mb.baseY + Math.sin(time * 0.05) * 12;
-      if (dist > 100) mb.x += Math.sign(stick.x - mb.x) * mb.speed * 0.8;
-      mb.x = Math.max(60, Math.min(CW - 60, mb.x));
-      // ---- Heal 5% of max every 7s ----
-      mb.healCD--;
-      if (mb.healCD <= 0) {
-        mb.healCD = PUMPKIN_HEAL_INTERVAL;
-        if (mb.hp < PUMPKIN_PHASE_HP) {
-          var healAmt = Math.round(PUMPKIN_PHASE_HP * 0.05);
-          mb.hp = Math.min(PUMPKIN_PHASE_HP, mb.hp + healAmt);
-          createTextParticle(mb.x, mb.y - 30, '+' + healAmt + ' 💚', '#4ade80', 14);
-          createParticles(mb.x, mb.y, 8, '#4ade80');
-        }
-      }
-      // ---- Slam trigger (phase 2+) ----
-      mb.slamCD--;
-      if (mb.phase >= 2 && mb.slamCD <= 0 && dist < 240) {
-        mb.slamCD = mb.phase >= 3 ? 200 : 300; mb.slamActive = true; mb.slamVy = -3;
-        createTextParticle(mb.x, mb.y - 40, '⬇ DIVE!', '#f97316', 14);
-        return;
-      }
-      // ---- Spawn 4 minions every 4s ----
-      mb.minionCD--;
-      if (mb.minionCD <= 0) {
-        mb.minionCD = 240;
-        for (var mi = 0; mi < 4; mi++) spawnPumpkinMinion(mb.x + (mi - 1.5) * 45);
-        createTextParticle(mb.x, mb.y - 50, '🎃 MINIONS!', '#fb923c', 14);
-        createParticles(mb.x, mb.y, 12, '#fb923c');
-      }
-      // ---- Shoot blast (M1 = shoot now) ----
-      mb.attackCD--;
-      if (mb.attackCD <= 0) {
-        mb.attackCD = mb.phase >= 4 ? 28 : mb.phase === 3 ? 42 : 60;
-        var spd = mb.phase >= 3 ? 8 : 6;
-        var ang = Math.atan2((stick.y - 30) - mb.y, stick.x - mb.x);
-        bullets.push({ x: mb.x, y: mb.y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, dmg: PUMPKIN_BLAST_DMG, life: 160, alive: true });
-        createTextParticle(mb.x, mb.y - 26, '💥', '#f97316', 12);
-      }
-    }
     function updateMiniBosses() {
       miniBosses.forEach(mb => {
         if (!mb.alive || gracePeriod > 0) return;
@@ -8862,8 +8369,6 @@
             damagePlayer(NECRO_DMG, '#7c3aed');
             mb.attackCD = NECRO_ATK_CD;
           }
-        } else if (mb.type === 'pumpkin') {
-          updatePumpkinBoss(mb, dist);
         } else if (mb.type === 'titan') {
           // Titan: slow, heavy, big range
           if (dist > 70) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
@@ -8983,7 +8488,8 @@
           if (mb.attackCD <= 0 && dist < DUMMY_ATK_RANGE) {
             var atkDmg = mb.type === 'tank' ? TANK_ATK_DMG : mb.type === 'boss' ? BOSS_ATK_DMG * 2 : SPEED_ATK_DMG;
             var atkCd = mb.type === 'tank' ? TANK_ATK_CD : mb.type === 'boss' ? 50 : SPEED_ATK_CD;
-            damagePlayer(atkDmg, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : '#fb923c');
+            // Tanks and speed never get the death-mode damage ramp: their 10 / 5 stays 10 / 5.
+            damagePlayer(atkDmg, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : '#fb923c', false, false, deathOn() && (mb.type === 'tank' || mb.type === 'speed'));
             mb.attackCD = atkCd;
           }
         }
@@ -9086,6 +8592,9 @@
         miniBosses.push({ x: speedX3, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, maxHp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: stick.x < speedX3 ? -1 : 1, type: 'speed', animTime: 0, vy: 0 });
         createTextParticle(CW / 2, 60, '🛡 2 TANKS + ⚡ 3 SPEED!', '#fb923c', 18);
       } else {
+        // The tank + speed pair is identical in every non-hard mode, DEATH included: base
+        // 200 / 40 HP, base speed, base damage. Death mode's ramp never touches them, so
+        // they stay the pair you can always punch through.
         miniBosses.push({ x: stick.x > CW / 2 ? -80 : CW + 80, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' ? EASY_TANK_HP : TANK_HP, speed: TANK_SPD, attackCD: 40, hitFlash: 0, alive: true, facing: 1, type: 'tank', animTime: 0, vy: 0 });
         miniBosses.push({ x: stick.x > CW / 2 ? CW + 80 : -80, y: GROUND_Y, hp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, maxHp: gameMode === 'easy' ? EASY_SPEED_HP : SPEED_HP, speed: SPEED_SPD, attackCD: 20, hitFlash: 0, alive: true, facing: -1, type: 'speed', animTime: 0, vy: 0 });
         createTextParticle(CW / 2, 60, '🛡 TANK + ⚡ SPEED!', '#fb923c', 18);
@@ -9916,8 +9425,8 @@
       if (boss && boss.alive) return;
       var aliveDummies = dummies.filter(function(d) { return d.alive; }).length;
       var aliveMiniBosses = miniBosses.filter(function(m) { return m.alive; }).length;
-      if (aliveDummies + aliveMiniBosses > (insaneOn() ? 14 : 10)) return;
-      var waveCount = gameMode === 'hard' ? 3 : gameMode === 'insane' ? 4 : SPAWN_COUNT;
+      if (aliveDummies + aliveMiniBosses > (insaneOn() ? 14 : deathOn() ? 16 : 10)) return;
+      var waveCount = gameMode === 'hard' ? 3 : gameMode === 'insane' ? 4 : deathOn() ? Math.min(9, 3 + Math.floor(wave / 12)) : SPAWN_COUNT;
       for (let i = 0; i < waveCount; i++) {
         const x = stick.x + (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 200);
         const r = Math.random();
@@ -9934,6 +9443,17 @@
           else if (r < 0.40 && totalKills > 5) opts = { isCrossbow: true, hp: CROSSBOW_HP, speed: CROSSBOW_SPD };
           else if (r < 0.52 && totalKills > 5) opts = { isGunner: true, hp: GUNNER_HP, speed: GUNNER_SPD };
           else if (r < 0.62 && totalKills > 5) opts = { isSummoner: true, hp: SUMMONER_HP, speed: SUMMONER_SPD };
+        } else if (gameMode === 'death') {
+          // Death mode opens the toolbox fast: grunts, shooters, summoners, bombers, flyers,
+          // ninjas, grenadiers and brutes are all live by wave 20, and the heavies + zombie
+          // horde keep arriving on their own clocks.
+          if (wave >= 20 && r < 0.16) opts = { big: true, hp: BIG_DUMMY_HP, speed: BIG_DUMMY_SPD };
+          else if (wave >= 18 && r < 0.26) opts = { isGrenader: true, hp: GRENADER_HP, speed: GRENADER_SPD };
+          else if (wave >= 16 && r < 0.36) opts = { isDarkNinja: true, hp: DARK_NINJA_HP, speed: DARK_NINJA_SPD };
+          else if (wave >= 12 && r < 0.46) opts = { isCrossbow: true, hp: CROSSBOW_HP, speed: CROSSBOW_SPD };
+          else if (wave >= 8 && r < 0.54) opts = { isKamikaze: true, hp: KAMIKAZE_HP, speed: KAMIKAZE_SPD };
+          else if (wave >= 6 && r < 0.62) opts = { isSummoner: true, hp: SUMMONER_HP, speed: SUMMONER_SPD };
+          else if (wave >= 3 && r < 0.70) opts = { isGunner: true, hp: GUNNER_HP, speed: GUNNER_SPD };
         } else {
           if (r < 0.12 && totalKills > 5) opts = { isCrossbow: true, hp: CROSSBOW_HP, speed: CROSSBOW_SPD };
           else if (r < 0.22 && totalKills > 5) opts = { isGunner: true, hp: GUNNER_HP, speed: GUNNER_SPD };
@@ -10107,31 +9627,30 @@
     // ==================== GAME LOOP ====================
     function gameStep() {
       if (gameState === 'menu' || gameState === 'paused' || gameState === 'cutscene') { animFrameId = null; return; }
-      if (gameState !== 'playing') { if (gameState === 'gameover') { drawGameOver(); if (themePlaying) stopThemeMusic(); if (bossMusicPlaying) stopBossMusic(); stopPumpkinMusic(); } animFrameId = null; return; }
+      if (gameState !== 'playing') { if (gameState === 'gameover') { drawGameOver(); if (themePlaying) stopThemeMusic(); if (bossMusicPlaying) stopBossMusic(); } animFrameId = null; return; }
       // Frame-body guard: the body arms the next frame near its end, so an error thrown
       // anywhere in between would otherwise leave the game frozen on this frame forever.
       var loopFrameArmed = false;
       try {
-      time++; if (gameMode !== 'sandbox' && !campaignMode && !phantomMissionActive) { allySpawnTimer++; if (!halloweenOn()) { spawnTimer++; kamikazeTimer++; miniBossTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); } }
+      time++; if (gameMode !== 'sandbox' && !campaignMode && !phantomMissionActive) { allySpawnTimer++; spawnTimer++; kamikazeTimer++; miniBossTimer++; titanTimer++; bossTimer++; grenaderTimer++; checkSentinelSpawn(); }
       if (gracePeriod > 0) gracePeriod--;
+      // Wave clock: 10 real seconds per wave, reset every round.
+      waveTimer++;
+      if (waveTimer >= WAVE_FRAMES) {
+        waveTimer = 0; wave++; updateWaveUI();
+        lifeMax('bestWave', wave);
+        createTextParticle(CW / 2, 140, '🌊 WAVE ' + wave, deathOn() ? '#fb7185' : '#38bdf8', 20);
+        updateDeathRun();
+      }
       updateShopShield();
       updateHollowLaser();
       updateMobAim();
       refreshMobSButton();
       if (time % 30 === 0) checkAchievements(true);
       if (gameMode === 'insane' && !campaignMode && !phantomMissionActive) updateInsaneSpawns();
-      if (halloweenOn() && !campaignMode && !phantomMissionActive) updateHalloweenSpawns();
+      if (deathOn() && !campaignMode && !phantomMissionActive) updateDeathSpawns();
       tickCandyFromKills();
       tickQuestProgress();
-      if (isHalloweenEvent() && gameMode !== 'sandbox' && gameMode !== 'bossrush' && !campaignMode && !phantomMissionActive) {        candyDropTimer++; if (candyDropTimer >= 6000) { candyDropTimer = 0; pickups.push(createPickup(100 + Math.random() * (CW - 200), GROUND_Y, 'candy')); createTextParticle(CW / 2, 95, '🍬 CANDY DROP!', '#fb923c', 18); }
-      }
-      // The Pumpkin Boss is NOT part of a normal run: EASY / NORMAL / HARD, sandbox,
-      // boss rush, campaign and phantom missions all never spawn it. It only walks in
-      // when the 🎃 Fight Boss menu button asked for it.
-      if (pumpkinBossRequested && !pumpkinSpawned) {
-        pumpkinBossRequested = false; pumpkinSpawned = true; miniBosses.push({
- x: stick.x > CW / 2 ? 150 : CW - 150, y: GROUND_Y - 150, baseY: GROUND_Y - 150, hp: PUMPKIN_PHASE_HP, maxHp: PUMPKIN_PHASE_HP, speed: 1.2, attackCD: 60, hitFlash: 0, alive: true, facing: 1, type: 'pumpkin', animTime: 0, vy: 0, phase: 1, healCD: PUMPKIN_HEAL_INTERVAL, minionCD: 180, slamCD: 260, slamActive: false, slamVy: 0, orbMode: false, orbTimer: 0, orbShootCD: 0, soulTimer: 0, phaseFlash: 60 }); createTextParticle(CW / 2, 60, '🎃 PUMPKIN BOSS!', '#f97316', 26); createTextParticle(CW / 2, 92, 'Headless Horseman — ' + PUMPKIN_PHASES + ' phases × ' + PUMPKIN_PHASE_HP + ' HP', '#fb923c', 14); createParticles(CW / 2, GROUND_Y - 130, 40, '#f97316'); startPumpkinMusic();
-      }
       if (selectedSkin === 'fighter_ghost') { ghostDodgeTimer++; if (ghostDodgeTimer >= 900) { ghostDodgeTimer = 0; ghostDodgeCharges = 5; } }
       if (gameMode === 'bossrush') {
         // Boss Rush: 3 waves + DEATH
@@ -10652,10 +10171,13 @@
         hpBar.style.width = Math.max(0, (playerHP / PLAYER_MAX_HP_CURRENT) * 100) + '%';
         hpText.textContent = Math.max(0, Math.round(playerHP));
       } else if (!campaignMode && !phantomMissionActive) {
-        if (spawnTimer >= SPAWN_INTERVAL) { spawnTimer = 0; spawnWave(); }
+        // Death mode tightens the spawn clock as the waves climb: 15s down to 3s.
+        var spawnGap = deathOn() ? Math.max(180, Math.round(SPAWN_INTERVAL / (1 + 0.04 * wave))) : SPAWN_INTERVAL;
+        if (spawnTimer >= spawnGap) { spawnTimer = 0; spawnWave(); }
         if (kamikazeTimer >= KAMIKAZE_INTERVAL) { kamikazeTimer = 0; spawnKamikazes(); }
         if (grenaderTimer >= GRENADER_INTERVAL && gameMode !== 'easy') { grenaderTimer = 0; spawnGrenaderWave(); }
-        if (miniBossTimer >= (gameMode === 'hard' ? 1200 : MINI_BOSS_INTERVAL)) { miniBossTimer = 0; spawnMiniBosses(); }
+        var miniGap = gameMode === 'hard' ? 1200 : deathOn() ? Math.max(900, Math.round(MINI_BOSS_INTERVAL / (1 + 0.03 * wave))) : MINI_BOSS_INTERVAL;
+        if (miniBossTimer >= miniGap) { miniBossTimer = 0; spawnMiniBosses(); }
         if (gameMode === 'hard') { necroTimer++; if (necroTimer >= NECRO_SPAWN_INTERVAL) { necroTimer = 0; spawnNecromancer(); } }
       }
       if (allySpawnTimer >= ALLY_SPAWN_INTERVAL) { allySpawnTimer = 0; spawnShopAllies(); }
@@ -10684,7 +10206,9 @@
           var gh2 = gosScreen.querySelector('h2');
           if (gh2) gh2.textContent = victoryMode ? '🏆 YOU WIN!' : '💀 GAME OVER';
           var gm2 = document.getElementById('gameoverMsg');
-          if (gm2) gm2.textContent = 'Score: ' + score + '  |  Kills: ' + kills + '  |  LV ' + playerLevel;
+          if (gm2) gm2.textContent = deathOn()
+            ? '☠️ Wave ' + wave + ' / ' + DEATH_TOTAL_WAVES + '  |  Kills: ' + kills + '  |  Best: ' + deathBest + '  |  Score: ' + score
+            : 'Score: ' + score + '  |  Kills: ' + kills + '  |  LV ' + playerLevel;
           // The tutorial card has no business floating over the death screen.
           if (instructionsEl) instructionsEl.style.display = 'none';
           gosScreen.classList.remove('hidden');
@@ -11620,65 +11144,6 @@
         }
         ctx.globalAlpha = 1;
       }
-      if (activeBg === 'halloween') {
-        // Spooky Halloween night: burnt-orange sky, harvest moon, bats, graveyard, jack-o-lanterns
-        var hg = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-        hg.addColorStop(0, '#1a0b2e'); hg.addColorStop(0.55, '#3b1230'); hg.addColorStop(1, '#6b1f0f');
-        ctx.fillStyle = hg; ctx.fillRect(0, 0, CW, GROUND_Y);
-        // Twinkling stars
-        for (var hs = 0; hs < 30; hs++) {
-          var hx = (hs * 137.5) % CW, hy = (hs * 71.3) % (GROUND_Y - 160);
-          ctx.globalAlpha = 0.3 + Math.sin(time * 0.05 + hs) * 0.3; ctx.fillStyle = '#fef3c7';
-          ctx.fillRect(hx, hy, 2, 2);
-        }
-        ctx.globalAlpha = 1;
-        // Harvest moon (glowing orange)
-        var mg = ctx.createRadialGradient(CW - 180, 120, 10, CW - 180, 120, 110);
-        mg.addColorStop(0, '#fdba74'); mg.addColorStop(0.45, '#f97316'); mg.addColorStop(1, 'rgba(249,115,22,0)');
-        ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(CW - 180, 120, 110, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fb923c'; ctx.beginPath(); ctx.arc(CW - 180, 120, 52, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ea580c'; ctx.globalAlpha = 0.5;
-        ctx.beginPath(); ctx.arc(CW - 196, 108, 9, 0, Math.PI * 2); ctx.arc(CW - 164, 132, 6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-        // Bats
-        for (var hb = 0; hb < 6; hb++) {
-          var bx = ((time * 1.2 + hb * 160) % (CW + 120)) - 60, by = 90 + Math.sin(time * 0.06 + hb) * 18 + hb * 14;
-          ctx.fillStyle = '#0b0510';
-          var fl = Math.sin(time * 0.3 + hb) * 4;
-          ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - 9, by - 5 + fl); ctx.lineTo(bx - 4, by + 2); ctx.closePath(); ctx.fill();
-          ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + 9, by - 5 + fl); ctx.lineTo(bx + 4, by + 2); ctx.closePath(); ctx.fill();
-        }
-        // Distant gnarled trees
-        ctx.strokeStyle = '#0f0a18'; ctx.lineWidth = 6; ctx.lineCap = 'round';
-        [120, CW - 340].forEach(function(tx) {
-          ctx.beginPath(); ctx.moveTo(tx, GROUND_Y + 10); ctx.lineTo(tx, GROUND_Y - 150); ctx.stroke();
-          ctx.lineWidth = 4;
-          ctx.beginPath(); ctx.moveTo(tx, GROUND_Y - 110); ctx.lineTo(tx - 34, GROUND_Y - 160); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(tx, GROUND_Y - 130); ctx.lineTo(tx + 30, GROUND_Y - 185); ctx.stroke();
-          ctx.lineWidth = 6;
-        });
-        // Graveyard silhouettes
-        for (var hgr = 0; hgr < 6; hgr++) {
-          var gx2 = 260 + hgr * 120 + Math.sin(hgr) * 18;
-          var gh = 50 + (hgr % 3) * 18;
-          ctx.fillStyle = '#241a33';
-          ctx.beginPath(); ctx.moveTo(gx2 - 16, GROUND_Y + 10); ctx.lineTo(gx2 - 16, GROUND_Y - gh);
-          ctx.arc(gx2, GROUND_Y - gh, 16, Math.PI, 0); ctx.lineTo(gx2 + 16, GROUND_Y + 10); ctx.closePath(); ctx.fill();
-        }
-        // Ground fog
-        ctx.globalAlpha = 0.12; ctx.fillStyle = '#e9d5ff';
-        for (var hf = 0; hf < 4; hf++) { var fy = GROUND_Y - 8 - hf * 12; ctx.fillRect(0, fy - 6 + Math.sin(time * 0.03 + hf) * 3, CW, 10); }
-        ctx.globalAlpha = 1;
-        // Jack-o-lanterns with glowing faces
-        [200, CW - 260].forEach(function(jx, ji) {
-          ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.ellipse(jx, GROUND_Y - 14, 22, 18, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#c2410c'; ctx.fillRect(jx - 3, GROUND_Y - 36, 6, 8);
-          ctx.globalAlpha = 0.6 + Math.sin(time * 0.1 + ji) * 0.3; ctx.fillStyle = '#fde047';
-          ctx.beginPath(); ctx.moveTo(jx - 10, GROUND_Y - 20); ctx.lineTo(jx - 3, GROUND_Y - 20); ctx.lineTo(jx - 6.5, GROUND_Y - 14); ctx.closePath(); ctx.fill();
-          ctx.beginPath(); ctx.moveTo(jx + 3, GROUND_Y - 20); ctx.lineTo(jx + 10, GROUND_Y - 20); ctx.lineTo(jx + 6.5, GROUND_Y - 14); ctx.closePath(); ctx.fill();
-          ctx.beginPath(); ctx.moveTo(jx - 8, GROUND_Y - 10); ctx.lineTo(jx + 8, GROUND_Y - 10); ctx.lineTo(jx, GROUND_Y - 3); ctx.closePath(); ctx.fill();
-          ctx.globalAlpha = 1;
-        });
-      }
       if (activeBg === 'boss') {
         // Boss: intense fire background
         ctx.globalAlpha = 0.2; ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(780, 60, 45 + sunPulse, 0, Math.PI * 2); ctx.fill();
@@ -12216,7 +11681,7 @@
       if (gracePeriod > 0) { ctx.fillStyle = `rgba(74,222,128,${0.6 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('🛡 GRACE — ' + Math.ceil(gracePeriod / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; }
       loopFrameArmed = true;
       if (boss && boss.alive) { const tC = boss.type === 'titan' ? 'rgba(217,119,6,' : 'rgba(168,85,247,'; const tN = boss.type === 'titan' ? '⛏ TITAN LOCK — Kill the Titan!' : '🟣 BOSS LOCK — Kill the boss!'; ctx.fillStyle = tC + (0.5 + Math.sin(time * 0.1) * 0.3) + ')'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText(tN, CW / 2, CH - 8); ctx.textAlign = 'start'; }
-      if (campaignMode) { var campLv = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS[campaignLevel - 1] : CAMPAIGN_LEVELS[campaignLevel - 1]; if (campLv && campLv.duration) { var remain = Math.max(0, Math.ceil((campLv.duration - campaignTimer) / 60)); ctx.fillStyle = '#facc15'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('📖 TIME: ' + remain + 's', CW / 2, 20); ctx.textAlign = 'start'; } } else if (!boss || !boss.alive) { const ts = SPAWN_INTERVAL - spawnTimer; if (ts < 120 && ts > 0 && spawnTimer > 30) { ctx.fillStyle = `rgba(251,146,60,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⚠ WAVE ' + Math.ceil(ts / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; } const tk = KAMIKAZE_INTERVAL - kamikazeTimer; if (tk < 120 && tk > 0) { ctx.fillStyle = `rgba(239,68,68,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💣 KAMIKAZE ' + Math.ceil(tk / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const tt = TITAN_SPAWN_INTERVAL - titanTimer; if (tt < 180 && tt > 0) { ctx.fillStyle = `rgba(217,119,6,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⛏ TITAN ' + Math.ceil(tt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; }      const tg = GRENADER_INTERVAL - grenaderTimer; if (tg < 120 && tg > 0) { ctx.fillStyle = `rgba(249,115,22,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💥 GRENADER ' + Math.ceil(tg / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const bt = BOSS_RESPAWN_INTERVAL - bossTimer; if (bossSpawnedOnce && bt < 180 && bt > 0) { ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('🟣 BOSS ' + Math.ceil(bt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; } if (gameMode === 'hard') { var tse = SENTINEL_SPAWN_INTERVAL - sentinelTimer; if (tse < 180 && tse > 0 && !(sentinel && sentinel.alive)) { ctx.fillStyle = `rgba(6,182,212,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('👁 SENTINEL ' + Math.ceil(tse / 60) + 's', CW / 2, 65); ctx.textAlign = 'start'; } } }
+      if (campaignMode) { var campLv = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS[campaignLevel - 1] : CAMPAIGN_LEVELS[campaignLevel - 1]; if (campLv && campLv.duration) { var remain = Math.max(0, Math.ceil((campLv.duration - campaignTimer) / 60)); ctx.fillStyle = '#facc15'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('📖 TIME: ' + remain + 's', CW / 2, 20); ctx.textAlign = 'start'; } } else if (deathOn()) { var dwLeft = Math.max(0, Math.ceil((WAVE_FRAMES - waveTimer) / 60)); ctx.fillStyle = '#fb7185'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center'; ctx.fillText('☠️ WAVE ' + wave + (wave <= DEATH_TOTAL_WAVES ? ' / ' + DEATH_TOTAL_WAVES : ' · ENDLESS') + ' · next in ' + dwLeft + 's', CW / 2, 20); ctx.textAlign = 'start'; } else if (!boss || !boss.alive) { const ts = SPAWN_INTERVAL - spawnTimer; if (ts < 120 && ts > 0 && spawnTimer > 30) { ctx.fillStyle = `rgba(251,146,60,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⚠ WAVE ' + Math.ceil(ts / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; } const tk = KAMIKAZE_INTERVAL - kamikazeTimer; if (tk < 120 && tk > 0) { ctx.fillStyle = `rgba(239,68,68,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💣 KAMIKAZE ' + Math.ceil(tk / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const tt = TITAN_SPAWN_INTERVAL - titanTimer; if (tt < 180 && tt > 0) { ctx.fillStyle = `rgba(217,119,6,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⛏ TITAN ' + Math.ceil(tt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; }      const tg = GRENADER_INTERVAL - grenaderTimer; if (tg < 120 && tg > 0) { ctx.fillStyle = `rgba(249,115,22,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💥 GRENADER ' + Math.ceil(tg / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const bt = BOSS_RESPAWN_INTERVAL - bossTimer; if (bossSpawnedOnce && bt < 180 && bt > 0) { ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('🟣 BOSS ' + Math.ceil(bt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; } if (gameMode === 'hard') { var tse = SENTINEL_SPAWN_INTERVAL - sentinelTimer; if (tse < 180 && tse > 0 && !(sentinel && sentinel.alive)) { ctx.fillStyle = `rgba(6,182,212,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('👁 SENTINEL ' + Math.ceil(tse / 60) + 's', CW / 2, 65); ctx.textAlign = 'start'; } } }
       } catch (err) {
         reportLoopError('gameLoop', err);
         // The id we still hold is the frame that just threw, so drop it: otherwise
@@ -12976,691 +12441,12 @@
       document.getElementById('gameoverScreen').classList.add('hidden');
       gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
       var mc = document.getElementById('mobileControls'); if (mc) mc.classList.add('hidden');
-      var mse = document.getElementById('mobBtnSoulStormE'); if (mse) mse.style.display = 'none';
       menuScreen.classList.remove('hidden'); gameState = 'menu'; animFrameId = null;
       campaignMode = false; activeCampaignType = 'fighter'; updateMenuPoints(); updateCharLockUI();
       try { stopBossMusic(); } catch(e) {}
       startMenuMusic();
     }
 
-    // ==================== SOUL STORM (pumpkin boss end minigame) ====================
-    var SOUL_STORM_SURVIVE = 30;           // survive this many seconds (was 145 - undodgeable in practice)
-    var SOUL_STORM_TWO_WAY_AT = 14;        // after this many seconds, blasts become 2-way
-    var SOUL_STORM_START_GRACE = 3;        // "GET READY" seconds before the first blast
-    var SOUL_STORM_HITS_ALLOWED = 3;       // mistakes you can survive (hearts)
-    var SOUL_STORM_END_E_TARGET = 35;      // must press E this many times
-    var SOUL_STORM_END_E_TIME = 14;        // within this many seconds
-    var SOUL_STORM_BLAST_BASE_MS = 1000;   // first blast interval
-    var SOUL_STORM_BLAST_MIN_MS = 380;     // fastest blast interval
-    var SOUL_STORM_BLAST_ACCEL = 40;       // each blast shortens the next by this much
-    var SOUL_STORM_ARENA_W = 420, SOUL_STORM_ARENA_H = 420;
-    var SOUL_STORM_TRACK_Y = 292;          // top of the track the point slides along
-    var SOUL_STORM_TRACK_H = 64;           // track height (the point lives on it)
-    var SOUL_STORM_POINT_R = 14;           // player point radius
-    var SOUL_STORM_POINT_SPEED = 330;      // px per second while ◀/▶ is held
-    var SOUL_STORM_ZONE_W = 92;            // blast zone width on the track
-    var SOUL_STORM_ZONE_EDGE = 16;         // zones (and the point) keep this margin
-    var SOUL_STORM_MIN_GAP = 130;          // 2-way zones are at least this far apart
-    var SOUL_STORM_E_BTN_Y = 372;          // the E button band starts here
-    var SOUL_STORM_WARN_MS = 620;          // warning display time before blast
-
-    var soulStormActive = false;
-    var soulStormEnded = false;
-    var soulStormRAF = null;
-    var soulStormBlastTimer = 0;
-    var soulStormNextBlastMs = SOUL_STORM_BLAST_BASE_MS;
-    var soulStormBlastsFired = 0;
-    var soulStormSurvived = 0;
-    var soulStormWarning = null;           // { zone, until } — zone is a blast centre x
-    var soulStormPendingBlasts = [];       // [ zoneX, ... ]
-    var soulStormPointX = SOUL_STORM_ARENA_W / 2;   // where the player's point is on the track
-    var soulStormMoveHeld = 0;             // -1 left / +1 right / 0 idle (keys or pads)
-    var soulStormPadsWere = null;          // pad visibility cache
-    var soulStormEPresses = 0;
-    var soulStormETimer = 0;
-    var soulStormEActive = false;
-    var soulStormWin = false;
-    var soulStormHits = 0;                 // mistakes taken this run
-    var soulStormTimeoutQueued = false;    // guards the one-shot "TOO LATE" end call
-
-    // ---- LONG WARNING ARROW -----------------------------------------------------
-    // Only one zone is ever warned at a time, so a single LONG arrow is re-aimed at it:
-    // a shaft that charges amber -> orange -> red as the blast closes in, with the head
-    // landing inside the track right where the blast is going to go off.
-    var soulStormArrow = null;
-
-    function soulStormBuildArrow(arena) {
-      if (!arena || soulStormArrow) return null;
-      var wrap = document.createElement('div');
-      wrap.className = 'soulStormArrow absolute pointer-events-none';
-      wrap.style.left = '0px';
-      wrap.style.width = '60px';
-      wrap.style.top = '46px';
-      wrap.style.height = ((SOUL_STORM_TRACK_Y + 26) - 46) + 'px';   // head reaches down INTO the track
-      wrap.style.transformOrigin = 'top center';
-      wrap.style.display = 'none';
-      var shaft = document.createElement('div');
-      shaft.className = 'soulStormArrowShaft';
-      shaft.style.position = 'absolute';
-      shaft.style.left = '50%';
-      shaft.style.top = '0px';
-      shaft.style.bottom = '24px';
-      shaft.style.width = '10px';
-      shaft.style.marginLeft = '-5px';
-      shaft.style.borderRadius = '6px';
-      shaft.style.background = '#facc15';
-      shaft.style.boxShadow = '0 0 14px rgba(248,113,113,0.85)';
-      wrap.appendChild(shaft);
-      var head = document.createElement('div');
-      head.className = 'soulStormArrowHead';
-      head.style.position = 'absolute';
-      head.style.left = '50%';
-      head.style.bottom = '0px';
-      head.style.width = '0px';
-      head.style.height = '0px';
-      head.style.marginLeft = '-20px';
-      head.style.borderLeft = '20px solid transparent';
-      head.style.borderRight = '20px solid transparent';
-      head.style.borderTop = '30px solid #facc15';
-      head.style.filter = 'drop-shadow(0 0 10px rgba(248,113,113,0.9))';
-      wrap.appendChild(head);
-      arena.appendChild(wrap);
-      soulStormArrow = { wrap: wrap, shaft: shaft, head: head };
-      return soulStormArrow;
-    }
-
-    // Repainted every frame of the survival phase: only ONE lane is ever warned at a
-    // time, so exactly one long arrow is on screen for the warning window and none is
-    // visible between warnings or during the E gauntlet.
-    // Repainted every frame of the survival phase: shown for the warning window, aimed
-    // at the warned zone, and hidden between warnings and during the E gauntlet.
-    function soulStormUpdateArrows() {
-      var a = soulStormArrow || soulStormBuildArrow(document.getElementById('soulStormArena'));
-      if (!a) return;
-      var w = soulStormWarning;
-      var on = !!w && soulStormActive && !soulStormEnded && !soulStormEActive;
-      a.wrap.style.display = on ? 'block' : 'none';
-      if (!on) return;
-      var left = Math.max(0, w.until - performance.now());
-      var charge = Math.max(0, Math.min(1, 1 - left / SOUL_STORM_WARN_MS));
-      var col = charge > 0.7 ? '#ef4444' : charge > 0.35 ? '#fb923c' : '#facc15';
-      var pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
-      a.wrap.style.left = (w.zone - 30) + 'px';
-      a.wrap.style.opacity = (0.55 + 0.45 * charge * (0.6 + 0.4 * pulse)).toFixed(2);
-      a.wrap.style.transform = 'scaleY(' + (0.82 + 0.18 * charge).toFixed(3) + ')';
-      a.shaft.style.width = Math.round(8 + 8 * charge) + 'px';
-      a.shaft.style.marginLeft = -Math.round(4 + 4 * charge) + 'px';
-      a.shaft.style.background = 'linear-gradient(to bottom, rgba(250,204,21,0.1), ' + col + ')';
-      a.head.style.borderTop = '30px solid ' + col;
-    }
-
-    function buildSoulStormArena() {
-      // Lives readout, appended to the existing HUD row (idempotent).
-      var hudRow = document.getElementById('soulStormHud');
-      if (hudRow && !document.getElementById('soulStormLives')) {
-        var livesSpan = document.createElement('span');
-        livesSpan.className = 'text-slate-300';
-        livesSpan.innerHTML = 'LIVES <span id="soulStormLives" class="text-rose-400 font-bold">❤❤❤</span>';
-        hudRow.appendChild(livesSpan);
-      }
-      var arena = document.getElementById('soulStormArena');
-      if (!arena || arena.dataset.built === '1') return;
-      arena.dataset.built = '1';
-      var track = document.createElement('div');
-      track.className = 'soulStormTrack absolute pointer-events-none';
-      track.style.left = '0px';
-      track.style.top = SOUL_STORM_TRACK_Y + 'px';
-      track.style.width = SOUL_STORM_ARENA_W + 'px';
-      track.style.height = SOUL_STORM_TRACK_H + 'px';
-      track.style.background = 'rgba(251,191,36,0.07)';
-      track.style.borderTop = '2px solid rgba(251,191,36,0.35)';
-      track.style.borderBottom = '2px solid rgba(251,191,36,0.35)';
-      arena.appendChild(track);
-
-      var zone = document.createElement('div');
-      zone.id = 'soulStormZone';
-      zone.className = 'soulStormZone absolute pointer-events-none';
-      zone.style.top = SOUL_STORM_TRACK_Y + 'px';
-      zone.style.height = SOUL_STORM_TRACK_H + 'px';
-      zone.style.width = SOUL_STORM_ZONE_W + 'px';
-      zone.style.display = 'none';
-      zone.style.background = 'linear-gradient(to bottom, rgba(248,113,113,0.25), rgba(248,113,113,0.7))';
-      zone.style.borderLeft = '2px solid #f87171';
-      zone.style.borderRight = '2px solid #f87171';
-      arena.appendChild(zone);
-
-      var dot = document.createElement('div');
-      dot.id = 'soulStormPoint';
-      dot.className = 'soulStormPoint absolute pointer-events-none';
-      dot.style.width = (SOUL_STORM_POINT_R * 2) + 'px';
-      dot.style.height = (SOUL_STORM_POINT_R * 2) + 'px';
-      dot.style.borderRadius = '50%';
-      dot.style.background = '#34d399';
-      dot.style.border = '2px solid #a7f3d0';
-      dot.style.boxShadow = '0 0 16px rgba(52,211,153,0.95)';
-      arena.appendChild(dot);
-
-      // ◀ ▶ pads: the touch control for the point (press and hold). They sit in the band
-      // the E button uses, so only one of the two is ever visible.
-      [['left', '◀'], ['right', '▶']].forEach(function (side) {
-        var padBtn = document.createElement('button');
-        padBtn.type = 'button';
-        padBtn.className = 'soulStormPad absolute font-bold rounded-lg border-2 user-select-none';
-        padBtn.style.width = '52px';
-        padBtn.style.height = '52px';
-        padBtn.style.bottom = '6px';
-        padBtn.style[side[0]] = '6px';
-        padBtn.style.display = 'flex';
-        padBtn.style.alignItems = 'center';
-        padBtn.style.justifyContent = 'center';
-        padBtn.style.fontSize = '20px';
-        padBtn.style.background = 'rgba(16,185,129,0.18)';
-        padBtn.style.borderColor = '#10b981';
-        padBtn.style.color = '#a7f3d0';
-        padBtn.textContent = side[1];
-        padBtn.dataset.pad = side[0];
-        padBtn.addEventListener('pointerdown', function (e) { if (e && e.preventDefault) e.preventDefault(); soulStormSetHeld(side[0], true); });
-        padBtn.addEventListener('pointerup', function () { soulStormSetHeld(side[0], false); });
-        padBtn.addEventListener('pointerleave', function () { soulStormSetHeld(side[0], false); });
-        padBtn.addEventListener('pointercancel', function () { soulStormSetHeld(side[0], false); });
-        arena.appendChild(padBtn);
-      });
-      var eBtn = document.createElement('button');
-      eBtn.type = 'button';
-      eBtn.className = 'soulStormE absolute font-bold text-xl rounded-lg border-2 user-select-none';
-      eBtn.style.left = '0px';
-      eBtn.style.bottom = '0px';
-      eBtn.style.width = SOUL_STORM_ARENA_W + 'px';
-      eBtn.style.height = (SOUL_STORM_ARENA_H - SOUL_STORM_E_BTN_Y) + 'px';
-      eBtn.style.background = 'rgba(16,185,129,0.16)';
-      eBtn.style.borderTop = '2px solid #10b981';
-      eBtn.style.color = '#a7f3d0';
-      eBtn.style.display = 'none';
-      eBtn.style.alignItems = 'center';
-      eBtn.style.justifyContent = 'center';
-      eBtn.style.fontSize = '22px';
-      eBtn.style.textShadow = '0 0 8px rgba(16,185,129,0.8)';
-      eBtn.textContent = 'PRESS E';
-      eBtn.dataset.lane = 'e';
-      eBtn.addEventListener('click', function () { soulStormPressE(); });
-      arena.appendChild(eBtn);
-    }
-
-    function soulStormSetEButtonVisible(v) {
-      var arena = document.getElementById('soulStormArena');
-      if (!arena) return;
-      var eBtn = arena.querySelector('button[data-lane="e"]');
-      if (eBtn) eBtn.style.display = v ? 'flex' : 'none';
-      var mobE = document.getElementById('mobBtnSoulStormE');
-      if (mobE) mobE.style.display = v ? 'flex' : 'none';
-    }
-
-    function soulStormUpdateHud() {
-      var t = document.getElementById('soulStormTime'); if (t) t.textContent = Math.max(0, soulStormSurvived).toFixed(1);
-      var s = document.getElementById('soulStormSurvive'); if (s) s.textContent = Math.min(SOUL_STORM_SURVIVE, Math.round(soulStormSurvived));
-      var b = document.getElementById('soulStormBlasts'); if (b) b.textContent = soulStormBlastsFired;
-      var wt = document.getElementById('soulStormETimer'); if (wt) wt.textContent = Math.max(0, SOUL_STORM_END_E_TIME - soulStormETimer).toFixed(1);
-      var et = document.getElementById('soulStormETarget'); if (et) et.textContent = SOUL_STORM_END_E_TARGET;
-      var lv = document.getElementById('soulStormLives');
-      if (lv) lv.textContent = soulStormHits >= SOUL_STORM_HITS_ALLOWED ? '💀' : '❤'.repeat(Math.max(0, SOUL_STORM_HITS_ALLOWED - soulStormHits));
-    }
-
-    // ---- zone, point and movement helpers ---------------------------------------
-    function soulStormPointInZone(zoneX) {
-      return typeof zoneX === 'number' && Math.abs(soulStormPointX - zoneX) <= SOUL_STORM_ZONE_W / 2;
-    }
-
-    function soulStormFlashZone(color) {
-      var zone = document.getElementById('soulStormZone');
-      if (!zone) return;
-      var old = zone.style.background;
-      zone.style.background = color;
-      zone.style.boxShadow = '0 0 22px ' + color;
-      setTimeout(function () { zone.style.background = old; zone.style.boxShadow = 'none'; }, 130);
-    }
-
-    // Paint the warned zone on the track so "where it will hit" is visible, not just flagged.
-    function soulStormPaintZone(zoneX) {
-      var zone = document.getElementById('soulStormZone');
-      if (!zone) return;
-      zone.style.display = 'block';
-      zone.style.left = (zoneX - SOUL_STORM_ZONE_W / 2) + 'px';
-    }
-
-    function soulStormSetPointVisible(v) {
-      var dot = document.getElementById('soulStormPoint');
-      if (dot) dot.style.display = v ? 'block' : 'none';
-    }
-
-    function soulStormSetPadsVisible(v) {
-      var arena = document.getElementById('soulStormArena');
-      if (!arena) return;
-      arena.querySelectorAll('.soulStormPad').forEach(function (p) { p.style.display = v ? 'flex' : 'none'; });
-    }
-
-    // Held-direction state, shared by the arrow keys / A D and by the on-screen pads.
-    function soulStormSetHeld(dir, down) {
-      if (dir === 'left') soulStormMoveHeld = down ? -1 : (soulStormMoveHeld === -1 ? 0 : soulStormMoveHeld);
-      else if (dir === 'right') soulStormMoveHeld = down ? 1 : (soulStormMoveHeld === 1 ? 0 : soulStormMoveHeld);
-    }
-
-    // The point slides while a direction is held, clamped inside the track margins.
-    function soulStormMovePoint(dt) {
-      if (!soulStormMoveHeld || !soulStormActive || soulStormEnded) return;
-      var min = SOUL_STORM_POINT_R + SOUL_STORM_ZONE_EDGE;
-      var max = SOUL_STORM_ARENA_W - SOUL_STORM_POINT_R - SOUL_STORM_ZONE_EDGE;
-      var next = soulStormPointX + soulStormMoveHeld * SOUL_STORM_POINT_SPEED * dt;
-      soulStormPointX = Math.max(min, Math.min(max, next));
-    }
-
-    function soulStormFlashEBtn(color) {
-      var arena = document.getElementById('soulStormArena');
-      if (!arena) return;
-      var eBtn = arena.querySelector('button[data-lane="e"]');
-      if (!eBtn) return;
-      var old = eBtn.style.background;
-      eBtn.style.background = color;
-      eBtn.style.boxShadow = '0 0 22px ' + color;
-      setTimeout(function () { eBtn.style.background = old; eBtn.style.boxShadow = 'none'; }, 130);
-    }
-
-    // Paint the whole board: the blasting lane red, every other lane green, so the
-    // required action ("get out of the red") is unmistakable at a glance.
-
-
-    // Every teardown path (launch, a resolved blast, the run ending) clears the zone.
-    function soulStormClearLanes() {
-      var zone = document.getElementById('soulStormZone');
-      if (zone) zone.style.display = 'none';
-    }
-
-    function soulStormShowWarning(zoneX) {
-      soulStormWarning = { zone: zoneX, until: performance.now() + SOUL_STORM_WARN_MS };
-      soulStormPaintZone(zoneX);
-      soulStormFlashZone('#facc15');
-    }
-
-    // Warn about the next queued blast (blasts are resolved one at a time, so 2-way
-    // waves give the player a warning window for EACH lane instead of both at once).
-    function soulStormShowNextWarning() {
-      if (!soulStormPendingBlasts.length) return;
-      soulStormShowWarning(soulStormPendingBlasts[0]);
-    }
-
-    // Which way is actually OUT of a warned zone. Walking away from the zone centre is
-    // only right in open track: a zone against the left wall leaves no room to its left,
-    // so the old hint pointed straight into the wall and the player was pinned there
-    // with no way to clear the blast. Pick a side that has room to clear it.
-    function soulStormEscapeDir(zoneX) {
-      var min = SOUL_STORM_POINT_R + SOUL_STORM_ZONE_EDGE;
-      var max = SOUL_STORM_ARENA_W - SOUL_STORM_POINT_R - SOUL_STORM_ZONE_EDGE;
-      // The point is safe once it sits more than half a zone away from the centre.
-      var leftRoom = (zoneX - SOUL_STORM_ZONE_W / 2 - SOUL_STORM_POINT_R) >= min;
-      var rightRoom = (zoneX + SOUL_STORM_ZONE_W / 2 + SOUL_STORM_POINT_R) <= max;
-      if (leftRoom && rightRoom) return soulStormPointX <= zoneX ? -1 : 1;
-      if (leftRoom) return -1;
-      if (rightRoom) return 1;
-      return soulStormPointX <= zoneX ? -1 : 1;
-    }
-
-    // The one thing the player must know: which way is out of the warned zone.
-    function soulStormMoveHint() {
-      if (!soulStormWarning) return 'MOVE WITH ◀ ▶ — STAY OFF THE RED ZONE';
-      if (soulStormPointInZone(soulStormWarning.zone)) {
-        return soulStormEscapeDir(soulStormWarning.zone) < 0
-          ? '⚠ IN THE BLAST ZONE — MOVE LEFT ◀'
-          : '⚠ IN THE BLAST ZONE — MOVE RIGHT ▶';
-      }
-      return '⚠ RED ZONE BLASTING — STAY CLEAR';
-    }
-
-    // On-screen status marker inside the arena (this was referenced but never defined,
-    // which threw a ReferenceError and killed the whole minigame animation loop).
-    function soulStormDrawIndicators() {
-      var arena = document.getElementById('soulStormArena');
-      if (!arena) return;
-      soulStormUpdateArrows();
-      var marker = document.getElementById('soulStormMarker');
-      if (!marker) {
-        marker = document.createElement('div');
-        marker.id = 'soulStormMarker';
-        marker.className = 'absolute pointer-events-none';
-        marker.style.top = '8px';
-        marker.style.left = '0px';
-        marker.style.width = SOUL_STORM_ARENA_W + 'px';
-        marker.style.textAlign = 'center';
-        marker.style.fontSize = '12px';
-        marker.style.fontWeight = '700';
-        marker.style.color = '#fca5a5';
-        marker.style.textShadow = '0 0 6px rgba(248,113,113,0.9)';
-        arena.appendChild(marker);
-      }
-      // The point is repainted every frame and turns red while it stands inside the warned
-      // zone — the clearest "you are about to be hit" cue there is.
-      var dot = document.getElementById('soulStormPoint');
-      if (dot) {
-        var inZone = !!soulStormWarning && soulStormPointInZone(soulStormWarning.zone);
-        dot.style.left = (soulStormPointX - SOUL_STORM_POINT_R) + 'px';
-        dot.style.top = (SOUL_STORM_TRACK_Y + SOUL_STORM_TRACK_H / 2 - SOUL_STORM_POINT_R) + 'px';
-        dot.style.background = inZone ? '#f87171' : '#34d399';
-        dot.style.boxShadow = '0 0 16px ' + (inZone ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)');
-      }
-      var wantPads = !soulStormEActive && !soulStormEnded;
-      if (wantPads !== soulStormPadsWere) { soulStormPadsWere = wantPads; soulStormSetPadsVisible(wantPads); }
-      if (soulStormEActive) {
-        marker.style.display = 'block';
-        marker.style.color = '#6ee7b7';
-        marker.style.textShadow = '0 0 6px rgba(16,185,129,0.9)';
-        marker.textContent = 'SMASH E!  ' + Math.max(0, SOUL_STORM_END_E_TARGET - soulStormEPresses) + ' TO GO';
-      } else if (soulStormSurvived < SOUL_STORM_START_GRACE) {
-        marker.style.display = 'block';
-        marker.style.color = '#fde68a';
-        marker.style.textShadow = '0 0 6px rgba(251,191,36,0.9)';
-        marker.textContent = 'GET READY… ' + Math.ceil(SOUL_STORM_START_GRACE - soulStormSurvived) + '  — HOLD ◀ ▶ TO MOVE';
-      } else if (soulStormWarning) {
-        marker.style.display = 'block';
-        marker.style.color = '#fca5a5';
-        marker.style.textShadow = '0 0 6px rgba(248,113,113,0.9)';
-        marker.textContent = soulStormMoveHint();
-      } else {
-        marker.style.display = 'block';
-        marker.style.color = '#93c5fd';
-        marker.style.textShadow = 'none';
-        marker.textContent = 'MOVE WITH ◀ ▶ — STAY OFF THE RED ZONE';
-      }
-    }
-
-    function soulStormRandomZone() {
-      var min = SOUL_STORM_ZONE_W / 2 + SOUL_STORM_ZONE_EDGE;
-      var max = SOUL_STORM_ARENA_W - SOUL_STORM_ZONE_W / 2 - SOUL_STORM_ZONE_EDGE;
-      return Math.round(min + Math.random() * (max - min));
-    }
-
-    function soulStormFireBlasts() {
-      soulStormBlastsFired++;
-      soulStormNextBlastMs = Math.max(SOUL_STORM_BLAST_MIN_MS, soulStormNextBlastMs - SOUL_STORM_BLAST_ACCEL);
-      var twoWay = soulStormSurvived >= SOUL_STORM_TWO_WAY_AT;
-      var zoneA = soulStormRandomZone();
-      soulStormPendingBlasts.push(zoneA);
-      if (twoWay) {
-        // Keep the two zones far enough apart that one dash can clear the pair.
-        var zoneB = soulStormRandomZone();
-        for (var tries = 0; tries < 12 && Math.abs(zoneB - zoneA) < SOUL_STORM_MIN_GAP; tries++) zoneB = soulStormRandomZone();
-        if (Math.abs(zoneB - zoneA) < SOUL_STORM_MIN_GAP) {
-          zoneB = zoneA < SOUL_STORM_ARENA_W / 2 ? SOUL_STORM_ARENA_W - (SOUL_STORM_ZONE_W / 2 + SOUL_STORM_ZONE_EDGE) : SOUL_STORM_ZONE_W / 2 + SOUL_STORM_ZONE_EDGE;
-        }
-        soulStormPendingBlasts.push(Math.round(zoneB));
-      }
-      soulStormShowNextWarning();
-    }
-
-    function soulStormApplyBlasts() {
-      if (!soulStormPendingBlasts.length) return;
-      var zone = soulStormPendingBlasts.shift();
-      soulStormFlashZone('#fb923c');
-      // The warned zone goes off. The point is safe only if it is clear of that zone.
-      var safe = !soulStormPointInZone(zone);
-      soulStormClearLanes();
-      if (!safe) {
-        // A miss costs a heart. The player just ground through a 12,500 HP boss;
-        // a single slip should not erase the run.
-        soulStormHits++;
-        soulStormFlashZone('#f87171');
-        soulStormUpdateHud();
-        if (soulStormHits >= SOUL_STORM_HITS_ALLOWED) {
-          soulStormEnd(false);
-          return;
-        }
-      }
-      // More blasts queued (2-way wave): warn about the next one now.
-      soulStormShowNextWarning();
-    }
-
-
-
-    function soulStormPressE() {
-      if (!soulStormActive || soulStormEnded) return;
-      if (soulStormEActive) {
-        soulStormEPresses++;
-        soulStormFlashEBtn('#34d399');
-        if (soulStormEPresses >= SOUL_STORM_END_E_TARGET) {
-          soulStormEnd(true);
-        }
-      }
-    }
-
-    function soulStormEnd(win) {
-      soulStormEnded = true;
-      soulStormActive = false;
-      soulStormEActive = false;
-      if (soulStormRAF) { cancelAnimationFrame(soulStormRAF); soulStormRAF = null; }
-      var arena = document.getElementById('soulStormArena');
-      if (arena) {
-        var warns = arena.querySelectorAll('.soulStormWarn');
-        warns.forEach(function (w) { w.remove(); });
-        var eBtn = arena.querySelector('button[data-lane="e"]');
-        if (eBtn) { eBtn.style.display = 'none'; eBtn.textContent = 'PRESS E'; }
-      }
-      soulStormMoveHeld = 0;
-      soulStormClearLanes();
-      soulStormSetPointVisible(false);
-      soulStormWarning = null;
-      soulStormUpdateArrows();
-      var marker = document.getElementById('soulStormMarker');
-      if (marker) marker.style.display = 'none';
-      var res = document.getElementById('soulStormResult');
-      var msg = document.getElementById('soulStormResultMsg');
-      if (win) {
-        if (msg) { msg.textContent = '✅ SOUL STORM SURVIVED'; msg.style.color = '#4ade80'; }
-        soulStormWin = true;
-        setTimeout(function () {
-          var scr = document.getElementById('soulStormScreen');
-          if (scr) { scr.classList.add('hidden'); scr.classList.remove('flex'); }
-          finishPumpkinSoulStorm();
-        }, 1100);
-      } else {
-        if (msg) { msg.textContent = '💥 OUT OF LIVES — SOUL STORM FAILED'; msg.style.color = '#f87171'; }
-        if (res) res.classList.remove('hidden');
-        var hud = document.getElementById('soulStormHud'); if (hud) hud.style.display = 'none';
-        if (bossMusicPlaying) stopBossMusic(); else try { stopThemeMusic(); } catch(e) {}
-        startMenuMusic();
-      }
-    }
-
-    function launchSoulStorm() {
-      if (rhythmRestartTimer) { clearTimeout(rhythmRestartTimer); rhythmRestartTimer = null; }
-      buildSoulStormArena();
-      soulStormSurvived = 0;
-      soulStormBlastsFired = 0;
-      soulStormNextBlastMs = SOUL_STORM_BLAST_BASE_MS;
-      soulStormBlastTimer = 0;
-      soulStormPendingBlasts = [];
-      soulStormWarning = null;
-      soulStormEPresses = 0;
-      soulStormETimer = 0;
-      soulStormEActive = false;
-      soulStormWin = false;
-      soulStormEnded = false;
-      soulStormPointX = SOUL_STORM_ARENA_W / 2;
-      soulStormMoveHeld = 0;
-      soulStormPadsWere = null;
-      soulStormHits = 0;
-      soulStormTimeoutQueued = false;
-      soulStormClearLanes();
-      soulStormSetPointVisible(true);
-      var instr = document.getElementById('soulStormInstr');
-      if (instr) instr.textContent = 'The glowing point is YOU. Hold ◀ ▶ (or ← → / A D) to slide it along the track — when a zone turns RED, get out of it before it explodes. Survive ' + SOUL_STORM_SURVIVE + 's; after ' + SOUL_STORM_TWO_WAY_AT + 's two zones blast at once. Then press E ' + SOUL_STORM_END_E_TARGET + ' times in ' + SOUL_STORM_END_E_TIME + 's. You can miss ' + SOUL_STORM_HITS_ALLOWED + ' times ❤';
-      var hud = document.getElementById('soulStormHud'); if (hud) hud.style.display = 'flex';
-      var winPane = document.getElementById('soulStormWin'); if (winPane) winPane.classList.add('hidden');
-      var res = document.getElementById('soulStormResult'); if (res) res.classList.add('hidden');
-      var msg = document.getElementById('soulStormResultMsg'); if (msg) msg.textContent = '';
-      var scr = document.getElementById('soulStormScreen');
-      if (scr) { scr.classList.remove('hidden'); scr.classList.add('flex'); }
-      gameState = 'minigame';
-      soulStormActive = true;
-      soulStormSetEButtonVisible(false);
-      soulStormUpdateHud();
-      if (soulStormRAF) cancelAnimationFrame(soulStormRAF);
-      soulStormLastTS = performance.now();
-      soulStormRAF = requestAnimationFrame(soulStormStep);
-    }
-
-    function finishPumpkinSoulStorm() {
-      // Get the parked main loop running again FIRST. The loop parks itself
-      // (animFrameId = null) whenever gameState is not 'playing', so leaving the minigame
-      // must resume it explicitly — doing that *after* the reward chain meant any error in
-      // that chain stranded the player on a frozen frame with the overlay already gone.
-      var backToGame = !!(gameUI && !gameUI.classList.contains('hidden'));
-      if (backToGame) { gameState = 'playing'; resumeGameLoop(); }
-      // Reward payout / music / bookkeeping must never strand the resumed game.
-      try {
-      // Award pumpkin boss rewards after surviving Soul Storm.
-      if (pendingPumpkinReward) {
-        var r = pendingPumpkinReward;
-        if (gameMode !== 'sandbox') {
-          totalPoints += r.points; bossPoints += r.bossPoints; savePoints();
-        }
-        score += r.score;
-        addCandy(r.candy);
-        scoreEl.textContent = score; killsEl.textContent = kills;
-        pendingPumpkinReward = null;
-      }
-      applyThemeMusic();
-      updateMenuPoints();
-      checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
-      // Back to gameplay when this was a live fight (already resumed above); otherwise menu.
-      if (backToGame) {
-        if (bossMusicPlaying) startBossMusic();
-      } else {
-        var mscr = document.getElementById('menuScreen');
-        if (mscr) { mscr.classList.remove('hidden'); }
-        if (gameUI) { gameUI.classList.remove('flex'); gameUI.classList.add('hidden'); }
-        var goscr = document.getElementById('gameoverScreen'); if (goscr) goscr.classList.add('hidden');
-        gameState = 'menu'; animFrameId = null;
-        campaignMode = false; activeCampaignType = 'fighter'; updateMenuPoints(); updateCharLockUI();
-        try { stopBossMusic(); } catch(e) {}
-        startMenuMusic();
-      }
-      } catch (err) {
-        reportLoopError('pumpkinRewards', err);
-      }
-    }
-
-    var soulStormLastTS = 0;
-
-    function soulStormStep(ts) {
-      if (!soulStormActive) return;
-      // This loop arms its next frame from inside its own body, so an error thrown below
-      // used to kill the chain and leave the arena frozen on its last frame with no pending
-      // frame at all. Catch it, report it, and arm the next frame anyway.
-      var soulStormArmed = false;
-      try {
-      // NB: don't use a falsy check here — a timestamp of 0 is legitimate and would
-      // otherwise be re-latched, silently dropping a frame of the survival timer.
-      // Clamp to >= 0: the rAF timestamp of the first frame can predate the
-      // performance.now() recorded at launch, which would run the timer backwards.
-      var dt = soulStormLastTS ? Math.max(0, Math.min(0.05, (ts - soulStormLastTS) / 1000)) : 0;
-      soulStormLastTS = ts;
-      soulStormMovePoint(dt);   // ← / → (or A / D, or the ◀ ▶ pads) slide the point
-
-      if (soulStormEnded) {
-        soulStormRAF = requestAnimationFrame(soulStormStep); soulStormArmed = true;
-        return;
-      }
-
-      // Survival timer.
-      soulStormSurvived += dt;
-      if (soulStormSurvived >= SOUL_STORM_SURVIVE && !soulStormEActive) {
-        // End of survival phase: start E gauntlet.
-        soulStormSurvived = SOUL_STORM_SURVIVE;
-        soulStormEPresses = 0;
-        soulStormETimer = 0;
-        soulStormEActive = true;
-        soulStormWarning = null;
-        soulStormPendingBlasts = [];
-        soulStormSetEButtonVisible(true);
-        var winPane = document.getElementById('soulStormWin');
-        var winMsg = document.getElementById('soulStormWinMsg');
-        if (winPane) winPane.classList.remove('hidden');
-        if (winMsg) winMsg.textContent = 'SURVIVED! Now press E ' + SOUL_STORM_END_E_TARGET + ' times.';
-        soulStormUpdateHud();
-      }
-
-      if (soulStormEActive) {
-        soulStormETimer += dt;
-        soulStormUpdateHud();
-        var eBtn = document.getElementById('soulStormArena') ? document.getElementById('soulStormArena').querySelector('button[data-lane="e"]') : null;
-        if (eBtn) {
-          if (soulStormETimer >= SOUL_STORM_END_E_TIME) {
-            // Queue the failure exactly ONCE. This branch runs every frame once the
-            // timer is up, so without the guard we'd schedule dozens of soulStormEnd
-            // calls, each restarting the music and spinning up a new AudioContext.
-            if (!soulStormTimeoutQueued) {
-              soulStormTimeoutQueued = true;
-              eBtn.textContent = 'TOO LATE';
-              soulStormFlashEBtn('#f87171');
-              setTimeout(function () { soulStormEnd(false); }, 350);
-            }
-            soulStormRAF = requestAnimationFrame(soulStormStep); soulStormArmed = true;
-            return;
-          }
-          var remaining = Math.max(0, SOUL_STORM_END_E_TARGET - soulStormEPresses);
-          var frac = remaining / SOUL_STORM_END_E_TARGET;
-          eBtn.style.opacity = 0.5 + 0.5 * frac;
-        }
-        soulStormDrawIndicators();
-        soulStormRAF = requestAnimationFrame(soulStormStep); soulStormArmed = true;
-        return;
-      }
-
-      // Blasting phase.
-      soulStormBlastTimer += dt * 1000;
-      soulStormUpdateHud();
-
-      // Preparation window: nothing can hurt the player yet, so they have time to read
-      // the board instead of being blasted the instant the screen appears.
-      if (soulStormSurvived < SOUL_STORM_START_GRACE) {
-        soulStormBlastTimer = 0;
-        soulStormDrawIndicators();
-        soulStormRAF = requestAnimationFrame(soulStormStep); soulStormArmed = true;
-        return;
-      }
-
-      if (soulStormWarning) {
-        var left = soulStormWarning.until - performance.now();
-        if (left <= 0) {
-          soulStormWarning = null;
-          soulStormApplyBlasts();
-          if (soulStormEnded) return; // soulStormEnd already cancelled the pending frame
-          if (soulStormPendingBlasts.length === 0) soulStormBlastTimer = 0;
-        }
-      } else if (soulStormPendingBlasts.length === 0) {
-        if (!soulStormEnded && soulStormBlastTimer >= soulStormNextBlastMs) {
-          soulStormBlastTimer = 0;
-          soulStormFireBlasts();
-        }
-      }
-
-      // Draw warning overlay for current blast warning.
-      soulStormDrawIndicators();
-
-      soulStormRAF = requestAnimationFrame(soulStormStep); soulStormArmed = true;
-
-      } catch (err) {
-        reportLoopError('soulStormStep', err);
-        // Drop the consumed frame id so a later retry can arm a fresh loop.
-        if (!soulStormArmed) soulStormRAF = null;
-      }
-      if (soulStormActive && !soulStormEnded && !soulStormArmed) soulStormRAF = requestAnimationFrame(soulStormStep);
-    }
-
-    // ---- E press routing (keyboard + mobile) ----
-    function soulStormTryPressE() {
-      if (soulStormActive && soulStormEActive) { soulStormPressE(); return true; }
-      return false;
-    }
-
-    // ==================== Pumpkin boss update end ====================
     function updateDarkUniverseBoss() {
       if (!boss || !boss.alive || boss.type !== 'darkuniverse') return;
       if (darkUniverseTeleportCd > 0) darkUniverseTeleportCd--;
@@ -14358,11 +13144,6 @@
       }
       if (gameState === 'minigame') {
         var rk = (e.key || '').toLowerCase();
-        if (soulStormActive && !soulStormEActive) {
-          if (soulStormActive && (rk === 'arrowleft' || rk === 'a')) { e.preventDefault(); soulStormSetHeld('left', true); return; }
-          if (soulStormActive && (rk === 'arrowright' || rk === 'd')) { e.preventDefault(); soulStormSetHeld('right', true); return; }
-        }
-        if (rk === 'e') { e.preventDefault(); if (soulStormTryPressE()) return; }
         if (rk === 'a' || rk === 's' || rk === 'd' || rk === 'f') { e.preventDefault(); rhythmPress(rk); return; }
         return;
       }
@@ -14442,8 +13223,6 @@
     window.addEventListener('keyup', (e) => {
       keys.delete(e.key);
       var rk = String(e.key).toLowerCase();
-      if (rk === 'arrowleft' || rk === 'a') soulStormSetHeld('left', false);
-      if (rk === 'arrowright' || rk === 'd') soulStormSetHeld('right', false);
     });
 
     canvas.addEventListener('mousedown', (e) => {
@@ -14513,6 +13292,10 @@
       stick.facing = 1; stick.state = 'idle'; stick.animTime = 0; stick.hitFlash = 0;
       particles = []; pickups = []; dummies = []; boss = null; miniBosses = []; allyGunners = []; allies = []; bullets = []; playerBullets = []; grenades = []; spikes = []; superBlastOrbs = []; titanTimer = 0; bossTimer = 0; bossSpawnedOnce = false; sentinel = null; sentinelTimer = 0; commander = null; commanderAirstrikes = [];
       score = 0; kills = 0; totalKills = 0; allySpawnTimer = 0;
+      wave = 1; waveTimer = 0; updateWaveUI();
+      // A death-mode run starts its own ladder: the clearance trophy is permanent, the
+      // "this run is won" flag is not.
+      deathRunWon = false; deathHeavyTimer = 0; deathHeavyIdx = 0; deathZombieTimer = 0;
       playerHP = PLAYER_MAX_HP_CURRENT; attackCooldown = 0;
       // Refresh the HUD here: without this a round started after a death showed the old
       // empty HP bar (0 HP) until the first hit, on every device.
@@ -14529,7 +13312,7 @@
       ninjaUltCD = 0; ninjaUltActive = false; ninjaUltTimer = 0; ninjaUltSlashTimer = 0; ninjaKunais = []; ninjaSlashTrails = [];
       botJetpackCD = 0; botJetpackFlying = false; botJetpackTimer = 0;
       pickupSpeedTimer = 0; pickupDmgTimer = 0; pickupJumpTimer = 0; pickupWingTimer = 0;
-      ghostDodgeCharges = 5; ghostDodgeTimer = 0; candyDropTimer = 0; lastKillsAwarded = 0; pumpkinSpawned = false; pumpkinBossRequested = false; stopPumpkinMusic();
+      ghostDodgeCharges = 5; ghostDodgeTimer = 0; lastKillsAwarded = 0;
       botLaserActive = false; botLaserTimer = 0; botLaserTickTimer = 0;
       botStriderCD = 0;      botNuclearCD = 0; botNuclearSpeedTimer = 0; MOVE_SPEED_BONUS = 0; botStunTimer = 0;
       botStriders = [];
@@ -14573,7 +13356,6 @@
       isShielded = false; shieldTimer = 0; shieldCD = 0; shieldUnlocked = false;
       shopShieldCD = 0; shopShieldActive = 0;
       insaneBigTimer = 0; insaneEliteTimer = 0; insaneTrioTimer = 0;
-      halloweenMiniTimer = 0; halloweenBigTimer = 0;
       hollowLaser.active = false; hollowLaser.cd = 0; hollowLaser.burn = 0; hollowLaser.cool = 0;
       mobAimTimer = 0; mobAimHeld = 0; mobAim.x = 1; mobAim.y = 0;
       mageFireballs = []; mageFrostOrbs = []; lightningBolts = []; mageLightningCD = 0; mageFrostCD = 0; mageTeleportCD = 0; mageMeteorCD = 0; mageIceShielded = false; mageIceTimer = 0;
@@ -14598,7 +13380,7 @@
     document.getElementById('resetBtn').addEventListener('click', () => { document.getElementById('cutsceneUI').style.display = ''; fullReset(); gameState = 'playing'; resumeGameLoop(); });
     document.getElementById('campSecret').addEventListener('click', function() { startPhantomMission(); });
     document.getElementById('closeInstructions').addEventListener('click', () => { showInstructions = false; instructionsEl.style.display = 'none'; });
-    ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
+    ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaFarDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
     ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : performSlam(); });
     ultBtn3.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performAllyGunner() : selectedChar === 'super' ? performSuperCrossbowAlly() : selectedChar === 'mage' ? performMageHeal() : selectedChar === 'ninja' ? performNinjaClones() : selectedChar === 'bots' ? performBotLaserCore() : performParry(); });
     // Gameover screen buttons
@@ -14738,7 +13520,6 @@
       if (mb) mb.textContent = bossPoints;
       updateRankUI();
       updateTraitUI();
-      refreshHalloweenUI();
     }
     function updateRankUI() {
       var el = document.getElementById('menuRank');
@@ -14750,8 +13531,10 @@
       if (wrap) wrap.title = r.rank.icon + ' ' + r.rank.name + ' — ' + totalPoints + ' pts' +
         (r.next ? (' · ' + r.toNext + ' to ' + r.next.name) : ' · MAX RANK');
     }
-    updateMenuPoints(); updateCharLockUI();
-    // ==================== HALLOWEEN / SKIN UI ====================
+    // Paint the energy balance on load too: without this the menu showed 0 until the
+    // first kill or until the skin screen was opened.
+    updateMenuPoints(); updateCharLockUI(); updateCandyUI(); updateDeathBestLine();
+    // ==================== SKIN UI ====================
     function renderSkins() {
       var grid = document.getElementById('skinGrid'); if (!grid) return;
       grid.innerHTML = '';
@@ -14762,57 +13545,19 @@
         btn.type = 'button';
         btn.className = 'text-left p-2 rounded-lg border-2 transition-colors ' + (equipped ? 'border-orange-400 bg-orange-900/40' : owned ? 'border-slate-600 bg-slate-700/50 hover:border-orange-400' : 'border-slate-700 bg-slate-800 hover:border-orange-500');
         var skCost = sk.price || sk.cost * SKIN_COST_MULT;
-        btn.innerHTML = '<div class="text-lg">' + sk.emoji + '</div><div class="text-[11px] font-bold text-white">' + sk.name + '</div><div class="text-[9px] text-slate-400">every character</div><div class="text-[9px] text-orange-300">' + sk.desc + '</div><div class="text-[9px] mt-0.5 ' + (equipped ? 'text-emerald-400' : 'text-amber-400') + '">' + (equipped ? '✓ EQUIPPED' : owned ? 'Click to equip' : skCost + '🍬') + '</div>';
+        btn.innerHTML = '<div class="text-lg">' + sk.emoji + '</div><div class="text-[11px] font-bold text-white">' + sk.name + '</div><div class="text-[9px] text-slate-400">every character</div><div class="text-[9px] text-orange-300">' + sk.desc + '</div><div class="text-[9px] mt-0.5 ' + (equipped ? 'text-emerald-400' : 'text-amber-400') + '">' + (equipped ? '✓ EQUIPPED' : owned ? 'Click to equip' : skCost + ' ⚡') + '</div>';
         btn.addEventListener('click', function() {
           if (selectedSkin === sk.id) { selectedSkin = ''; saveSkins(); }
           else if (ownedSkins[sk.id]) { selectedSkin = sk.id; saveSkins(); }
           else if (candy >= skCost) { candy -= skCost; ownedSkins[sk.id] = true; selectedSkin = sk.id; saveCandy(); saveSkins(); }
-          else { var sc0 = document.getElementById('skinCandy'); if (sc0) sc0.textContent = candy + ' (need ' + skCost + ')'; return; }
+          else { var sc0 = document.getElementById('skinEnergy'); if (sc0) sc0.textContent = energyText(candy) + ' (need ' + skCost + ')'; return; }
           renderSkins(); updateCandyUI();
         });
         grid.appendChild(btn);
       });
-      var sc = document.getElementById('skinCandy'); if (sc) sc.textContent = candy;
-    }
-    function renderHalloween() { updateCandyUI(); var st = document.getElementById('halloweenStatus'); if (st) st.textContent = ''; }
-    function halloweenBuy(cost, fn) {
-      var st = document.getElementById('halloweenStatus');
-      if (candy < cost) { if (st) st.textContent = '❌ Need ' + cost + ' candy (have ' + candy + ')'; return; }
-      candy -= cost; saveCandy(); fn(); if (st) st.textContent = '✅ Purchased!'; renderHalloween();
+      var sc = document.getElementById('skinEnergy'); if (sc) sc.textContent = energyText(candy);
     }
     document.getElementById('skinClose').addEventListener('click', function() { backToCustomize(); });
-    document.getElementById('halloweenShopBtn').addEventListener('click', function() { document.getElementById('menuScreen').classList.add('hidden'); document.getElementById('halloweenScreen').classList.remove('hidden'); renderHalloween(); });
-    // 🎃 Fight Boss — start a normal round and drop the Pumpkin Boss in immediately
-    document.getElementById('pumpkinBossBtn').addEventListener('click', function() {
-      selectMode('normal');
-      document.getElementById('playBtn').click();
-      pumpkinBossRequested = true; // the boss walks in on the very next frame
-      createTextParticle(CW / 2, 120, '🎃 PUMPKIN BOSS!', '#f97316', 26);
-    });
-    // Soul Storm result pane: retry the pumpkin boss or bail to the menu.
-    function soulStormTeardown() {
-      if (soulStormRAF) { cancelAnimationFrame(soulStormRAF); soulStormRAF = null; }
-      soulStormActive = false; soulStormEnded = true; soulStormEActive = false;
-      soulStormWarning = null; soulStormPendingBlasts = []; soulStormMoveHeld = 0;
-      pendingPumpkinReward = null;
-      var m = document.getElementById('soulStormMarker'); if (m) m.style.display = 'none';
-      var scr = document.getElementById('soulStormScreen');
-      if (scr) { scr.classList.add('hidden'); scr.classList.remove('flex'); }
-      var res = document.getElementById('soulStormResult'); if (res) res.classList.add('hidden');
-      var hud = document.getElementById('soulStormHud'); if (hud) hud.style.display = 'flex';
-      var eB = document.querySelector('#soulStormArena button[data-lane="e"]');
-      if (eB) { eB.style.opacity = '1'; eB.textContent = 'PRESS E'; }
-    }
-    document.getElementById('soulStormRetryBtn').addEventListener('click', function() {
-      soulStormTeardown();
-      var gos = document.getElementById('gameoverScreen'); if (gos) gos.classList.add('hidden');
-      document.getElementById('pumpkinBossBtn').click();
-    });
-    document.getElementById('soulStormMenuBtn').addEventListener('click', function() {
-      soulStormTeardown();
-      exitSoulTest();
-    });
-
     // ==================== MUSIC PLAYER (hear every song) ====================
     var SONGS = [
       { id: 'menu',          name: 'Stick Fighter Universe',  sub: 'Main Menu' },
@@ -14823,16 +13568,10 @@
       { id: 'boss',          name: 'Boss Fight!',             sub: 'Boss / Volcano' },
       { id: 'destructive',   name: 'Inferno',                 sub: 'Flame Pit' },
       { id: 'spooky',        name: 'Graveyard Waltz',         sub: 'Dark Grave' },
-      { id: 'halloween',     name: 'Hallowed Night',          sub: 'Halloween' },
       { id: 'underworld',    name: 'Blood Depths',            sub: 'Blood Bath' },
       { id: 'cheese',        name: "It's Raining Cheese-tos", sub: 'Cheese' },
       { id: 'bossrush',      name: 'Boss Rush Assault',       sub: 'Boss Rush · The Colossal' },
       { id: 'multiverse',    name: 'Multiverse Collapse',     sub: 'Multiverse · synth banger' },
-      { id: 'pumpkin_low',   name: 'Omen',                    sub: 'Pumpkin Boss · Low' },
-      { id: 'pumpkin_mid',   name: 'Rising',                  sub: 'Pumpkin Boss · Mid' },
-      { id: 'pumpkin_midhi', name: 'Onslaught',               sub: 'Pumpkin Boss · Mid-High' },
-      { id: 'pumpkin_boss',  name: 'Reckoning',               sub: 'Pumpkin Boss · Final' },
-      { id: 'pumpkin_soul',  name: 'Soulstorm',               sub: 'Pumpkin Boss · Soul Orb' }
     ];
     var currentSongId = '';
     function playSong(song) {
@@ -15123,31 +13862,6 @@
     questLastPoints = totalPoints;
     refreshTaoistQuests();
     updateTaoistCardUI();
-    document.getElementById('halloweenClose').addEventListener('click', function() { document.getElementById('halloweenScreen').classList.add('hidden'); document.getElementById('menuScreen').classList.remove('hidden'); });
-    applyCandyPriceLabels();
-    document.getElementById('candyBuyPoints').addEventListener('click', function() { halloweenBuy(CANDY_PRICES.points, function() { totalPoints += 100; savePoints(); }); });
-    document.getElementById('candyBuyBoss').addEventListener('click', function() { halloweenBuy(CANDY_PRICES.bossPoint, function() { bossPoints += 1; savePoints(); }); });
-    document.getElementById('candyUpgHp').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.maxHp >= SHOP_MAX_LEVELS.maxHp) { if (st) st.textContent = 'Max HP already maxed'; return; } halloweenBuy(CANDY_PRICES.maxHp, function() { shopUpgrades.maxHp++; saveUpgrades(); }); });
-    document.getElementById('candyUpgDmg').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.damage >= SHOP_MAX_LEVELS.damage) { if (st) st.textContent = 'Damage already maxed'; return; } halloweenBuy(CANDY_PRICES.damage, function() { shopUpgrades.damage++; saveUpgrades(); }); });
-    document.getElementById('candyUpgSpd').addEventListener('click', function() { var st = document.getElementById('halloweenStatus'); if (shopUpgrades.speed >= SHOP_MAX_LEVELS.speed) { if (st) st.textContent = 'Speed already maxed'; return; } halloweenBuy(CANDY_PRICES.speed, function() { shopUpgrades.speed++; saveUpgrades(); }); });
-    document.getElementById('bgSetHalloween').addEventListener('click', function() { selectBg('halloween'); });
-    // Candy only earns its place on the menu when it can be earned or spent: during the
-    // October event, in HALLOWEEN mode, or once this save already holds some.
-    function refreshHalloweenUI() {
-      updateCandyUI();
-      if (isHalloweenEvent() || candy > 0 || halloweenOn()) {
-        var mcw = document.getElementById('menuCandyWrap'); if (mcw) mcw.classList.remove('hidden');
-        var hs = document.getElementById('halloweenShopBtn'); if (hs) hs.classList.remove('hidden');
-        var hb = document.getElementById('bgSetHalloween'); if (hb) hb.classList.remove('hidden');
-      }
-    }
-    (function initHalloweenUI() {
-      refreshHalloweenUI();
-      // 🎃 Fight Boss is the ONLY way into the Pumpkin Boss fight, so its button has to
-      // be there all year round, not just during the Halloween event.
-      var pbb = document.getElementById('pumpkinBossBtn'); if (pbb) pbb.classList.remove('hidden');
-    })();
-
     // ==================== 100 ACHIEVEMENTS ====================
     // Fourteen lifetime tracks, each a ladder of thresholds. Every number is derived from
     // a save that already exists (quest stats, points, rank, candy, unlocks) plus one new
@@ -15164,9 +13878,34 @@
       try { localStorage.setItem(LIFE_KEY, JSON.stringify(lifeStats)); } catch (e) {}
     }
     function lifeGet(key) { return lifeStats[key] || 0; }
+    // Records that only ever go up (best wave). Never lowers an existing save value.
+    function lifeMax(key, n) {
+      if (!(n > (lifeStats[key] || 0))) return false;
+      lifeStats[key] = n;
+      try { localStorage.setItem(LIFE_KEY, JSON.stringify(lifeStats)); } catch (e) {}
+      return true;
+    }
     function fmtN(n) { return Number(n).toLocaleString('en-US'); }
 
     var ACH_TRACKS = [
+      // ---- 40 wave badges (any mode) + 10 DEATH badges = 50 wave achievements ----
+      // The wave clock runs in every mode, so the first ladder unlocks wherever you play.
+      { key: 'waves', icon: '🌊', what: 'Reach', unit: 'waves',
+        goals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+        names: ['First Wave', 'Second Swell', 'Tide Walker', 'Surf Is Up', 'Five Alive',
+                'Breaker', 'Rip Current', 'Undertow', 'Deep Water', 'Ten High',
+                'Whitewater', 'Crest Rider', 'Riptide', 'Floodgate', 'Fifteen Fathoms',
+                'Tsunami', 'Maelstrom', 'Deluge', 'Storm Surge', 'Twenty Deep',
+                'Abyss Edge', 'Drowning Point', 'Mariana', 'Leviathan', 'Quarter Century',
+                'Rogue Wave', 'Tempest', 'Hurricane', 'Typhoon', 'Thirty Strong',
+                'Deep Six', 'Kraken Wake', 'Void Tide', 'Eclipse Tide', 'Deeper Still',
+                'Doomsday Tide', 'World Serpent', 'Drowned Sky', 'Last Breaker', 'Hold The Line'] },
+      // DEATH mode's own ladder. Wave 50 is the top of the whole board: the biggest badge.
+      { key: 'deathWaves', icon: '☠️', what: 'Survive', unit: 'death waves',
+        goals: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+        names: ['Grave Entry', 'Ten Graves', 'Bone Tide', 'Twenty Souls', 'Half To Doom',
+                'Coffin Road', 'Death March', 'Plague Forty', 'Last Breath', 'The Fifty'] },
       { key: 'kills', icon: '💀', what: 'Kill', unit: 'enemies',
         goals: [1, 10, 50, 150, 300, 600, 1000, 2000, 5000, 10000, 25000, 50000],
         names: ['First Blood', 'Veteran', 'Butcher', 'Reaper', 'Executioner', 'Warlord', 'Massacre', 'Genocide', 'Annihilator', 'Apocalypse', 'Extinction', 'Oblivion'] },
@@ -15182,9 +13921,9 @@
       { key: 'bosses', icon: '👑', what: 'Defeat', unit: 'bosses',
         goals: [1, 5, 15, 40, 100, 250, 500],
         names: ['Boss Slayer', 'Boss Hunter', 'Boss Breaker', 'Boss Reaper', 'Boss Bane', 'Boss Exterminator', 'Boss God'] },
-      { key: 'candy', icon: '🍬', what: 'Collect', unit: 'candy',
+      { key: 'energy', icon: '⚡', what: 'Collect', unit: 'energy',
         goals: [10, 50, 150, 400, 1000, 2500, 6000],
-        names: ['Sweet Tooth', 'Trick or Treater', 'Candy Thief', 'Sugar Rush', 'Candy Baron', 'Halloween King', 'Candy Singularity'] },
+        names: ['Charged', 'Current', 'Live Wire', 'Reactor', 'Dynamo', 'Power Grid', 'Singularity'] },
       { key: 'rankPts', icon: '🎖️', what: 'Earn', unit: 'rank points',
         goals: [250, 750, 1750, 3500, 6000, 10000, 16000, 25000],
         names: ['Stone Run', 'Bronze Run', 'Silver Run', 'Gold Run', 'Platinum Run', 'Diamond Run', 'Master Run', 'Immortal Run'] },
@@ -15219,12 +13958,27 @@
           icon: t.icon,
           name: t.names[i],
           goal: g,
+          // The wave-50 DEATH badge is the biggest on the board, so it gets a big tile.
+          big: t.key === 'deathWaves' && g === 50,
           text: t.what + ' ' + fmtN(g) + ' ' + t.unit
         });
       });
     });
     var ACH_TOTAL = ACHIEVEMENTS.length;
     var achFilter = 'all';
+    // The energy track used to be the candy track; carry those unlocks over by id.
+    (function migrateCandyAchievements() {
+      var changed = false;
+      for (var k in achRecord) {
+        if (k.indexOf('candy:') === 0) {
+          var nk = 'energy:' + k.slice(6);
+          if (!achRecord[nk]) achRecord[nk] = achRecord[k];
+          delete achRecord[k];
+          changed = true;
+        }
+      }
+      if (changed) { try { localStorage.setItem(ACH_KEY, JSON.stringify(achRecord)); } catch (e) {} }
+    })();
 
     function achCharCount() {
       var all = ['fighter', 'soldier', 'super', 'mage', 'ninja', 'bots', 'knight', 'hyper', 'cheeser', 'phantom', 'slayer', 'taoist'];
@@ -15247,7 +14001,7 @@
         rounds: qs.rounds || 0,
         dailies: qs.dailies || 0,
         bosses: lifeGet('bosses'),
-        candy: candy || 0,
+        energy: candy || 0,
         rankPts: rankPoints || 0,
         coins: totalPoints || 0,
         skins: achSkinCount(),
@@ -15255,7 +14009,9 @@
         traits: ownedTraitCount(),
         campaign: Math.max(0, campaignProgress - 1) + Math.max(0, soldierProgress - 1),
         taoist: taoistQuestsDone(),
-        rankIdx: currentRank(rankPoints).index
+        rankIdx: currentRank(rankPoints).index,
+        waves: lifeGet('bestWave'),
+        deathWaves: deathBest
       };
     }
     function achUnlockedCount() {
@@ -15321,17 +14077,20 @@
       }
       rows.forEach(function (a) {
         var done = !!achRecord[a.id];
+        var big = !!a.big;
         var have = Math.min(a.goal, st[a.track] || 0);
         var pct = Math.round((have / a.goal) * 100);
         var when = done ? new Date(achRecord[a.id]) : null;
         var div = document.createElement('div');
-        div.className = 'p-2 rounded-lg border ' + (done ? 'border-yellow-500 bg-yellow-900/20' : 'border-slate-700 bg-slate-900/40');
+        div.className = (big ? 'p-3 ' : 'p-2 ') + 'rounded-lg border ' + (big
+          ? 'border-2 ' + (done ? 'border-amber-300 bg-gradient-to-r from-amber-900/60 to-yellow-600/20 shadow-lg shadow-amber-500/30' : 'border-amber-600 bg-gradient-to-r from-slate-900 to-amber-950/40')
+          : (done ? 'border-yellow-500 bg-yellow-900/20' : 'border-slate-700 bg-slate-900/40'));
         div.innerHTML =
           '<div class="flex items-start gap-2">' +
-            '<div class="text-base leading-none mt-0.5" style="filter:' + (done ? 'none' : 'grayscale(1);opacity:.45') + '">' + a.icon + '</div>' +
+            '<div class="' + (big ? 'text-2xl' : 'text-base') + ' leading-none mt-0.5" style="filter:' + (done ? 'none' : 'grayscale(1);opacity:.45') + '">' + a.icon + '</div>' +
             '<div class="flex-1 min-w-0">' +
               '<div class="flex items-baseline justify-between gap-2">' +
-                '<div class="text-[11px] font-bold ' + (done ? 'text-yellow-200' : 'text-slate-200') + '">' + (done ? '🏆 ' : '') + a.name + '</div>' +
+                '<div class="' + (big ? 'text-[13px]' : 'text-[11px]') + ' font-bold ' + (done ? 'text-yellow-200' : 'text-slate-200') + '">' + (done ? '🏆 ' : '') + a.name + (big ? ' 👑' : '') + '</div>' +
                 '<div class="text-[9px] ' + (done ? 'text-yellow-400/80' : 'text-slate-500') + ' whitespace-nowrap">' + (done ? 'UNLOCKED' : have + '/' + fmtN(a.goal)) + '</div>' +
               '</div>' +
               '<div class="text-[9px] text-slate-400">' + a.text + '</div>' +
@@ -15366,7 +14125,7 @@
       plain: '🌳 Plain', boss: '🔥 Boss', rain: '🌧️ Rain', house: '🏠 House', desert: '🏜️ Desert',
       cave: '🦇 Cave', landscape: '🏞️ Landscape', volcano: '🌋 Volcano', flame_pit: '🔥 Flame Pit',
       dark_grave: '🪦 Grave', blood_bath: '🩸 Blood Bath', moist_hill: '⛰️ Moist Hill',
-      shocky_road: '⚡ Shocky Road', cheese: '🧀 Cheese', halloween: '🎃 Halloween', multiverse: '🌌 Multiverse'
+      shocky_road: '⚡ Shocky Road', cheese: '🧀 Cheese', multiverse: '🌌 Multiverse'
     };
     function hideAll(ids) { ids.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); }
     function openCustomizeTab(tab) {
