@@ -1290,6 +1290,11 @@
     const TITAN_GUNNER_HP = 2200, TITAN_GUNNER_DMG = 14, TITAN_GUNNER_CD = 70, TITAN_GUNNER_BULLETS = 7;
     const AMETHYST_HP = 2600, AMETHYST_SPD = 1.2, AMETHYST_RESIST = 0.2;
     const AMETHYST_SLAM_DMG = 55, AMETHYST_SLAM_RADIUS = 180, AMETHYST_CONTACT_DMG = 22, AMETHYST_BOLT_DMG = 28;
+    // THE TIME CHAINER (Fighter campaign Lv 11) — 1250 HP, then a 550 HP phase two.
+    const TC_HP = 1250, TC_PHASE2_HP = 550, TC_SPD = 1.15;
+    const TC_CONTACT_DMG = 12, TC_CHAIN_FRAMES = 150, TC_CHAIN2_FRAMES = 200;
+    const TC_BLAST_DMG = 30, TC_BLAST_RADIUS = 72, TC_BLAST_WARN = 45, TC_BLAST_FALL = 26;
+    const TC_ZAP_DMG = 16, TC_ZAP_EVERY = 26, TC_ZAP2_EVERY = 18;
     const COMMANDER_HP = 800, COMMANDER_SPD = 0.5, COMMANDER_DMG = 8, COMMANDER_CD = 90;
     const COMMANDER_AIRSTRIKE_DMG = 40, COMMANDER_AIRSTRIKE_CD = 300; // 5s
     const MINI_BOSS_INTERVAL = 1500;
@@ -1739,6 +1744,8 @@
     let mageFireballs = [], mageFrostOrbs = [], lightningBolts = [], mageLightningCD = 0, mageFrostCD = 0, mageTeleportCD = 0, mageMeteorCD = 0, mageIceShielded = false, mageIceTimer = 0;
     // The Amethyst's telegraphed cyan lightning strikes (Soldier Lv 15).
     let amethystBolts = [];
+    // The Time Chainer: sky blasts, the chains that pin the player, and his own theme.
+    let tcBlasts = [], timeChainTimer = 0, tcMusicOn = false;
     // Ninja state
     let ninjaSlashCD = 0, ninjaKunaiCD = 0, ninjaDashCD = 0, ninjaInvisCD = 0, ninjaInvisTimer = 0, ninjaIsInvis = false;
     let ninjaCloneCD = 0, ninjaClones = [], ninjaCloneTimer = 0;
@@ -2421,6 +2428,33 @@
         _mNote(ac, dest, 1174.66, 'sawtooth', 0.07, t0 + step * 14, step * 2);
       }
     }
+    // ===== THE TIME CHAINER — 132 BPM clockwork boss theme. Everything in it is a clock:
+    // a ticking escapement, a pendulum bass walking root/fifth, bell arpeggios that climb
+    // a step every phrase, and chain rattle under the back half of the bar.
+    var TC_CLOCK = [587.33, 698.46, 880.00, 1046.50, 880.00, 698.46, 622.25, 587.33];
+    var TC_ROOTS = [73.42, 73.42, 82.41, 65.41]; // D2 D2 E2 C2
+    function timeChainerBar(ac, dest, t0, bar, step) {
+      var root = TC_ROOTS[bar % TC_ROOTS.length];
+      // Detuned organ bed — the pressure of a timeline closing
+      _mViolin(ac, dest, root * 2, 0.045, t0, step * 16);
+      _mViolin(ac, dest, root * 3, 0.032, t0, step * 16);
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        // Escapement tick-tock
+        _mHat(ac, dest, t, s % 2 === 0 ? 0.095 : 0.05);
+        // Clockwork drum: heavy downbeat, clipped snare on the 3
+        if (s % 4 === 0) _mKick(ac, dest, t, 0.62);
+        if (s % 4 === 2) _mSnare(ac, dest, t, 0.28);
+        // Pendulum bass
+        _mNote(ac, dest, s % 4 === 2 ? root * 1.5 : root, 'square', 0.155, t, step * 0.5);
+        // Bell arpeggio, a hair sharp on the last bar of each phrase
+        _mNote(ac, dest, TC_CLOCK[s % TC_CLOCK.length] * (bar % 4 === 3 ? 1.06 : 1), 'triangle', 0.055, t, step * 0.7);
+        // Loose chain rattle
+        if (s >= 8 && s % 2 === 0) _mNoise(ac, dest, t, 0.05, 4200, 0.032);
+      }
+      // Time-stop stab at the top of every phrase
+      if (bar % 4 === 0) { _mDist(ac, dest, root * 4, 0.07, t0, step * 2); _mNoise(ac, dest, t0, 0.4, 2600, 0.085); }
+    }
     var THEME_TRACKS = {
       chill: { bpm: 84, vol: 0.3, rain: false, bar: chillBar },
       desert: { bpm: 108, vol: 0.3, rain: false, bar: desertBar },
@@ -2436,7 +2470,8 @@
       rock: { bpm: 160, vol: 0.3, rain: false, bar: rockBar },
       menu: { bpm: 70, vol: 0.26, rain: false, bar: menuBar },
       bossrush: { bpm: 196, vol: 0.36, rain: false, bar: bossrushBar },
-      multiverse: { bpm: 140, vol: 0.34, rain: false, bar: multiverseBar }
+      multiverse: { bpm: 140, vol: 0.34, rain: false, bar: multiverseBar },
+      timechainer: { bpm: 132, vol: 0.34, rain: false, bar: timeChainerBar }
     };
     function startThemeMusic(theme) {
       if (!theme) return;
@@ -2500,6 +2535,18 @@
     }
     function startMenuMusic() {
       try { stopBossMusic(); startThemeMusic('menu'); } catch(e) {}
+    }
+    // The Time Chainer overrides the level theme with his own clockwork track, and gives
+    // the stage theme back the moment he breaks (or the player does).
+    function startTimeChainerMusic() {
+      if (tcMusicOn) return;
+      tcMusicOn = true;
+      try { stopBossMusic(); startThemeMusic('timechainer'); } catch(e) {}
+    }
+    function stopTimeChainerMusic() {
+      if (!tcMusicOn) return;
+      tcMusicOn = false;
+      try { stopThemeMusic(); applyThemeMusic(); } catch(e) {}
     }
     // Resume a suspended context on the first user gesture (autoplay policy)
     document.addEventListener('pointerdown', function() {
@@ -3195,6 +3242,28 @@
     var commander = null, commanderAirstrikes = [], commanderTalkTimer = 0;
     var cutsceneData = [], cutsceneIndex = 0, cutsceneTyping = false, cutsceneCharIdx = 0, cutsceneTimer = 0;
     var cutsceneCanvas, cutsceneCtx;
+    // ===== LEVEL 11 — THE TIME CHAINER =====
+    // Picks up the "THE END... or NOT?" beat the level-10 ending leaves hanging: something
+    // that owns every hour of this house has come to close the loop.
+    var TIME_CHAINER_INTRO_CUTSCENE = [
+      { speaker: 'Narrator', color: '#94a3b8', text: 'Years pass. The house grows quiet. The fighter grows old.', portrait: 'narrator' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'Then one morning, the clock in the hallway stops.', portrait: 'narrator' },
+      { speaker: '???', color: '#fbbf24', text: 'Every timeline ends at this house. I have come to collect.', portrait: '⏳' },
+      { speaker: 'Narrator', color: '#fbbf24', text: 'A hooded figure steps out of a crack in the air. Gears turn where his heart should be.', portrait: '⏳' },
+      { speaker: 'Time Chainer', color: '#fbbf24', text: 'I hold the chain of every hour. You do not move unless I allow it.', portrait: '⏳' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'He is not strong. He is inevitable — 1,250 years of it. Break him, and he rewinds with 550 more.', portrait: 'narrator' },
+      { speaker: 'Fighter', color: '#facc15', text: 'You are wrong about one thing, clock-man. The power I emerge... has already started.', portrait: '👊' },
+      { speaker: 'Narrator', color: '#c084fc', text: 'Light tears out of the Fighter\'s chest. Something with wings of raw plasma steps out of him.', portrait: '✨' },
+      { speaker: 'Hyper', color: '#c084fc', text: 'Your hour is up. I will be taking it.', portrait: '⚡' },
+      { speaker: 'Time Chainer', color: '#fbbf24', text: 'A second you? No... there was only ever meant to be one.', portrait: '⏳' },
+    ];
+    var TIME_CHAINER_WIN_CUTSCENE = [
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The gears fall out of the air. The chains crumble into rust.', portrait: 'narrator' },
+      { speaker: 'Time Chainer', color: '#fbbf24', text: 'Impossible... I have... already won this...', portrait: '⏳' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The clock in the hallway starts again — one second later than before.', portrait: 'narrator' },
+      { speaker: 'Hyper', color: '#c084fc', text: 'Not this time.', portrait: '⚡' },
+      { speaker: 'Narrator', color: '#facc15', text: 'THE END. FOR REAL THIS TIME.', portrait: '🏆' },
+    ];
     // Cutscene dialogue data per level
     var CAMPAIGN_LEVELS = [
       {
@@ -3296,8 +3365,16 @@
         ],
         duration: 0, spawnInterval: 0, spawnCount: 0, specialSpawns: [],
         spawnSentinel: true, sentinelHP: 2000
+      },
+      {
+        name: 'Level 11: The Time Chainer',
+        cutscene: TIME_CHAINER_INTRO_CUTSCENE,
+        duration: 0, spawnInterval: 0, spawnCount: 0, specialSpawns: [],
+        spawnTimeChainer: true
       }
     ];
+    // The fighter campaign now runs to its real end: 11 levels, ending on the Time Chainer.
+    campaignMaxLevels = CAMPAIGN_LEVELS.length;
     // Post level 5 transition cutscene (acid → Super)
     var POST_LEVEL5_CUTSCENE = [
       { speaker: 'Fighter', color: '#facc15', text: 'I did it... they are retreating!', portrait: '👊' },
@@ -4267,6 +4344,100 @@
               }
               cctx.globalAlpha = 1;
             }
+          } else if (cLv === 11) {
+            // The clock stops, and the Time Chainer steps out of the crack in the air.
+            // From line 6 the Fighter calls the power up, and from line 7 HYPER is the one
+            // standing on the field instead of him.
+            var hyperOut = cIdx >= 7;
+            csHouse(760, gY, true);
+            csFighter(240, gY, hyperOut ? '#c084fc' : (cIdx >= 6 ? '#e879f9' : '#facc15'), 1, cIdx >= 6 ? 'power' : 'guard');
+            if (hyperOut) {
+              // Plasma wings and the aura he stepped out of
+              cctx.fillStyle = 'rgba(192,132,252,0.16)';
+              cctx.beginPath(); cctx.arc(240, gY - 55, 46 + Math.sin(t * 0.01) * 4, 0, Math.PI * 2); cctx.fill();
+              cctx.strokeStyle = 'rgba(192,132,252,' + (0.5 + Math.sin(t * 0.006) * 0.25).toFixed(2) + ')'; cctx.lineWidth = 3;
+              for (var hwi = 0; hwi < 2; hwi++) {
+                var hwd = hwi === 0 ? -1 : 1;
+                cctx.beginPath();
+                cctx.moveTo(240, gY - 60);
+                cctx.quadraticCurveTo(240 + hwd * 46, gY - 118, 240 + hwd * 74, gY - 40 - Math.sin(t * 0.008 + hwi) * 8);
+                cctx.stroke();
+              }
+              cctx.fillStyle = '#e9d5ff'; cctx.font = 'bold 12px monospace'; cctx.textAlign = 'center';
+              cctx.fillText('HYPER', 240, gY - 100); cctx.textAlign = 'start';
+            }
+            if (cIdx >= 1) {
+              var tcnX = 600;
+              var tcnIn = cIdx === 1 ? Math.min(1, (t - cutsceneLineAt) / 900) : 1;
+              // golden tear in the air he steps through
+              cctx.globalAlpha = 0.3 * tcnIn;
+              cctx.fillStyle = '#fbbf24';
+              cctx.fillRect(tcnX - 46, 0, 92, gY + 6);
+              cctx.globalAlpha = 1;
+              cctx.strokeStyle = '#fde68a'; cctx.lineWidth = 2;
+              cctx.strokeRect(tcnX - 46, 0, 92, gY + 6);
+              cctx.globalAlpha = tcnIn;
+              // counter-rotating gear halos
+              cctx.strokeStyle = 'rgba(251,191,36,0.55)'; cctx.lineWidth = 3;
+              for (var tcgI = 0; tcgI < 2; tcgI++) {
+                var tcgR = tcgI === 0 ? 62 : 40;
+                var tcgSp = tcgI === 0 ? t * 0.0009 : -t * 0.0014;
+                var tcgN = tcgI === 0 ? 12 : 8;
+                cctx.beginPath(); cctx.arc(tcnX, gY - 78, tcgR, 0, Math.PI * 2); cctx.stroke();
+                for (var tcgT = 0; tcgT < tcgN; tcgT++) {
+                  var tcgA = tcgSp + tcgT / tcgN * Math.PI * 2;
+                  cctx.beginPath();
+                  cctx.moveTo(tcnX + Math.cos(tcgA) * tcgR, gY - 78 + Math.sin(tcgA) * tcgR);
+                  cctx.lineTo(tcnX + Math.cos(tcgA) * (tcgR + 8), gY - 78 + Math.sin(tcgA) * (tcgR + 8));
+                  cctx.stroke();
+                }
+              }
+              // robe + hood
+              cctx.fillStyle = '#1c1917';
+              cctx.beginPath();
+              cctx.moveTo(tcnX - 28, gY + 6); cctx.lineTo(tcnX - 17, gY - 64);
+              cctx.lineTo(tcnX + 17, gY - 64); cctx.lineTo(tcnX + 28, gY + 6);
+              cctx.closePath(); cctx.fill();
+              cctx.strokeStyle = '#92400e'; cctx.lineWidth = 2; cctx.stroke();
+              cctx.fillStyle = '#292524';
+              cctx.beginPath(); cctx.arc(tcnX, gY - 86, 21, Math.PI, Math.PI * 2); cctx.fill();
+              cctx.strokeStyle = '#fbbf24'; cctx.lineWidth = 3;
+              cctx.beginPath(); cctx.arc(tcnX, gY - 86, 21, Math.PI, Math.PI * 2); cctx.stroke();
+              // lit eyes
+              cctx.fillStyle = '#38bdf8';
+              cctx.beginPath(); cctx.arc(tcnX - 7, gY - 86, 3, 0, Math.PI * 2); cctx.fill();
+              cctx.beginPath(); cctx.arc(tcnX + 7, gY - 86, 3, 0, Math.PI * 2); cctx.fill();
+              // chest clock, hands running backwards
+              cctx.strokeStyle = '#fbbf24'; cctx.lineWidth = 2;
+              cctx.beginPath(); cctx.arc(tcnX, gY - 46, 13, 0, Math.PI * 2); cctx.stroke();
+              cctx.beginPath(); cctx.moveTo(tcnX, gY - 46);
+              cctx.lineTo(tcnX + Math.cos(-t * 0.002) * 9, gY - 46 + Math.sin(-t * 0.002) * 9); cctx.stroke();
+              // chain hanging from his hand
+              cctx.strokeStyle = '#a16207'; cctx.lineWidth = 2;
+              for (var tclQ = 0; tclQ <= 4; tclQ++) {
+                cctx.beginPath();
+                cctx.ellipse(tcnX - 30, gY - 36 + tclQ * 9, 4, 6, 0.3, 0, Math.PI * 2);
+                cctx.stroke();
+              }
+              // the stopped clock hanging over the house
+              cctx.strokeStyle = '#64748b'; cctx.lineWidth = 3;
+              cctx.beginPath(); cctx.arc(760, gY - 192, 22, 0, Math.PI * 2); cctx.stroke();
+              cctx.beginPath(); cctx.moveTo(760, gY - 192); cctx.lineTo(760, gY - 206); cctx.stroke();
+              cctx.beginPath(); cctx.moveTo(760, gY - 192); cctx.lineTo(771, gY - 192); cctx.stroke();
+              cctx.globalAlpha = 1;
+              // chains crawling out toward the fighter once he casts
+              if (cIdx >= 5) {
+                cctx.strokeStyle = '#fbbf24'; cctx.lineWidth = 2;
+                var tclProg = (t * 0.004) % 1;
+                for (var tclQ2 = 0; tclQ2 < 6; tclQ2++) {
+                  cctx.globalAlpha = 0.7 - tclQ2 * 0.1;
+                  cctx.beginPath();
+                  cctx.ellipse(tcnX - 60 - tclQ2 * 26 - tclProg * 12, gY - 20 + (tclQ2 % 2 ? 6 : -6), 7, 5, 0, 0, Math.PI * 2);
+                  cctx.stroke();
+                }
+                cctx.globalAlpha = 1;
+              }
+            }
           }
 
           // Chapter card — bright on the opening line, dimmed once the talk starts
@@ -4333,7 +4504,7 @@
           return;
         }
         // After soldier ending cutscene: go back to menu
-        if (cutsceneData === SOLDIER_WIN_CUTSCENE) {
+        if (cutsceneData === SOLDIER_WIN_CUTSCENE || cutsceneData === TIME_CHAINER_WIN_CUTSCENE) {
           gameState = 'menu'; animFrameId = null;
           gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
           menuScreen.classList.remove('hidden');
@@ -4463,8 +4634,13 @@
       if (!lv) return;
       campaignMode = true;
       campaignLevel = level;
-      // Lv 6+ play as Super
-      if (level >= 6) {
+      // Lv 6-10 play as Super; Lv 11 is Hyper's fight — the Fighter hands the body over
+      // mid-cutscene, so the final boss is fought by the one who "already started".
+      if (level >= 11) {
+        selectedChar = 'hyper';
+        PLAYER_MAX_HP_CURRENT = HYPER_HP;
+        document.getElementById('charIcon').textContent = '⚡';
+      } else if (level >= 6) {
         selectedChar = 'super';
         PLAYER_MAX_HP_CURRENT = level >= 9 ? 350 : SUPER_HP;
         document.getElementById('charIcon').textContent = '⚡';
@@ -4487,6 +4663,13 @@
       if (level >= 6) {
         ultDashUnlocked = true; ultGrenadeUnlocked = true; ultAllyUnlocked = true;
         shieldUnlocked = true;
+      }
+      // Hyper walks into the final fight with the ultimate already lit: the whole point of
+      // the level is that the power "has already started".
+      if (level >= 11) {
+        ultCharge = 100; ultReady = true;
+        ultBar.style.width = '100%'; ultBarText.textContent = '100%';
+        createTextParticle(stick.x, stick.y - 90, '⭐ ULT 100% — SPIRIT LASER READY [3]', '#c084fc', 18);
       }
       resumeGameLoop();
     }
@@ -4525,7 +4708,7 @@
       menuScreen.classList.add('hidden');
       document.getElementById('campaignScreen').classList.remove('hidden');
       var prog = document.getElementById('campFighterProgress');
-      if (prog) prog.textContent = 'Level ' + campaignProgress + '/5' + (campaignProgress >= 5 ? ' ✅ Complete!' : '');
+      if (prog) prog.textContent = 'Level ' + campaignProgress + '/' + campaignMaxLevels + (campaignProgress >= campaignMaxLevels ? ' ✅ Complete!' : '');
       var sprog = document.getElementById('campSoldierProgress');
       if (sprog) sprog.textContent = 'Level ' + soldierProgress + '/' + soldierMaxLevels + (soldierProgress >= soldierMaxLevels ? ' ✅ Complete!' : '');
     });
@@ -4698,8 +4881,23 @@
         }, 1000);
         return;
       }
-      // After level 10: YOU WIN cutscene
-      if (isFinalLevel && typeof POST_WIN_CUTSCENE !== 'undefined') {
+      // Level 11: the Time Chainer breaks — the campaign's true ending
+      if (isFinalLevel && typeof TIME_CHAINER_WIN_CUTSCENE !== 'undefined') {
+        gameState = 'cutscene';
+        campaignMode = false;
+        scoreEl.textContent = '🏆 YOU WIN!'; killsEl.textContent = '';
+        setTimeout(function() {
+          cutsceneData = TIME_CHAINER_WIN_CUTSCENE;
+          cutsceneIndex = 0; cutsceneTyping = false; cutsceneCharIdx = 0; cutsceneTimer = 0;
+          cutsceneCanvas = document.getElementById('cutsceneCanvas');
+          cutsceneCtx = cutsceneCanvas.getContext('2d');
+          document.getElementById('cutsceneScreen').classList.remove('hidden');
+          showCutsceneLine(0);
+        }, 1000);
+        return;
+      }
+      // After level 10: YOU WIN cutscene (now a cliffhanger into level 11)
+      if (campaignLevel === 10 && typeof POST_WIN_CUTSCENE !== 'undefined') {
         gameState = 'cutscene';
         campaignMode = false;
         scoreEl.textContent = '🏆 YOU WIN!'; killsEl.textContent = '';
@@ -4738,6 +4936,14 @@
       if (lv.defeatTitanGunner) {
         var tgAlive = miniBosses.some(function(m) { return m.alive && m.type === 'titan_gunner'; });
         if (campaignSpecialTimers['tg_spawned'] && !tgAlive && !(commander && commander.alive) && campaignTimer > 120) {
+          campaignWinLevel();
+        }
+        return;
+      }
+      // The Time Chainer (Fighter Lv 11) — win when he is finally, truly broken
+      if (lv.spawnTimeChainer) {
+        var tcAlive = miniBosses.some(function(m) { return m.alive && m.type === 'time_chainer'; });
+        if (campaignSpecialTimers['tc_spawned'] && !tcAlive && campaignTimer > 120) {
           campaignWinLevel();
         }
         return;
@@ -4851,6 +5057,11 @@
         miniBosses.push({ x: stick.x > CW / 2 ? 120 : CW - 120, y: GROUND_Y, hp: TITAN_GUNNER_HP, maxHp: TITAN_GUNNER_HP, speed: 0.55, attackCD: TITAN_GUNNER_CD, hitFlash: 0, alive: true, facing: 1, type: 'titan_gunner', animTime: 0, vy: 0, bulletCount: 0 });
         createTextParticle(CW / 2, 60, '🔫 TITAN GUNNER — ' + TITAN_GUNNER_HP + ' HP!', '#b91c1c', 26);
         createParticles(CW / 2, GROUND_Y, 30, '#b91c1c');
+      }
+      // The Time Chainer (Fighter Lv 11) — the campaign's final boss
+      if (lv.spawnTimeChainer && !campaignSpecialTimers['tc_spawned']) {
+        campaignSpecialTimers['tc_spawned'] = 1;
+        spawnTimeChainer();
       }
       // The Amethyst (Soldier Lv 15) — the blue Colossal
       if (lv.spawnAmethyst && !campaignSpecialTimers['ame_spawned']) {
@@ -5095,6 +5306,8 @@
       incrementMatch();
       gameState = 'playing';
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = [];
+      // The Time Chainer's projectiles, chains and theme are per-round.
+      tcBlasts = []; timeChainTimer = 0; tcMusicOn = false;
       fullReset();
       resumeGameLoop();
     });
@@ -7622,6 +7835,133 @@
         ctx.textAlign = 'start';
         return;
       }
+      if (mb.type === 'time_chainer') {
+        // ☄ Sky blasts: golden warning column on the ground, then a meteor drops through it.
+        tcBlasts.forEach(function(b) {
+          if (b.hit) return;
+          var charge = 1 - Math.max(0, b.delay) / TC_BLAST_WARN;
+          ctx.globalAlpha = 0.10 + 0.28 * charge; ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(b.x - 16, 0, 32, GROUND_Y);
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.setLineDash([7, 7]);
+          ctx.beginPath(); ctx.moveTo(b.x, 0); ctx.lineTo(b.x, GROUND_Y); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 0.3 + 0.5 * charge; ctx.strokeStyle = '#fbbf24';
+          ctx.beginPath(); ctx.ellipse(b.x, GROUND_Y, TC_BLAST_RADIUS, 20, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 1;
+          var fallP = b.delay < 26 ? 1 - b.delay / 26 : 0;
+          if (fallP > 0) {
+            var my = -60 + fallP * (GROUND_Y + 20);
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath(); ctx.arc(b.x, my, 13, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 0.5; ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.moveTo(b.x - 11, my); ctx.lineTo(b.x, my - 46); ctx.lineTo(b.x + 11, my); ctx.closePath(); ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+        });
+        // He blinks out during the teleport: draw him as a ghost while he is "unhinged".
+        var tcFade = (mb.state === 'teleport' && mb.cast > 4 && mb.cast < 26) ? 0.18 : 1;
+        ctx.globalAlpha = tcFade;
+        // The chain of hours — two counter-rotating gear halos
+        ctx.strokeStyle = 'rgba(251,191,36,0.45)'; ctx.lineWidth = 3;
+        for (var gh = 0; gh < 2; gh++) {
+          var gr = gh === 0 ? 68 : 46, gsp = (gh === 0 ? time * 0.02 : -time * 0.03), teeth = gh === 0 ? 12 : 9;
+          ctx.beginPath(); ctx.arc(dx, GROUND_Y - 78, gr, 0, Math.PI * 2); ctx.stroke();
+          for (var gt = 0; gt < teeth; gt++) {
+            var ga = gsp + gt / teeth * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(dx + Math.cos(ga) * gr, GROUND_Y - 78 + Math.sin(ga) * gr);
+            ctx.lineTo(dx + Math.cos(ga) * (gr + 9), GROUND_Y - 78 + Math.sin(ga) * (gr + 9));
+            ctx.stroke();
+          }
+        }
+        var tcB = mb.hitFlash > 0 ? '#ffffff' : '#fbbf24';
+        var tcD = mb.hitFlash > 0 ? '#ffffff' : '#92400e';
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        // Robe
+        ctx.fillStyle = '#1c1917';
+        ctx.beginPath();
+        ctx.moveTo(dx - 26, GROUND_Y + 6); ctx.lineTo(dx - 16, GROUND_Y - 62);
+        ctx.lineTo(dx + 16, GROUND_Y - 62); ctx.lineTo(dx + 26, GROUND_Y + 6);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = tcD; ctx.lineWidth = 2; ctx.stroke();
+        // Hood
+        ctx.fillStyle = '#292524';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 84, 20, Math.PI, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = tcB; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 84, 20, Math.PI, Math.PI * 2); ctx.stroke();
+        // Eyes
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath(); ctx.arc(dx - 7, GROUND_Y - 84, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 7, GROUND_Y - 84, 3, 0, Math.PI * 2); ctx.fill();
+        // Clock face on his chest — the hands run backwards in phase two
+        ctx.strokeStyle = tcB; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 46, 13, 0, Math.PI * 2); ctx.stroke();
+        var handDir = mb.phase === 2 ? -1 : 1;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 46);
+        ctx.lineTo(dx + Math.cos(time * 0.05 * handDir) * 9, GROUND_Y - 46 + Math.sin(time * 0.05 * handDir) * 9); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 46);
+        ctx.lineTo(dx + Math.cos(time * 0.012 * handDir) * 6, GROUND_Y - 46 + Math.sin(time * 0.012 * handDir) * 6); ctx.stroke();
+        // Arms — one raises the chains, one counts the seconds
+        var tcArm = mb.state === 'chain' ? -12 : mb.state === 'blast' ? -20 : Math.sin(time * 0.06) * 3;
+        ctx.strokeStyle = tcB; ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 58); ctx.lineTo(dx - 30, GROUND_Y - 40 + tcArm); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 58); ctx.lineTo(dx + 30, GROUND_Y - 40); ctx.stroke();
+        // Chain hanging from his hand to the floor
+        ctx.strokeStyle = '#a16207'; ctx.lineWidth = 2;
+        for (var cl = 0; cl <= 4; cl++) {
+          ctx.beginPath();
+          ctx.ellipse(dx - 30 + Math.sin(time * 0.08 + cl) * 2, GROUND_Y - 34 + tcArm + cl * 9, 4, 6, 0.3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        // Electric tether while he drains the player
+        if (mb.state === 'zap') {
+          ctx.strokeStyle = 'rgba(56,189,248,' + (0.55 + Math.sin(time * 0.4) * 0.3).toFixed(2) + ')';
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(dx + 18 * mb.facing, GROUND_Y - 66);
+          var segs = 7, sx0 = dx + 18 * mb.facing, sy0 = GROUND_Y - 66, tx0 = stick.x, ty0 = stick.y - 45;
+          for (var zg = 1; zg <= segs; zg++) {
+            var zp = zg / segs;
+            var zx = sx0 + (tx0 - sx0) * zp;
+            var zy = sy0 + (ty0 - sy0) * zp + (zg < segs ? (Math.random() - 0.5) * 26 : 0);
+            ctx.lineTo(zx, zy);
+          }
+          ctx.stroke();
+          ctx.fillStyle = '#bae6fd';
+          for (var zs = 0; zs < 3; zs++) {
+            ctx.beginPath();
+            ctx.arc(stick.x + Math.cos(time * 0.3 + zs * 2) * 16, stick.y - 45 + Math.sin(time * 0.35 + zs * 2) * 22, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.globalAlpha = 1;
+        // Chains pinning the player to the ground
+        if (timeChainTimer > 0) {
+          ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.6 + Math.sin(time * 0.25) * 0.25;
+          for (var ck = 0; ck < 5; ck++) {
+            ctx.beginPath();
+            ctx.ellipse(stick.x + (ck % 2 ? 6 : -6), GROUND_Y - ck * 11, 7, 5, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.beginPath(); ctx.moveTo(stick.x, GROUND_Y - 24); ctx.lineTo(dx, GROUND_Y - 46); ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#fde68a'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+          ctx.fillText('⛓ ROOTED', stick.x, GROUND_Y - 74); ctx.textAlign = 'start';
+        }
+        // Bar + phase label, kept on screen even when he is cornered
+        var tcw = 138, tcp = mb.hp / mb.maxHp, tcy = GROUND_Y - 196;
+        var tcLabelX = Math.max(tcw / 2 + 8, Math.min(CW - tcw / 2 - 8, dx));
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(tcLabelX - tcw / 2 - 1, tcy, tcw + 2, 12);
+        ctx.fillStyle = mb.phase === 2 ? '#38bdf8' : (tcp > 0.4 ? '#fbbf24' : '#f87171');
+        ctx.fillRect(tcLabelX - tcw / 2, tcy + 1, tcw * Math.max(0, tcp), 10);
+        ctx.fillStyle = '#fde68a'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('⏳ TIME CHAINER ' + Math.ceil(Math.max(0, mb.hp)) + '/' + mb.maxHp, tcLabelX, tcy - 6);
+        ctx.fillStyle = mb.phase === 2 ? '#7dd3fc' : '#94a3b8'; ctx.font = 'bold 9px monospace';
+        ctx.fillText(mb.phase === 2 ? '⛓ PHASE 2 · CHAINS TIGHTEN' : '⛓ CHAINS · ☄ SKY BLAST · ⚡ SHOCK', tcLabelX, tcy - 19);
+        ctx.textAlign = 'start';
+        return;
+      }
       if (mb.type === 'milkson') {
         // Milkson: big milk carton body, angry face, 10K HP
         const bc = mb.hitFlash > 0 ? '#fff' : '#ef4444';
@@ -7905,7 +8245,21 @@
       createTextParticle(mb.x, GROUND_Y - 55, '-' + dmg, c, 14);
       createParticles(mb.x, GROUND_Y - 30, 6, c);
       if (mb.hp <= 0) {
+        if (mb.type === 'time_chainer' && mb.phase === 1) {
+          // PHASE TWO: he does not die, he rewinds. 550 HP, faster, crueller.
+          mb.phase = 2; mb.hp = TC_PHASE2_HP; mb.maxHp = TC_PHASE2_HP;
+          mb.state = 'chase'; mb.cast = 0; mb.attackCD = 45;
+          timeChainTimer = 0;
+          createExplosion(mb.x, GROUND_Y - 60, 90, '#fbbf24');
+          createParticles(mb.x, GROUND_Y - 40, 40, '#38bdf8');
+          createTextParticle(CW / 2, 118, '⏳ PHASE 2 — ' + TC_PHASE2_HP + ' HP', '#fbbf24', 26);
+          createTextParticle(CW / 2, 148, '⛓ THE CHAINS TIGHTEN', '#7dd3fc', 14);
+          canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 600);
+          return;
+        }
         mb.alive = false;
+        // Breaking him for good frees anyone still chained.
+        if (mb.type === 'time_chainer') { timeChainTimer = 0; }
         if (mb.type === 'necro') {
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += 50; }
@@ -7914,13 +8268,13 @@
           if (gameMode !== 'sandbox') { spawnZombie(mb.x, true); createTextParticle(mb.x, GROUND_Y - 100, '🧟 RISES!', '#22c55e', 14); }
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
         } else {
-          const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : mb.type === 'colossal' ? 300 : mb.type === 'giant' ? 150 : mb.type === 'amethyst' ? 800 : mb.type === 'titan_gunner' ? 400 : 20;
+          const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : mb.type === 'colossal' ? 300 : mb.type === 'giant' ? 150 : mb.type === 'time_chainer' ? 1500 : mb.type === 'amethyst' ? 800 : mb.type === 'titan_gunner' ? 400 : 20;
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           // A mini-boss is a boss for energy purposes: half a point.
           if (gameMode !== 'sandbox') addEnergyForBoss();
           if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
-          var killName = mb.type === 'amethyst' ? '💠 AMETHYST SHATTERED' : mb.type === 'titan_gunner' ? '🔫 TITAN GUNNER' : mb.type === 'giant' ? '💀 GIANT' : mb.type === 'colossal' ? '🌋 COLOSSAL' : mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
-          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : mb.type === 'medic' ? '#f8fafc' : mb.type === 'giant_gunner' ? '#dc2626' : mb.type === 'milkson' ? '#ef4444' : '#fb923c');
+          var killName = mb.type === 'time_chainer' ? '⏳ TIME CHAINER BROKEN' : mb.type === 'amethyst' ? '💠 AMETHYST SHATTERED' : mb.type === 'titan_gunner' ? '🔫 TITAN GUNNER' : mb.type === 'giant' ? '💀 GIANT' : mb.type === 'colossal' ? '🌋 COLOSSAL' : mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
+          createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'time_chainer' ? '#fbbf24' : mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : mb.type === 'medic' ? '#f8fafc' : mb.type === 'giant_gunner' ? '#dc2626' : mb.type === 'milkson' ? '#ef4444' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, killName + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
           if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
@@ -8471,6 +8825,9 @@
           // THE AMETHYST (Soldier Lv 15): jumps, slams and calls down cyan lightning,
           // and every hit it takes is cut by 20% (dmgReduction).
           updateAmethyst(mb, dist);
+        } else if (mb.type === 'time_chainer') {
+          // THE TIME CHAINER (Fighter Lv 11): chains, sky blasts, teleport and shock.
+          updateTimeChainer(mb, dist);
         } else if (mb.type === 'colossal') {
           // ANCIENT COLOSSAL: 40 damage a swing, and it only takes half damage back.
           if (dist > 110) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
@@ -8514,6 +8871,10 @@
         }
         if (bolt.life <= 0) { amethystBolts.splice(ab, 1); }
       }
+      // Sky blasts resolve independently of the boss that called them.
+      updateTimeChainerBlasts();
+      // His theme only lasts as long as he does — or until the round ends.
+      if (tcMusicOn && (!miniBosses.some(function(m) { return m.alive && m.type === 'time_chainer'; }) || gameState !== 'playing')) stopTimeChainerMusic();
     }
 
     // ==================== THE AMETHYST ====================
@@ -8575,6 +8936,147 @@
           }
           if (mb.animTime > 95) { mb.state = 'chase'; mb.attackCD = 150; }
           break;
+      }
+    }
+
+    // ==================== THE TIME CHAINER ====================
+    // Fighter campaign Lv 11. 1250 HP, then a 550 HP second phase that rewinds him back
+    // onto the field. Four moves on a fixed rotation so each one always shows up: chains
+    // (root the player), sky blasts (telegraphed meteors), teleport (reposition), and shock
+    // (a lightning tether that ticks damage).
+    function spawnTimeChainer() {
+      var tc = {
+        x: stick.x > CW / 2 ? 170 : CW - 170, y: GROUND_Y, hp: TC_HP, maxHp: TC_HP,
+        speed: TC_SPD, attackCD: 110, hitFlash: 0, alive: true, facing: stick.x < CW / 2 ? 1 : -1,
+        type: 'time_chainer', animTime: 0, vy: 0, state: 'chase', phase: 1,
+        contactCD: 0, cast: 0, atkCount: 0, tpFlash: 0
+      };
+      miniBosses.push(tc);
+      tcBlasts = []; timeChainTimer = 0;
+      createTextParticle(CW / 2, 62, '⏳ THE TIME CHAINER — ' + TC_HP + ' HP', '#fbbf24', 26);
+      createTextParticle(CW / 2, 94, '⛓ CHAINS · ☄ SKY BLAST · ⚡ SHOCK · PHASE 2: ' + TC_PHASE2_HP, '#94a3b8', 13);
+      createParticles(CW / 2, GROUND_Y, 45, '#fbbf24');
+      createExplosion(CW / 2, GROUND_Y - 60, 70, '#fbbf24');
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 700);
+      startTimeChainerMusic();
+    }
+
+    function updateTimeChainer(mb, dist) {
+      if (!mb.state) mb.state = 'chase';
+      if (mb.cast === undefined) mb.cast = 0;
+      if (mb.contactCD === undefined) mb.contactCD = 0;
+      if (mb.atkCount === undefined) mb.atkCount = 0;
+      if (mb.tpFlash > 0) mb.tpFlash--;
+      if (mb.contactCD > 0) mb.contactCD--;
+      var p2 = mb.phase === 2;
+      var gap = p2 ? 55 : 90;
+      mb.animTime++;
+      switch (mb.state) {
+        case 'chase': {
+          mb.facing = stick.x < mb.x ? -1 : 1;
+          if (dist > 190) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          else if (dist < 110) mb.x -= Math.sign(stick.x - mb.x) * mb.speed * 0.8;
+          if (dist < 70 && mb.contactCD <= 0) {
+            damagePlayer(TC_CONTACT_DMG, '#fbbf24');
+            mb.contactCD = 80;
+            createParticles(mb.x, GROUND_Y - 40, 8, '#fbbf24');
+          }
+          mb.attackCD--;
+          if (mb.attackCD <= 0) {
+            mb.cast = 0;
+            mb.atkCount++;
+            var rot = mb.atkCount % 4;
+            mb.state = rot === 1 ? 'chain' : rot === 2 ? 'blast' : rot === 3 ? 'teleport' : 'zap';
+            // Phase two swaps the escape for a second chaining: he stops running out of time.
+            if (p2 && mb.state === 'teleport') mb.state = 'chain';
+            if (mb.state === 'chain') createTextParticle(mb.x, GROUND_Y - 178, '⛓ HE CALLS THE CHAINS', '#fbbf24', 15);
+            else if (mb.state === 'blast') createTextParticle(mb.x, GROUND_Y - 178, '☄ HE OPENS THE SKY', '#fbbf24', 15);
+            else if (mb.state === 'zap') createTextParticle(mb.x, GROUND_Y - 178, '⚡ HE TAKES YOUR HOURS', '#38bdf8', 15);
+          }
+          break;
+        }
+        case 'chain': {
+          mb.cast++;
+          mb.facing = stick.x < mb.x ? -1 : 1;
+          if (mb.cast === 22) {
+            // Chains erupt under the player and lock them in place.
+            timeChainTimer = p2 ? TC_CHAIN2_FRAMES : TC_CHAIN_FRAMES;
+            createTextParticle(stick.x, stick.y - 130, '⛓ CHAINED!', '#fbbf24', 22);
+            createParticles(stick.x, GROUND_Y - 10, 22, '#fbbf24');
+            createExplosion(stick.x, GROUND_Y - 30, 40, '#fbbf24');
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 320);
+          }
+          if (mb.cast > 55) { mb.state = 'chase'; mb.attackCD = gap; }
+          break;
+        }
+        case 'blast': {
+          mb.cast++;
+          var volleys = p2 ? [18, 40, 62, 84] : [20, 50, 80];
+          for (var vi = 0; vi < volleys.length; vi++) {
+            if (mb.cast !== volleys[vi]) continue;
+            var shots = p2 ? 2 : 1;
+            for (var sh = 0; sh < shots; sh++) {
+              var bx = stick.x + (shots > 1 ? (sh === 0 ? -95 : 95) : 0) + (Math.random() - 0.5) * 70;
+              bx = Math.max(60, Math.min(CW - 60, bx));
+              tcBlasts.push({ x: bx, life: TC_BLAST_WARN + 40, delay: TC_BLAST_WARN, hit: false });
+              createTextParticle(bx, 40, '☄ SKY BLAST', '#fbbf24', 13);
+            }
+          }
+          if (mb.cast > (p2 ? 108 : 100)) { mb.state = 'chase'; mb.attackCD = gap; }
+          break;
+        }
+        case 'teleport': {
+          mb.cast++;
+          if (mb.cast === 1) {
+            createParticles(mb.x, GROUND_Y - 55, 24, '#fbbf24');
+            createTextParticle(mb.x, GROUND_Y - 172, '⏳ UNHINGED', '#fbbf24', 16);
+          }
+          mb.tpFlash = 30;
+          if (mb.cast === 26) {
+            var nx = stick.x > CW / 2 ? 120 : CW - 120;
+            mb.x = Math.max(80, Math.min(CW - 80, nx + (Math.random() - 0.5) * 90));
+            mb.facing = stick.x < mb.x ? -1 : 1;
+            createParticles(mb.x, GROUND_Y - 55, 24, '#fbbf24');
+            createTextParticle(mb.x, GROUND_Y - 172, '⏳ REWOUND', '#fbbf24', 16);
+            // Arriving is itself an attack — anything close gets shocked on the way in.
+            if (Math.abs(stick.x - mb.x) < 95) damagePlayer(TC_ZAP_DMG, '#38bdf8');
+          }
+          if (mb.cast > 46) { mb.state = 'chase'; mb.attackCD = p2 ? 35 : 70; }
+          break;
+        }
+        case 'zap': {
+          mb.cast++;
+          mb.facing = stick.x < mb.x ? -1 : 1;
+          var every = p2 ? TC_ZAP2_EVERY : TC_ZAP_EVERY;
+          if (mb.cast > 6 && mb.cast % every === 0) {
+            damagePlayer(TC_ZAP_DMG, '#38bdf8');
+            createParticles(stick.x, stick.y - 50, 8, '#38bdf8');
+            createTextParticle(stick.x, stick.y - 92, '⚡ ZAP ' + TC_ZAP_DMG, '#38bdf8', 13);
+          }
+          if (mb.cast > (p2 ? 90 : 78)) { mb.state = 'chase'; mb.attackCD = gap; }
+          break;
+        }
+      }
+      mb.x = Math.max(70, Math.min(CW - 70, mb.x));
+    }
+
+    // Sky blasts resolve outside the boss so a mid-cast death can't strand a meteor overhead.
+    function updateTimeChainerBlasts() {
+      for (var i = tcBlasts.length - 1; i >= 0; i--) {
+        var b = tcBlasts[i];
+        b.life--;
+        if (b.delay > 0) {
+          b.delay--;
+          if (b.delay === 0) {
+            b.hit = true;
+            createExplosion(b.x, GROUND_Y - 40, 70, '#fbbf24');
+            createParticles(b.x, GROUND_Y - 5, 24, '#fbbf24');
+            createTextParticle(b.x, GROUND_Y - 140, '☄ BLAST! ' + TC_BLAST_DMG, '#fbbf24', 17);
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 260);
+            if (Math.abs(stick.x - b.x) < TC_BLAST_RADIUS) damagePlayer(TC_BLAST_DMG, '#fbbf24');
+          }
+        }
+        if (b.life <= 0) tcBlasts.splice(i, 1);
       }
     }
 
@@ -8673,6 +9175,17 @@
       if (isKickDashing) { var kdDmg = isRaging ? Math.floor(SUPER_PUNCH_DMG * rageDmgMult) : SUPER_PUNCH_DMG; stick.x += SUPER_KICK_DASH_SPD * stick.facing; stick.x = Math.max(50, Math.min(CW - 50, stick.x)); kickDashDist -= SUPER_KICK_DASH_SPD; if (kickDashDist <= 0) { isKickDashing = false; stick.state = 'idle'; dummies.forEach(d => { if (d.alive && Math.abs(stick.x - d.x) < 60) dealDamageToDummy(d, kdDmg, 'kick'); }); miniBosses.forEach(mb => { if (mb.alive && Math.abs(stick.x - mb.x) < 60) dealDamageToMiniBoss(mb, kdDmg, 'kick'); });        if (boss && boss.alive && Math.abs(stick.x - boss.x) < 80) dealDamageToBoss(kdDmg, 'kick'); if (sentinel && sentinel.alive && Math.abs(stick.x - sentinel.x) < 80) dealDamageToSentinel(kdDmg, 'kick'); } if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 80) { bossRushDeath.hp -= kdDmg; createParticles(stick.x, stick.y - 30, 4, '#a855f7'); } dealUltraBossDamage(kdDmg); if(bossRushSentinel1&&bossRushSentinel1.alive&&Math.abs(stick.x-bossRushSentinel1.x)<80)dealColossalSentinelDamage(bossRushSentinel1,kdDmg,'kick'); if(bossRushSentinel2&&bossRushSentinel2.alive&&Math.abs(stick.x-bossRushSentinel2.x)<80)dealColossalSentinelDamage(bossRushSentinel2,kdDmg,'kick'); if(bossRushColossal&&bossRushColossal.hp>0&&Math.abs(stick.x-bossRushColossal.x)<80)dealColossalDamage(kdDmg,'kick'); return; }
       if (isCharging) { var chDmg = isRaging ? Math.floor(SUPER_CHARGE_DMG * rageDmgMult) : SUPER_CHARGE_DMG; stick.x += SUPER_CHARGE_SPD * stick.facing; stick.x = Math.max(50, Math.min(CW - 50, stick.x)); chargeDist -= SUPER_CHARGE_SPD; if (!chargeDmgDealt) { dummies.forEach(d => { if (d.alive && Math.abs(stick.x - d.x) < 60) { dealDamageToDummy(d, chDmg, 'dash'); chargeDmgDealt = true; } }); miniBosses.forEach(mb => { if (mb.alive && Math.abs(stick.x - mb.x) < 60) { dealDamageToMiniBoss(mb, chDmg, 'dash'); chargeDmgDealt = true; } });        if (boss && boss.alive && Math.abs(stick.x - boss.x) < 80) { dealDamageToBoss(chDmg, 'dash'); chargeDmgDealt = true; } if (!chargeDmgDealt && sentinel && sentinel.alive && Math.abs(stick.x - sentinel.x) < 80) { dealDamageToSentinel(chDmg, 'dash'); chargeDmgDealt = true; } } if (!chargeDmgDealt && bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 80) { bossRushDeath.hp -= chDmg; createParticles(stick.x, stick.y - 30, 4, '#a855f7'); chargeDmgDealt = true; } if (!chargeDmgDealt) dealUltraBossDamage(chDmg); if (!chargeDmgDealt && bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(stick.x - bossRushSentinel1.x) < 80) { dealColossalSentinelDamage(bossRushSentinel1, chDmg, 'dash'); chargeDmgDealt = true; } if (!chargeDmgDealt && bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(stick.x - bossRushSentinel2.x) < 80) { dealColossalSentinelDamage(bossRushSentinel2, chDmg, 'dash'); chargeDmgDealt = true; } if (!chargeDmgDealt && bossRushColossal && bossRushColossal.hp > 0 && Math.abs(stick.x - bossRushColossal.x) < 80) { dealColossalDamage(chDmg, 'dash'); chargeDmgDealt = true; } if (chargeDist <= 0) { isCharging = false; stick.state = 'idle'; } return; }
       if (bossRushGrabbed) { stick.state = 'idle'; stick.animTime = (stick.animTime + 1) % 60; return; }
+      // The Time Chainer's chains pin the player: no walking, no jumping, no dashing out.
+      if (timeChainTimer > 0) {
+        timeChainTimer--;
+        stick.vx = 0;
+        // Still fall if they were chained mid-air, so nobody hangs in the sky.
+        if (stick.y < GROUND_Y) { stick.vy += GRAVITY; stick.y = Math.min(GROUND_Y, stick.y + stick.vy); if (stick.y >= GROUND_Y) stick.vy = 0; }
+        stick.state = 'idle';
+        stick.animTime = (stick.animTime + 1) % 60;
+        if (stick.hitFlash > 0) stick.hitFlash--;
+        return;
+      }
       // Slayer ult throw cinematic — root the player in place for the pose
       if (selectedChar === 'slayer' && slayerThrowScene.active) { stick.state = 'idle'; stick.vx = 0; stick.animTime = (stick.animTime + 1) % 60; if (stick.hitFlash > 0) stick.hitFlash--; return; }
       if (pickupSpeedTimer > 0) pickupSpeedTimer--;
@@ -13349,6 +13862,8 @@
       taoistUltAmulet = { active: false, timer: 0, tick: 0, x: 0 };
       expKills = 0; expNextLevel = 5;
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = [];
+      // The Time Chainer's projectiles, chains and theme are per-round.
+      tcBlasts = []; timeChainTimer = 0; tcMusicOn = false;
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       isDashing = false; dashDist = 0;
@@ -13366,7 +13881,7 @@
       var hasSummonAlly = false;
       for (var k in shopUpgrades) { if (k.indexOf('summon') === 0 && shopUpgrades[k] > 0) { hasSummonAlly = true; break; } }
       if (hasSummonAlly) { allySpawnTimer = ALLY_SPAWN_INTERVAL; }
-      PLAYER_MAX_HP_CURRENT = Math.floor((selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? taoistMaxHp() : 100) * skinHpMult());
+      PLAYER_MAX_HP_CURRENT = Math.floor((selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? taoistMaxHp() : selectedChar === 'hyper' ? HYPER_HP : 100) * skinHpMult());
       PLAYER_MAX_HP_CURRENT += getShopUpgradeEffect('maxHp');
       // Knight shield init
       if (selectedChar === 'knight') { knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { knightShieldHP = 0; knightShieldMax = 0; }

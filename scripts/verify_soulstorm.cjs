@@ -881,5 +881,76 @@ function check(name, cond, extra) {
   });
 }
 
+// --- TIME CHAINER: the fighter campaign's new final boss --------------------
+{
+  console.log('\n===== the Time Chainer (Fighter Lv 11) =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const num = (re) => { const m = html.match(re); return m ? Number(m[1]) : NaN; };
+
+    check(file + ': Lv 11 exists and the fighter campaign now runs to 11',
+      /name: 'Level 11: The Time Chainer'/.test(html) &&
+      /spawnTimeChainer: true/.test(html) &&
+      /campaignMaxLevels = CAMPAIGN_LEVELS\.length;/.test(html) &&
+      // Level 10 keeps its "THE END... or NOT?" cliffhanger instead of ending the campaign.
+      /if \(campaignLevel === 10 && typeof POST_WIN_CUTSCENE !== 'undefined'\) \{/.test(html));
+
+    check(file + ': he has 1250 HP and a 550 HP second phase',
+      num(/TC_HP = (\d+)/) === 1250 &&
+      num(/TC_PHASE2_HP = (\d+)/) === 550 &&
+      /if \(mb\.type === 'time_chainer' && mb\.phase === 1\) \{/.test(html) &&
+      /mb\.phase = 2; mb\.hp = TC_PHASE2_HP; mb\.maxHp = TC_PHASE2_HP;/.test(html) &&
+      /\/\/ PHASE TWO: he does not die, he rewinds/.test(html));
+
+    check(file + ': the chains pin the player in place',
+      /timeChainTimer = p2 \? TC_CHAIN2_FRAMES : TC_CHAIN_FRAMES;/.test(html) &&
+      /if \(timeChainTimer > 0\) \{/.test(html) &&
+      /timeChainTimer--;/.test(html) &&
+      // Rooted inside updateStickman, so it beats keyboard and touch input alike.
+      html.indexOf('if (timeChainTimer > 0) {') < html.indexOf('let targetVx = 0;'));
+
+    check(file + ': sky blasts land for 30 and shock ticks for 16',
+      num(/TC_BLAST_DMG = (\d+)/) === 30 &&
+      num(/TC_ZAP_DMG = (\d+)/) === 16 &&
+      /tcBlasts\.push\(\{ x: bx, life: TC_BLAST_WARN \+ 40, delay: TC_BLAST_WARN, hit: false \}\)/.test(html) &&
+      /if \(Math\.abs\(stick\.x - b\.x\) < TC_BLAST_RADIUS\) damagePlayer\(TC_BLAST_DMG, '#fbbf24'\);/.test(html) &&
+      // Blasts resolve even if he dies mid-cast.
+      /updateTimeChainerBlasts\(\);\n      \/\/ His theme only lasts/.test(html));
+
+    check(file + ': he teleports, and electrifies the player on the tether',
+      /case 'teleport': \{/.test(html) &&
+      /case 'zap': \{/.test(html) &&
+      /if \(mb\.cast > 6 && mb\.cast % every === 0\) \{/.test(html) &&
+      // A fixed rotation means every move shows up instead of being left to chance.
+      /var rot = mb\.atkCount % 4;/.test(html));
+
+    check(file + ': he carries his own background music',
+      /timechainer: \{ bpm: 132, vol: 0\.34, rain: false, bar: timeChainerBar \}/.test(html) &&
+      /function timeChainerBar\(ac, dest, t0, bar, step\)/.test(html) &&
+      /function startTimeChainerMusic\(\)/.test(html) &&
+      /startThemeMusic\('timechainer'\)/.test(html) &&
+      /function stopTimeChainerMusic\(\)/.test(html) &&
+      // The track can never outlive the boss or the round.
+      /if \(tcMusicOn && \(!miniBosses\.some\(function\(m\) \{ return m\.alive && m\.type === 'time_chainer'; \}\) \|\| gameState !== 'playing'\)\) stopTimeChainerMusic\(\);/.test(html));
+
+    check(file + ': Hyper starts the final fight with a full ultimate',
+      /if \(level >= 11\) \{\n        ultCharge = 100; ultReady = true;\n        ultBar\.style\.width = '100%'; ultBarText\.textContent = '100%';/.test(html));
+
+    check(file + ': the fighter hands Lv 11 over to Hyper',
+      /if \(level >= 11\) \{\n        selectedChar = 'hyper';/.test(html) &&
+      /The power I emerge\.\.\. has already started\./.test(html) &&
+      /\{ speaker: 'Hyper', color: '#c084fc', text: 'Your hour is up\. I will be taking it\.'/.test(html) &&
+      // Hyper's real HP pool — fullReset used to fall through to 100 for him.
+      /selectedChar === 'hyper' \? HYPER_HP : 100\) \* skinHpMult\(\)/.test(html));
+
+    check(file + ': the level is won only once he is truly broken',
+      /if \(lv\.spawnTimeChainer\) \{/.test(html) &&
+      /campaignSpecialTimers\['tc_spawned'\] && !tcAlive && campaignTimer > 120/.test(html) &&
+      /\/\/ Breaking him for good frees anyone still chained\.\n        if \(mb\.type === 'time_chainer'\) \{ timeChainTimer = 0; \}/.test(html) &&
+      /var TIME_CHAINER_WIN_CUTSCENE = \[/.test(html) &&
+      /cutsceneData === TIME_CHAINER_WIN_CUTSCENE/.test(html));
+  });
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
