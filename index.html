@@ -9417,11 +9417,13 @@
     // --- SOLDIER abilities ---
     function performShoot() {
       if (attackCooldown > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#84cc16');
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = SHOOT_CD;
       firePlayerBullet(mouseX, mouseY);
     }
     function performShotgun() {
       if (attackCooldown > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#84cc16', undefined, undefined, true);
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = SHOTGUN_CD;
       const dx = mouseX - stick.x, dy = mouseY - (stick.y - 40);
       const baseAngle = Math.atan2(dy, dx);
@@ -9471,6 +9473,7 @@
     }
     function performPunch() {
       if (attackCooldown > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#f97316');
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = PUNCH_CD;
       createParticles(stick.x + 38 * stick.facing, stick.y - 35, 10, '#facc15');
       dummies.forEach(d => { if (d.alive && Math.abs(stick.x - d.x) < KICK_RANGE) dealDamageToDummy(d, PUNCH_DMG, 'kick'); });
@@ -9509,6 +9512,7 @@
     // --- SUPER abilities ---
     function performSuperPunch() {
       if (attackCooldown > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#f472b6');
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = PUNCH_CD;
       var dmg = isRaging ? Math.floor(SUPER_PUNCH_DMG * rageDmgMult) : SUPER_PUNCH_DMG;
       createParticles(stick.x + 38 * stick.facing, stick.y - 35, 10, isRaging ? '#ef4444' : '#facc15');
@@ -9556,6 +9560,7 @@
     }
     function performSuperRage() {
       if (!ultReady || ultActive || gameState !== 'playing' || isDashing) return;
+      charFlare('#f472b6', undefined, undefined, true);
       ultActive = true; ultTimer = SUPER_ULT_DURATION; ultReady = false; ultCharge = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       isRaging = true; rageTimer = SUPER_ULT_DURATION; rageDmgMult = 1 + SUPER_ULT_DMG_BUFF;
@@ -9566,6 +9571,7 @@
     // --- MAGE abilities ---
     function performMageFireball() {
       if (attackCooldown > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#60a5fa');
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = 18;
       var dx = mouseX - stick.x, dy = mouseY - (stick.y - 35);
       var d = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -9665,6 +9671,7 @@
     }
     function performMageSummonTitan() {
       if (mageMeteorCD > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#60a5fa', undefined, undefined, true);
       // Check if titan_ally already exists
       var hasTA = allies.some(function(a) { return a.alive && a.type === 'titan_ally'; });
       if (hasTA) { createTextParticle(stick.x, stick.y - 80, 'Already have a Titan Ally!', '#94a3b8', 14); return; }
@@ -9680,6 +9687,7 @@
     // ==================== NINJA ABILITIES ====================
     function performNinjaSlash() {
       if (ninjaSlashCD > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#c084fc');
       ninjaSlashCD = NINJA_SLASH_CD;
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = 5;
       // Slash hitbox in front
@@ -9862,6 +9870,7 @@
 
     function performNinjaUlt() {
       if (ninjaUltCD > 0 || ninjaUltActive || gameState !== 'playing' || isDashing) return;
+      charFlare('#c084fc', undefined, undefined, true);
       ninjaUltActive = true; ninjaUltTimer = NINJA_ULT_DUR; ninjaUltSlashTimer = 0;
       createTextParticle(CW / 2, 60, '⚡ MULTI SLASH!', '#facc15', 26);
       createParticles(stick.x, stick.y - 30, 20, '#facc15');
@@ -10028,6 +10037,7 @@
     }
     function performUltimate() {
       if (!ultReady || ultActive || gameState !== 'playing' || isDashing) return;
+      charFlare('#f97316', undefined, undefined, true);
       ultActive = true; ultTimer = 600; ultReady = false; ultCharge = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       if (selectedChar === 'soldier') {
@@ -10064,6 +10074,28 @@
         stick.state = 'idle';
       }
     }
+    // Level-1 HP per character, in ONE place. Levelling up used to guess from a ternary
+    // chain that never listed Fighter or Ultra, so they fell back to the default 80 and
+    // levelling up *shrank* the pool (Ultra: 450 → 89 at LV2). Ninja keeps its per-level table.
+    function charBaseHp(c, level) {
+      switch (c) {
+        case 'soldier': return 110;
+        case 'fighter': return 100;
+        case 'super': return SUPER_HP;
+        case 'mage': return MAGE_HP;
+        case 'ninja': return (NINJA_HP_BY_LEVEL[level] || NINJA_HP);
+        case 'bots': return BOT_HP;
+        case 'knight': return KNIGHT_HP;
+        case 'hyper': return HYPER_HP;
+        case 'ultra': return ULTRA_HP;
+        case 'cheeser': return CHEESER_HP;
+        case 'phantom': return PHANTOM_HP;
+        case 'slayer': return SLAYER_HP;
+        case 'taoist': return taoistMaxHp();
+        default: return MAGE_HP;
+      }
+    }
+
     function checkUltimateUnlock() {
       if (totalKills >= ULT_KILL_THRESHOLD && !ultDashUnlocked) { ultDashUnlocked = true; ultBtn1.classList.remove('hidden'); createTextParticle(stick.x, stick.y - 80, '⚡ DASH!', '#22d3ee', 18); createParticles(stick.x, stick.y - 40, 20, '#22d3ee'); }
       if (selectedChar === 'soldier') {
@@ -10086,7 +10118,7 @@
       addUltCharge(10);
       updateEXPBar();
       const tl = Math.min(Math.floor(totalKills / LEVEL_UP_KILLS) + 1, MAX_LEVEL);
-      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'phantom') { PLAYER_MAX_HP_CURRENT = Math.floor(PHANTOM_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'slayer') { PLAYER_MAX_HP_CURRENT = Math.floor(SLAYER_HP * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else if (selectedChar === 'taoist') { PLAYER_MAX_HP_CURRENT = Math.floor(taoistMaxHp() * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } else { var baseHp = selectedChar === 'ninja' ? (NINJA_HP_BY_LEVEL[playerLevel] || NINJA_HP) : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'hyper' ? HYPER_HP : 80; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } PLAYER_MAX_HP_CURRENT = Math.floor(PLAYER_MAX_HP_CURRENT * skinHpMult()); playerHP = PLAYER_MAX_HP_CURRENT; if (selectedChar === 'knight') knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
+      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else { PLAYER_MAX_HP_CURRENT = Math.floor(charBaseHp(selectedChar, playerLevel) * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } PLAYER_MAX_HP_CURRENT = Math.floor(PLAYER_MAX_HP_CURRENT * skinHpMult()); playerHP = PLAYER_MAX_HP_CURRENT; if (selectedChar === 'knight') knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
     }
 
     // ==================== SPAWNING ====================
@@ -12426,7 +12458,10 @@
           ctx.textAlign = 'start';
           ctx.globalAlpha = 1;
         }
-        ultraFx.forEach(function(f) {
+      }
+      // Ability effects are shared by the whole roster: Ultra's layered set above, and the
+      // lighter one-ring flares the other characters get, so every cast reads on screen.
+      ultraFx.forEach(function(f) {
           var p = Math.max(0, f.life / f.maxLife);
           var rr = f.r + (f.max - f.r) * (1 - p);
           ctx.globalAlpha = p;
@@ -12515,7 +12550,6 @@
           }
           ctx.globalAlpha = 1;
         });
-      }
       drawHollowLaser(); drawStickman(); drawBullets(); drawPlayerBullets(); drawGrenades(); drawEnemyGrenades(); drawSuperBlastOrbs(); drawMageFireballs(); drawMageFrostOrbs(); drawLightningBolts(); drawNinjaKunais(); drawNinjaClones(); drawNinjaSharins();
       if (ninjaIsInvis && gameState === 'playing') { ctx.globalAlpha = 0.15; ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 22, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.fillText('👻 INVIS ' + Math.ceil(ninjaInvisTimer / 60) + 's', stick.x, stick.y - 65); ctx.textAlign = 'start'; }
       if (ninjaUltActive && gameState === 'playing') { ctx.globalAlpha = 0.2 + Math.sin(time * 0.3) * 0.1; ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 80 + Math.sin(time * 0.2) * 10, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
@@ -12607,6 +12641,7 @@
     // Bots ability functions
     function performBotBlast() {
       if (attackCooldown > 0) return;
+      charFlare('#38bdf8');
       attackCooldown = PUNCH_CD;
       var bx = stick.x, by = stick.y - 35;
       var mdx = mouseX - bx, mdy = mouseY - by;
@@ -12689,6 +12724,7 @@
     }
     function performBotNuclear() {
       if (botNuclearCD > 0) return;
+      charFlare('#38bdf8', undefined, undefined, true);
       botNuclearCD = BOT_NUCLEAR_CD;
       // Damage all enemies
       createTextParticle(CW / 2, 60, '☢️ NUCLEAR!', '#ef4444', 28);
@@ -12710,6 +12746,7 @@
     }
     function performKnightSlash() {
       if (knightSlashCD > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#fbbf24');
       knightSlashCD = KNIGHT_SLASH_CD;
       stick.state = 'shoot'; stick.animTime = 0;
       createParticles(stick.x + 30 * stick.facing, stick.y - 35, 8, '#facc15');
@@ -12754,6 +12791,7 @@
     }
     function performKnightJustice() {
       if (knightJusticeCD > 0) return;
+      charFlare('#fbbf24', undefined, undefined, true);
       knightJusticeCD = KNIGHT_JUSTICE_CD;
       knightJusticeActive = true; knightJusticeTimer = KNIGHT_JUSTICE_DUR; knightJusticeDmgMult = KNIGHT_JUSTICE_DMG_MULT;
       playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + KNIGHT_JUSTICE_HEAL);
@@ -12865,6 +12903,7 @@
     // ==================== HYPER ABILITIES ====================
     function performHyperPunch() {
       if (hyperPunchCD > 0 || stick.state === 'dash') return;
+      charFlare('#06b6d4');
       hyperPunchCD = HYPER_PUNCH_CD;
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = HYPER_PUNCH_CD;
       var dmg = HYPER_PUNCH_DMG;
@@ -12912,6 +12951,7 @@
     }
     function performHyperGreatSlam() {
       if (hyperGSlamCD > 0) return;
+      charFlare('#06b6d4', undefined, undefined, true);
       hyperGSlamCD = HYPER_GSLAM_CD;
       stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 20;
       var dmg = HYPER_GSLAM_DMG;
@@ -13127,6 +13167,15 @@
       dummies.forEach(function(t) { if (t.alive && Math.abs(t.x - cx) < radius) t.stunTimer = ULTRA_SLAM_STUN; });
       miniBosses.forEach(function(t) { if (t.alive && Math.abs(t.x - cx) < radius) t.sealTimer = ULTRA_SLAM_STUN; });
       if (boss && boss.alive && Math.abs(boss.x - cx) < radius) boss.stunTimer = ULTRA_SLAM_STUN;
+    }
+
+    // Lightweight shared flourish for every character except Ultra: one ring, one spark
+    // burst. Deliberately a single layer — Ultra's casts stay the showpiece.
+    function charFlare(color, x, y, big) {
+      var cx = (typeof x === 'number') ? x : stick.x;
+      var cy = (typeof y === 'number') ? y : stick.y - 38;
+      ultraFx.push({ x: cx, y: cy, r: big ? 16 : 9, max: big ? 92 : 52, color: color, type: 'ring', life: big ? 18 : 12, maxLife: big ? 18 : 12 });
+      ultraFx.push({ x: cx, y: cy, r: 7, max: big ? 54 : 32, color: color, type: 'burst', count: big ? 7 : 5, spin: Math.random() * 6.283, life: big ? 14 : 10, maxLife: big ? 14 : 10 });
     }
 
     function ultraRing(x, y, r, max, color, type, life) {
@@ -13654,6 +13703,7 @@
     }
     function performPhantomPunch() {
       if (phantomPunchCD > 0 || stick.state === 'dash') return;
+      charFlare('#8b5cf6');
       phantomPunchCD = PHANTOM_PUNCH_CD;
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = PHANTOM_PUNCH_CD;
       var dmg = PHANTOM_PUNCH_DMG;
@@ -13697,6 +13747,7 @@
     }
     function performPhantomDarkRealm() {
       if (phantomUltActive || !ultReady) return;
+      charFlare('#8b5cf6', undefined, undefined, true);
       ultReady = false; ultCharge = 0; ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       phantomUltActive = true; phantomUltTimer = PHANTOM_ULT_DUR; phantomUltTickTimer = 0;
       phantomRealmFade = 0;
@@ -13801,6 +13852,7 @@
     // ==================== SLAYER ABILITIES ====================
     function performSlayerSlash() {
       if (slayerSlashCD > 0 || stick.state === 'dash') return;
+      charFlare('#ef4444');
       slayerSlashCD = SLAYER_SLASH_CD;
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = SLAYER_SLASH_CD;
       phantomHitAll(stick.x + stick.facing * 20, SLAYER_SLASH_RANGE, SLAYER_SLASH_DMG, 'slash');
@@ -13844,6 +13896,7 @@
     }
     function performSlayerUlt() {
       if (slayerUltActive || !ultReady) return;
+      charFlare('#ef4444', undefined, undefined, true);
       ultReady = false; ultCharge = 0; ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       slayerUltActive = true; slayerUltTimer = SLAYER_ULT_DUR;
       slayerPrevMaxHp = PLAYER_MAX_HP_CURRENT;
@@ -13889,6 +13942,7 @@
     // M1 — throw a wooden sword. It spins, flies straight at the cursor and hits once.
     function performTaoistSword() {
       if (taoistSwordCD > 0 || gameState !== 'playing' || isDashing) return;
+      charFlare('#34d399');
       taoistSwordCD = TAOIST_SWORD_CD; attackCooldown = 10;
       stick.state = 'shoot'; stick.animTime = 0;
       var dx = mouseX - stick.x, dy = mouseY - (stick.y - 40);
@@ -13991,6 +14045,7 @@
     // 3 — the ult amulet: 250 damage to everything around it, every 3 seconds, for 9s.
     function performTaoistUlt() {
       if (taoistUltAmulet.active || !ultReady) return;
+      charFlare('#34d399', undefined, undefined, true);
       ultReady = false; ultCharge = 0; ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       taoistUltAmulet = { active: true, timer: TAOIST_ULT_DUR, tick: 1, x: stick.x };
       createTextParticle(CW / 2, 70, '☯ HEAVEN AMULET — 250 × 3', '#fbbf24', 22);
@@ -14232,6 +14287,7 @@
     // ==================== CHEESER ABILITIES ====================
     function performCheeserThrow() {
       if (cheeserThrowCD > 0 || stick.state === 'dash') return;
+      charFlare('#facc15');
       cheeserThrowCD = CHEESER_THROW_CD;
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = 15;
       var dx = mouseX - stick.x, dy = mouseY - (stick.y - 30);
@@ -14247,6 +14303,7 @@
     }
     function performCheeserUlt() {
       if (cheeserMultishot >= 5) { createTextParticle(stick.x, stick.y - 80, 'MAX STACK!', '#ef4444', 14); return; }
+      charFlare('#facc15', undefined, undefined, true);
       cheeserMultishot = Math.min(5, cheeserMultishot + 1);
       localStorage.setItem('sm_cheeserMultishot', cheeserMultishot);
       createTextParticle(stick.x, stick.y - 80, '🧀 x' + cheeserMultishot + ' CHEESE!', '#facc15', 20);

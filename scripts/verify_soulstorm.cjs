@@ -1025,6 +1025,30 @@ function check(name, cond, extra) {
       /var ubTsAng = -Math\.PI \/ 2 \+ \(1 - tsLeft\) \* Math\.PI \* 2;/.test(html) &&
       /for \(var ubSpokeI = 0; ubSpokeI < 10; ubSpokeI\+\+\)/.test(html));
 
+    // Level-up used to guess base HP from a ternary chain that forgot Fighter and Ultra, so
+    // both fell through to the 80 default and LOSING pool on level up (Ultra 450 → 89).
+    const charBaseBody = html.slice(html.indexOf('function charBaseHp('), html.indexOf('function checkUltimateUnlock('));
+    check(file + ': levelling up never shrinks a character\'s HP pool',
+      charBaseBody.length > 0 &&
+      /case 'ultra': return ULTRA_HP;/.test(charBaseBody) &&
+      /case 'fighter': return 100;/.test(charBaseBody) &&
+      /case 'soldier': return 110;/.test(charBaseBody) &&
+      /case 'ninja': return \(NINJA_HP_BY_LEVEL\[level\] \|\| NINJA_HP\);/.test(charBaseBody) &&
+      /PLAYER_MAX_HP_CURRENT = Math\.floor\(charBaseHp\(selectedChar, playerLevel\) \* \(1 \+ \(playerLevel - 1\) \* 0\.12\)\);/.test(html) &&
+      // The old 80-HP fallback ternary is gone for good.
+      !/=== 'hyper' \? HYPER_HP : 80;/.test(html));
+
+    // The rest of the roster gets one ring and one spark burst — deliberately lighter than
+    // Ultra's layered set — and the effect list renders for every character, not just him.
+    check(file + ': the other characters get lighter ability flares',
+      /function charFlare\(color, x, y, big\)/.test(html) &&
+      (html.match(/charFlare\('/g) || []).length >= 24 &&
+      /charFlare\('#f97316'\);/.test(html) &&
+      /charFlare\('#ef4444', undefined, undefined, true\);/.test(html) &&
+      // Only ONE burst per flare: no crescent/gear/pillar stack like Ultra's.
+      /ultraFx\.push\(\{ x: cx, y: cy, r: 7, max: big \? 54 : 32, color: color, type: 'burst'/.test(html) &&
+      /Ability effects are shared by the whole roster/.test(html));
+
     // The brief is a comparison, so it is checked as one: every Ultra number against the
     // Slayer's same-slot number, read from the same file.
     const sl = {
