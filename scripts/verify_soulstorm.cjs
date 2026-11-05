@@ -1049,6 +1049,33 @@ function check(name, cond, extra) {
       /ultraFx\.push\(\{ x: cx, y: cy, r: 7, max: big \? 54 : 32, color: color, type: 'burst'/.test(html) &&
       /Ability effects are shared by the whole roster/.test(html));
 
+    // The Slayer's F used to re-damage everything it overlapped on EVERY frame of the
+    // projectile's 60-frame flight — roughly ten times its designed 9 x 5.
+    check(file + ': wave projectiles hit each enemy once, so F is not a damage spam',
+      /function phantomHitOnce\(cx, radius, dmg, source, hitList\)/.test(html) &&
+      /if \(!obj \|\| hitList\.indexOf\(obj\) >= 0\) return;/.test(html) &&
+      /phantomHitOnce\(p\.x, p\.range, p\.dmg, 'slash', p\.hits \|\| \(p\.hits = \[\]\)\);/.test(html) &&
+      !/phantomHitAll\(p\.x, p\.range, p\.dmg, 'slash'\);/.test(html) &&
+      // Design value stays 9 waves x 5 damage.
+      num(/SLAYER_MULTI_SLASH_DMG = (\d+)/) === 5 &&
+      num(/SLAYER_MULTI_SLASH_HITS = (\d+)/) === 9);
+
+    check(file + ': levelling up also raises damage and speed',
+      /const LV_DMG_PER_LEVEL = 0\.06, LV_SPEED_PER_LEVEL = 0\.015;/.test(html) &&
+      /function lvDmgMult\(\) \{ return 1 \+ Math\.max\(0, playerLevel - 1\) \* LV_DMG_PER_LEVEL; \}/.test(html) &&
+      /function lvSpeedMult\(\) \{ return 1 \+ Math\.max\(0, playerLevel - 1\) \* LV_SPEED_PER_LEVEL; \}/.test(html) &&
+      /spdMult \*= lvSpeedMult\(\);/.test(html) &&
+      (html.match(/pickupDmgMult\(\) \* lvDmgMult\(\)/g) || []).length >= 6 &&
+      /\+ Math\.round\(\(lvDmgMult\(\) - 1\) \* 100\) \+ '% DMG/.test(html));
+
+    check(file + ': Slayer blades are drawn and Ultra carries an energy aura',
+      /type: 'crescent', spin: slDir > 0 \? -0\.7 : Math\.PI - 0\.7/.test(html) &&
+      /type: 'crescent', spin: slayerLungeDir > 0 \? Math\.PI - 0\.8 : -0\.8/.test(html) &&
+      /for \(var suI = 0; suI < 3; suI\+\+\) ultraFx\.push/.test(html) &&
+      /Energy aura — he is always humming with power/.test(html) &&
+      /var uaGrad = ctx\.createRadialGradient\(stick\.x, stick\.y - 32, 4, stick\.x, stick\.y - 32, 96\)/.test(html) &&
+      /for \(var uaI = 0; uaI < 5; uaI\+\+\)/.test(html));
+
     // The brief is a comparison, so it is checked as one: every Ultra number against the
     // Slayer's same-slot number, read from the same file.
     const sl = {

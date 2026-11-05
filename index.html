@@ -8301,7 +8301,7 @@
     }
 
     function dealDamageToDummy(d, dmg, source) {
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * (selectedChar === 'cheeser' && bgMode === 'cheese' ? 2 : 1)); d.hp -= dmg; d.hitFlash = 6; vampireHeal(dmg);
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * lvDmgMult() * (selectedChar === 'cheeser' && bgMode === 'cheese' ? 2 : 1)); d.hp -= dmg; d.hitFlash = 6; vampireHeal(dmg);
       const c = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : source === 'kick' ? '#fb7185' : '#facc15';
       createTextParticle(d.x, GROUND_Y - 55, '-' + dmg, c, 14);
       createParticles(d.x, GROUND_Y - 30, 6, c);
@@ -8321,7 +8321,7 @@
     }
 
     function dealDamageToBoss(dmg, source, srcX) {
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult()); vampireHeal(dmg);
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * lvDmgMult()); vampireHeal(dmg);
       // Also hit sentinel if source is close
       if (sentinel && sentinel.alive) {
         var sx = srcX !== undefined ? srcX : stick.x;
@@ -8391,7 +8391,7 @@
     }
 
     function dealDamageToMiniBoss(mb, dmg, source) {
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult());
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * lvDmgMult());
       // The Ancient Colossal shrugs off half of everything thrown at it.
       if (mb.dmgReduction) dmg = Math.max(1, Math.floor(dmg * (1 - mb.dmgReduction)));
       mb.hp -= dmg; mb.hitFlash = 6; vampireHeal(dmg);
@@ -9327,6 +9327,9 @@
     // ==================== PLAYER ====================
     function updateStickman() {
       if (gameState !== 'playing') return;
+      // Safety clamp: the Slayer's ult doubles the pool, and a round that starts while that
+      // flag is still set used to leave HP above max (a full bar reading 155%).
+      if (playerHP > PLAYER_MAX_HP_CURRENT) playerHP = PLAYER_MAX_HP_CURRENT;
       if (isDashing) { stick.x += DASH_SPEED_P * stick.facing; stick.x = Math.max(50, Math.min(CW - 50, stick.x)); dashDist -= DASH_SPEED_P; if (dashDist <= 0) { isDashing = false; stick.state = 'idle'; dummies.forEach(d => { if (d.alive && Math.abs(stick.x - d.x) < 60) dealDamageToDummy(d, DASH_DMG_P, 'dash'); }); miniBosses.forEach(mb => { if (mb.alive && Math.abs(stick.x - mb.x) < 60) dealDamageToMiniBoss(mb, DASH_DMG_P, 'dash'); }); if (boss && boss.alive && Math.abs(stick.x - boss.x) < 80) dealDamageToBoss(DASH_DMG_P, 'dash'); } if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 80) { bossRushDeath.hp -= DASH_DMG_P; createParticles(stick.x, stick.y - 30, 4, '#a855f7'); } dealUltraBossDamage(DASH_DMG_P); if(bossRushSentinel1&&bossRushSentinel1.alive&&Math.abs(stick.x-bossRushSentinel1.x)<80)dealColossalSentinelDamage(bossRushSentinel1,DASH_DMG_P,'dash'); if(bossRushSentinel2&&bossRushSentinel2.alive&&Math.abs(stick.x-bossRushSentinel2.x)<80)dealColossalSentinelDamage(bossRushSentinel2,DASH_DMG_P,'dash'); if(bossRushColossal&&bossRushColossal.hp>0&&Math.abs(stick.x-bossRushColossal.x)<80)dealColossalDamage(DASH_DMG_P,'dash'); return; }
       if (isKickDashing) { var kdDmg = isRaging ? Math.floor(SUPER_PUNCH_DMG * rageDmgMult) : SUPER_PUNCH_DMG; stick.x += SUPER_KICK_DASH_SPD * stick.facing; stick.x = Math.max(50, Math.min(CW - 50, stick.x)); kickDashDist -= SUPER_KICK_DASH_SPD; if (kickDashDist <= 0) { isKickDashing = false; stick.state = 'idle'; dummies.forEach(d => { if (d.alive && Math.abs(stick.x - d.x) < 60) dealDamageToDummy(d, kdDmg, 'kick'); }); miniBosses.forEach(mb => { if (mb.alive && Math.abs(stick.x - mb.x) < 60) dealDamageToMiniBoss(mb, kdDmg, 'kick'); });        if (boss && boss.alive && Math.abs(stick.x - boss.x) < 80) dealDamageToBoss(kdDmg, 'kick'); if (sentinel && sentinel.alive && Math.abs(stick.x - sentinel.x) < 80) dealDamageToSentinel(kdDmg, 'kick'); } if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 80) { bossRushDeath.hp -= kdDmg; createParticles(stick.x, stick.y - 30, 4, '#a855f7'); } dealUltraBossDamage(kdDmg); if(bossRushSentinel1&&bossRushSentinel1.alive&&Math.abs(stick.x-bossRushSentinel1.x)<80)dealColossalSentinelDamage(bossRushSentinel1,kdDmg,'kick'); if(bossRushSentinel2&&bossRushSentinel2.alive&&Math.abs(stick.x-bossRushSentinel2.x)<80)dealColossalSentinelDamage(bossRushSentinel2,kdDmg,'kick'); if(bossRushColossal&&bossRushColossal.hp>0&&Math.abs(stick.x-bossRushColossal.x)<80)dealColossalDamage(kdDmg,'kick'); return; }
       if (isCharging) { var chDmg = isRaging ? Math.floor(SUPER_CHARGE_DMG * rageDmgMult) : SUPER_CHARGE_DMG; stick.x += SUPER_CHARGE_SPD * stick.facing; stick.x = Math.max(50, Math.min(CW - 50, stick.x)); chargeDist -= SUPER_CHARGE_SPD; if (!chargeDmgDealt) { dummies.forEach(d => { if (d.alive && Math.abs(stick.x - d.x) < 60) { dealDamageToDummy(d, chDmg, 'dash'); chargeDmgDealt = true; } }); miniBosses.forEach(mb => { if (mb.alive && Math.abs(stick.x - mb.x) < 60) { dealDamageToMiniBoss(mb, chDmg, 'dash'); chargeDmgDealt = true; } });        if (boss && boss.alive && Math.abs(stick.x - boss.x) < 80) { dealDamageToBoss(chDmg, 'dash'); chargeDmgDealt = true; } if (!chargeDmgDealt && sentinel && sentinel.alive && Math.abs(stick.x - sentinel.x) < 80) { dealDamageToSentinel(chDmg, 'dash'); chargeDmgDealt = true; } } if (!chargeDmgDealt && bossRushDeath && bossRushDeath.hp > 0 && Math.abs(stick.x - bossRushDeath.x) < 80) { bossRushDeath.hp -= chDmg; createParticles(stick.x, stick.y - 30, 4, '#a855f7'); chargeDmgDealt = true; } if (!chargeDmgDealt) dealUltraBossDamage(chDmg); if (!chargeDmgDealt && bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(stick.x - bossRushSentinel1.x) < 80) { dealColossalSentinelDamage(bossRushSentinel1, chDmg, 'dash'); chargeDmgDealt = true; } if (!chargeDmgDealt && bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(stick.x - bossRushSentinel2.x) < 80) { dealColossalSentinelDamage(bossRushSentinel2, chDmg, 'dash'); chargeDmgDealt = true; } if (!chargeDmgDealt && bossRushColossal && bossRushColossal.hp > 0 && Math.abs(stick.x - bossRushColossal.x) < 80) { dealColossalDamage(chDmg, 'dash'); chargeDmgDealt = true; } if (chargeDist <= 0) { isCharging = false; stick.state = 'idle'; } return; }
@@ -9348,7 +9351,7 @@
       if (pickupDmgTimer > 0) pickupDmgTimer--;
       if (pickupJumpTimer > 0) pickupJumpTimer--;
       let targetVx = 0;
-      var spdMult = (getShopUpgradeEffect('speed') + MOVE_SPEED_BONUS / MOVE_SPEED) * skinSpeedMult(); if (pickupSpeedTimer > 0) spdMult *= PICKUP_SPEED_MULT; if (selectedChar === 'ultra') spdMult *= ULTRA_SPEED_MULT;
+      var spdMult = (getShopUpgradeEffect('speed') + MOVE_SPEED_BONUS / MOVE_SPEED) * skinSpeedMult(); if (pickupSpeedTimer > 0) spdMult *= PICKUP_SPEED_MULT; if (selectedChar === 'ultra') spdMult *= ULTRA_SPEED_MULT; spdMult *= lvSpeedMult();
       // ---- Sprint ------------------------------------------------------------
       // Deliberately works with NO extra button: holding a direction for ~half a second
       // breaks into a sprint, and SHIFT breaks into it instantly on a keyboard. That way
@@ -9441,7 +9444,7 @@
     // --- FIGHTER abilities ---
     function dealUltraBossDamage(dmg) {
       if (bossRushUltra && bossRushUltra.hp > 0) {
-        dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult());
+        dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * lvDmgMult());
         bossRushUltra.hp -= dmg; bossRushUltra.hitFlash = 6;
         createTextParticle(bossRushUltra.x, bossRushUltra.y - 60, '-' + dmg, '#a855f7', 14);
         createParticles(bossRushUltra.x, bossRushUltra.y - 40, 4, '#a855f7');
@@ -9450,7 +9453,7 @@
     function dealColossalDamage(dmg, source, fromAlly) {
       if (!bossRushColossal || bossRushColossal.hp <= 0) return;
       // Allies can only damage colossal if they are titan_ally
-      if (fromAlly && (!bossRushColossal || source !== 'titan')) return;        dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * 0.7); // 30% reduction
+      if (fromAlly && (!bossRushColossal || source !== 'titan')) return;        dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * lvDmgMult() * 0.7); // 30% reduction
       bossRushColossal.hp -= dmg; bossRushColossal.hitFlash = 6;
       var c2 = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : '#ef4444';
       createTextParticle(bossRushColossal.x, bossRushColossal.y - 60, '-' + dmg, c2, 14);
@@ -9458,7 +9461,7 @@
     }
     function dealColossalSentinelDamage(sent, dmg, source) {
       if (!sent || !sent.alive) return;
-      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult());
+      dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * lvDmgMult());
       sent.hp -= dmg; sent.hitFlash = 6;
       var c3 = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : '#06b6d4';
       createTextParticle(sent.x, GROUND_Y - 55, '-' + dmg, c3, 14);
@@ -10096,6 +10099,12 @@
       }
     }
 
+    // Levels raise offence and footwork too, not just HP: +6% damage and +1.5% speed per
+    // level (LV10 = +54% damage, +13.5% speed). One pair of helpers so every path agrees.
+    const LV_DMG_PER_LEVEL = 0.06, LV_SPEED_PER_LEVEL = 0.015;
+    function lvDmgMult() { return 1 + Math.max(0, playerLevel - 1) * LV_DMG_PER_LEVEL; }
+    function lvSpeedMult() { return 1 + Math.max(0, playerLevel - 1) * LV_SPEED_PER_LEVEL; }
+
     function checkUltimateUnlock() {
       if (totalKills >= ULT_KILL_THRESHOLD && !ultDashUnlocked) { ultDashUnlocked = true; ultBtn1.classList.remove('hidden'); createTextParticle(stick.x, stick.y - 80, '⚡ DASH!', '#22d3ee', 18); createParticles(stick.x, stick.y - 40, 20, '#22d3ee'); }
       if (selectedChar === 'soldier') {
@@ -10118,7 +10127,7 @@
       addUltCharge(10);
       updateEXPBar();
       const tl = Math.min(Math.floor(totalKills / LEVEL_UP_KILLS) + 1, MAX_LEVEL);
-      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else { PLAYER_MAX_HP_CURRENT = Math.floor(charBaseHp(selectedChar, playerLevel) * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } PLAYER_MAX_HP_CURRENT = Math.floor(PLAYER_MAX_HP_CURRENT * skinHpMult()); playerHP = PLAYER_MAX_HP_CURRENT; if (selectedChar === 'knight') knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' 12% HP + FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
+      if (tl > playerLevel) { playerLevel = tl; if (selectedChar === 'bots') { playerHP = BOT_HP; } else if (selectedChar === 'knight') { var baseHp = KNIGHT_HP; PLAYER_MAX_HP_CURRENT = Math.floor(baseHp * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else if (selectedChar === 'cheeser') { PLAYER_MAX_HP_CURRENT = Math.floor(CHEESER_HP + (playerLevel - 1) * (CHEESER_HP_LV10 - CHEESER_HP) / 9); playerHP = PLAYER_MAX_HP_CURRENT; } else { PLAYER_MAX_HP_CURRENT = Math.floor(charBaseHp(selectedChar, playerLevel) * (1 + (playerLevel - 1) * 0.12)); playerHP = PLAYER_MAX_HP_CURRENT; } PLAYER_MAX_HP_CURRENT = Math.floor(PLAYER_MAX_HP_CURRENT * skinHpMult()); playerHP = PLAYER_MAX_HP_CURRENT; if (selectedChar === 'knight') knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); updateHPBar(); updateEXPBar(); updateShieldBar(); createTextParticle(stick.x, stick.y - 100, '⬆ LV' + playerLevel + ' · +12% HP · +' + Math.round((lvDmgMult() - 1) * 100) + '% DMG · FULL HEAL!', '#a78bfa', 18); createParticles(stick.x, stick.y - 40, 25, '#a78bfa'); levelTextEl.textContent = 'LV ' + playerLevel; if (playerLevel >= MAX_LEVEL) { levelTextEl.textContent = 'LV ★'; levelTextEl.className = 'font-bold text-xs bg-gradient-to-r from-violet-400 to-amber-400 bg-clip-text text-transparent'; } }
     }
 
     // ==================== SPAWNING ====================
@@ -12378,6 +12387,33 @@
       }
       // Ultra effects: the orbiting sky laser, pulse/shockwave rings and sky strikes
       if (selectedChar === 'ultra') {
+        // Energy aura — he is always humming with power: a breathing core glow, three
+        // counter-turning rings and violet motes drifting up off him. Drawn behind the
+        // player so he stays readable, and only while a run is actually live.
+        if (gameState === 'playing') {
+          var uaPulse = 0.5 + Math.sin(time * 0.08) * 0.5;
+          var uaGrad = ctx.createRadialGradient(stick.x, stick.y - 32, 4, stick.x, stick.y - 32, 96);
+          uaGrad.addColorStop(0, 'rgba(192,132,252,' + (0.22 + uaPulse * 0.16).toFixed(2) + ')');
+          uaGrad.addColorStop(0.55, 'rgba(139,92,246,0.10)');
+          uaGrad.addColorStop(1, 'rgba(124,58,237,0)');
+          ctx.fillStyle = uaGrad;
+          ctx.beginPath(); ctx.arc(stick.x, stick.y - 32, 96, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.45 + uaPulse * 0.3;
+          ctx.beginPath(); ctx.ellipse(stick.x, stick.y - 32, 44 + uaPulse * 5, 15 + uaPulse * 2, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.ellipse(stick.x, stick.y - 32, 58, 20, time * 0.02, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 0.3 + uaPulse * 0.2;
+          ctx.strokeStyle = '#e9d5ff';
+          ctx.beginPath(); ctx.ellipse(stick.x, stick.y - 46, 34, 12, -time * 0.03, 0, Math.PI * 2); ctx.stroke();
+          for (var uaI = 0; uaI < 5; uaI++) {
+            var uaPh = (time * 0.012 + uaI * 0.2) % 1;
+            ctx.globalAlpha = (1 - uaPh) * 0.55;
+            ctx.fillStyle = '#e9d5ff';
+            ctx.fillRect(stick.x + Math.sin(time * 0.04 + uaI * 1.7) * 26, stick.y - 8 - uaPh * 72, 2, 2);
+          }
+          ctx.globalAlpha = 1;
+        }
         if (ultraLaser) {
           var ulx = ultraLaser.x;
           ctx.fillStyle = 'rgba(168,85,247,0.10)'; ctx.fillRect(ulx - 48, 0, 96, GROUND_Y);
@@ -13696,6 +13732,24 @@
       if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(cx - bossRushSentinel2.x) < radius) dealColossalSentinelDamage(bossRushSentinel2, dmg, source);
       if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(cx - bossRushColossal.x) < radius) dealColossalDamage(dmg, source);
     }
+    // Same target roster as phantomHitAll, but each target is tagged in hitList and only takes
+    // the hit ONCE. Wave projectiles used to re-damage everything they overlapped on every
+    // frame of their 60-frame flight, which made the Slayer's F about ten times its design.
+    function phantomHitOnce(cx, radius, dmg, source, hitList) {
+      function tag(obj, apply) {
+        if (!obj || hitList.indexOf(obj) >= 0) return;
+        hitList.push(obj); apply();
+      }
+      dummies.forEach(function(d) { if (d.alive && Math.abs(cx - d.x) < radius) tag(d, function() { dealDamageToDummy(d, dmg, source); }); });
+      miniBosses.forEach(function(mb) { if (mb.alive && Math.abs(cx - mb.x) < radius) tag(mb, function() { dealDamageToMiniBoss(mb, dmg, source); }); });
+      if (boss && boss.alive && Math.abs(cx - boss.x) < radius) tag(boss, function() { dealDamageToBoss(dmg, source); });
+      if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(cx - bossRushDeath.x) < radius) tag(bossRushDeath, function() { bossRushDeath.hp -= dmg; bossRushDeath.hitFlash = 6; });
+      if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(cx - bossRushUltra.x) < radius) tag(bossRushUltra, function() { dealUltraBossDamage(dmg); });
+      if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(cx - bossRushSentinel1.x) < radius) tag(bossRushSentinel1, function() { dealColossalSentinelDamage(bossRushSentinel1, dmg, source); });
+      if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(cx - bossRushSentinel2.x) < radius) tag(bossRushSentinel2, function() { dealColossalSentinelDamage(bossRushSentinel2, dmg, source); });
+      if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(cx - bossRushColossal.x) < radius) tag(bossRushColossal, function() { dealColossalDamage(dmg, source); });
+    }
+
     function possessEnemy(ex) {
       createParticles(ex, GROUND_Y - 30, 16, '#7c3aed');
       createTextParticle(ex, GROUND_Y - 78, '🌑 POSSESSED!', '#a78bfa', 16);
@@ -13857,6 +13911,10 @@
       stick.state = 'shoot'; stick.animTime = 0; attackCooldown = SLAYER_SLASH_CD;
       phantomHitAll(stick.x + stick.facing * 20, SLAYER_SLASH_RANGE, SLAYER_SLASH_DMG, 'slash');
       createParticles(stick.x + 40 * stick.facing, stick.y - 35, 8, '#fde047');
+      // Blade crescent: a gold arc with a red after-image, in the direction he swings.
+      var slDir = stick.facing || 1;
+      ultraFx.push({ x: stick.x + slDir * 30, y: stick.y - 38, r: 18, max: 92, color: '#fde047', type: 'crescent', spin: slDir > 0 ? -0.7 : Math.PI - 0.7, width: 4, life: 13, maxLife: 13 });
+      ultraFx.push({ x: stick.x + slDir * 30, y: stick.y - 38, r: 12, max: 64, color: '#ef4444', type: 'crescent', spin: slDir > 0 ? -0.5 : Math.PI - 0.5, width: 2, life: 16, maxLife: 16 });
     }
     function performSlayerLunge() {
       if (slayerLungeCD > 0 || slayerLungeActive) return;
@@ -13865,6 +13923,9 @@
       stick.facing = slayerLungeDir;
       createTextParticle(stick.x, stick.y - 80, '🗡 LUNGE', '#facc15', 14);
       createParticles(stick.x, stick.y - 30, 8, '#facc15');
+      // The launch kicks up a gold crescent and a ring of sparks.
+      ultraFx.push({ x: stick.x, y: stick.y - 34, r: 16, max: 78, color: '#fde047', type: 'crescent', spin: slayerLungeDir > 0 ? Math.PI - 0.8 : -0.8, width: 4, life: 14, maxLife: 14 });
+      ultraFx.push({ x: stick.x, y: stick.y - 34, r: 10, max: 54, color: '#ef4444', type: 'burst', count: 7, spin: 0, life: 13, maxLife: 13 });
     }
     function performSlayerBladeSlam() {
       if (slayerBladeSlamCD > 0) return;
@@ -13873,6 +13934,10 @@
       createExplosion(stick.x, GROUND_Y - 10, SLAYER_BLADE_SLAM_RADIUS, '#facc15');
       phantomHitAll(stick.x, SLAYER_BLADE_SLAM_RADIUS, SLAYER_BLADE_SLAM_DMG, 'slam');
       createTextParticle(stick.x, stick.y - 80, '⚔ BLADE SLAM ' + SLAYER_BLADE_SLAM_DMG, '#fde047', 18);
+      // The blade bites the floor: gold wave, cracked ground and a spark wall.
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 16, max: SLAYER_BLADE_SLAM_RADIUS, color: '#fde047', type: 'wave', life: 20, maxLife: 20 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 10, max: SLAYER_BLADE_SLAM_RADIUS * 0.9, color: '#ef4444', type: 'crack', count: 8, life: 22, maxLife: 22 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 40, r: 12, max: 66, color: '#fde047', type: 'burst', count: 8, spin: 0, life: 16, maxLife: 16 });
     }
     function performSlayerSuperSlash() {
       if (slayerSuperSlashCD > 0) return;
@@ -13881,12 +13946,16 @@
       var dir = mouseX >= stick.x ? 1 : -1; stick.facing = dir;
       slayerProjectiles.push({ x: stick.x + dir * 30, y: stick.y - 35, vx: dir * 14, life: SLAYER_ENERGY_LIFE, dmg: SLAYER_SUPER_SLASH_DMG, range: 34, rot: 0, energy: true });
       createParticles(stick.x + dir * 30, stick.y - 35, 8, '#fde047');
+      ultraFx.push({ x: stick.x + dir * 34, y: stick.y - 38, r: 10, max: 56, color: '#fde047', type: 'ring', life: 12, maxLife: 12 });
+      ultraFx.push({ x: stick.x + dir * 34, y: stick.y - 38, r: 8, max: 44, color: '#ffffff', type: 'flash', life: 8, maxLife: 8 });
     }
     function performSlayerMultiSlash() {
       if (slayerMultiSlashCD > 0 || slayerMultiSlashActive) return;
       slayerMultiSlashCD = SLAYER_MULTI_SLASH_CD;
       slayerMultiSlashActive = true; slayerMultiSlashTimer = SLAYER_MULTI_SLASH_HITS * 8; slayerMultiSlashTick = 0; slayerMultiSlashWavesDone = 0;
       createTextParticle(stick.x, stick.y - 95, '⚔ MULTI SLASH!', '#fde047', 18);
+      ultraFx.push({ x: stick.x, y: stick.y - 38, r: 14, max: 120, color: '#fde047', type: 'wave', life: 22, maxLife: 22 });
+      ultraFx.push({ x: stick.x, y: stick.y - 38, r: 30, max: 70, color: '#fde047', type: 'gear', count: 8, spin: 0, life: 20, maxLife: 20 });
     }
     function performSlayerTornado() {
       if (slayerTornadoCD > 0 || slayerTornadoActive) return;
@@ -13909,6 +13978,13 @@
       createTextParticle(stick.x, stick.y - 115, '⚔ "Sacred sword guarding realms!"', '#fde047', 18);
       createTextParticle(CW / 2, 70, '⭑ SLAYER AWAKENS — ×2 DMG / SPD / HP', '#fde047', 22);
       createParticles(stick.x, stick.y - 40, 40, '#fde047');
+      // Awakening: a gold ring bursts out, three blades of light cross him, and a column
+      // of sacred light drops from the sky.
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 20, r: 20, max: 220, color: '#fde047', type: 'wave', life: 26, maxLife: 26 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 20, r: 20, max: 160, color: '#ef4444', type: 'wave', life: 32, maxLife: 32 });
+      for (var suI = 0; suI < 3; suI++) ultraFx.push({ x: stick.x, y: stick.y - 38, r: 20, max: 110 + suI * 30, color: suI === 1 ? '#ffffff' : '#fde047', type: 'crescent', spin: -0.7 + suI * 2.1, width: 5, life: 22 + suI * 3, maxLife: 22 + suI * 3 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 30, max: 88, color: '#fde047', type: 'pillar', width: 34, life: 30, maxLife: 30 });
+      ultraFx.push({ x: stick.x, y: stick.y - 40, r: 16, max: 70, color: '#ffffff', type: 'flash', life: 14, maxLife: 14 });
       canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 500);
     }
     // ==================== TAOIST ABILITIES ====================
@@ -14196,7 +14272,8 @@
       // Super slash / multi-slash wave projectiles
       slayerProjectiles.forEach(function(p) {
         p.x += p.vx; p.life--; p.rot = (p.rot || 0) + 0.35;
-        phantomHitAll(p.x, p.range, p.dmg, 'slash');
+        // One hit per enemy per wave: this used to fire every frame for the whole flight.
+        phantomHitOnce(p.x, p.range, p.dmg, 'slash', p.hits || (p.hits = []));
         if (p.life % 3 === 0) createParticles(p.x, p.y, 1, '#fef08a');
         if (p.x < -30 || p.x > CW + 30) p.life = 0;
       });
@@ -14211,6 +14288,9 @@
           slayerProjectiles.push({ x: stick.x, y: stick.y - 35, vx: 15, life: SLAYER_ENERGY_LIFE, dmg: SLAYER_MULTI_SLASH_DMG, range: 30, rot: 0, energy: true });
           slayerProjectiles.push({ x: stick.x, y: stick.y - 35, vx: -15, life: SLAYER_ENERGY_LIFE, dmg: SLAYER_MULTI_SLASH_DMG, range: 30, rot: 0, energy: true });
           createParticles(stick.x, stick.y - 35, 6, '#fde047');
+          // A blade arc leaves with each wave, both directions — reads as nine real swings.
+          ultraFx.push({ x: stick.x + 26, y: stick.y - 38, r: 12, max: 74, color: '#fde047', type: 'crescent', spin: -0.7, width: 3, life: 9, maxLife: 9 });
+          ultraFx.push({ x: stick.x - 26, y: stick.y - 38, r: 12, max: 74, color: '#fde047', type: 'crescent', spin: Math.PI - 0.7, width: 3, life: 9, maxLife: 9 });
         }
         if (slayerMultiSlashWavesDone >= SLAYER_MULTI_SLASH_HITS) { slayerMultiSlashActive = false; slayerMultiSlashWavesDone = 0; }
       }
@@ -14223,6 +14303,7 @@
         slayerTornadoTick++;
         if (slayerTornadoTick >= 10) { slayerTornadoTick = 0; phantomHitAll(stick.x, 70, SLAYER_TORNADO_DMG, 'slash'); }
         createParticles(stick.x, stick.y - 30, 3, '#fde047');
+        if (slayerTornadoTimer % 6 === 0) ultraFx.push({ x: stick.x, y: stick.y - 36, r: 14, max: 62, color: '#fde047', type: 'crescent', spin: time * 0.4, width: 3, life: 10, maxLife: 10 });
         if (slayerTornadoTimer <= 0) slayerTornadoActive = false;
       }
       // Sacred Sword ult — ×2 buff ends, then a giant light sword falls and bursts
