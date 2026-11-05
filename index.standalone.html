@@ -1286,9 +1286,12 @@
     const SLAYER_LUNGE_CD = 300, SLAYER_LUNGE_DIST = 360, SLAYER_LUNGE_SPD = 8; // long + slow
     const SLAYER_BLADE_SLAM_DMG = 20, SLAYER_BLADE_SLAM_CD = 240, SLAYER_BLADE_SLAM_RADIUS = 140;
     const SLAYER_SUPER_SLASH_DMG = 15, SLAYER_SUPER_SLASH_CD = 150;
-    const SLAYER_MULTI_SLASH_DMG = 5, SLAYER_MULTI_SLASH_CD = 480, SLAYER_MULTI_SLASH_HITS = 9;
+    // F was the strongest thing in his kit: 7 waves x 3 = 21 per enemy per cast, down from
+    // 9 x 5 = 45 before the per-frame damage bug was fixed on top of it.
+    const SLAYER_MULTI_SLASH_DMG = 2, SLAYER_MULTI_SLASH_CD = 540, SLAYER_MULTI_SLASH_HITS = 7;
     const SLAYER_TORNADO_DMG = 6, SLAYER_TORNADO_CD = 420, SLAYER_TORNADO_DUR = 120;
     const SLAYER_ULT_DUR = 600, SLAYER_ULT_EXPLODE_DMG = 1000;
+    const SLAYER_SKY_DROP_DUR = 260, SLAYER_SKY_HOVER = 60; // sword hangs, then plunges
     const SLAYER_ENERGY_LIFE = 60, SLAYER_THROW_SCENE_DUR = 96, SLAYER_THROW_FRAME = 52;
     // ==================== TAOIST (☯ wooden sword, talismans, undead) ====================
     // A support/summoner fighter: undead do less to him, he comes back once at half HP,
@@ -1878,7 +1881,7 @@
     let slayerProjectiles = [], slayerMultiSlashActive = false, slayerMultiSlashTimer = 0, slayerMultiSlashTick = 0, slayerMultiSlashWavesDone = 0;
     let slayerTornadoCD = 0, slayerTornadoActive = false, slayerTornadoTimer = 0, slayerTornadoTick = 0;
     let slayerUltActive = false, slayerUltTimer = 0, slayerPrevMaxHp = 0, slayerSavedColor = '#d1d5db';
-    let slayerSwordFall = { active: false, timer: 0, x: CW / 2, y: -300, vx: 0, vy: 0, rot: 0, rotSpd: 0 };
+    let slayerSwordFall = { active: true, timer: SLAYER_SKY_DROP_DUR, x: CW / 2, y: -150, vx: 0, vy: 0, rot: Math.PI, rotSpd: 0, dropAt: SLAYER_SKY_DROP_DUR - SLAYER_SKY_HOVER }
     let slayerThrowScene = { active: false, timer: 0, thrown: false, dir: 1 };
     let slayerSwordShock = { active: false, timer: 0, x: CW / 2 };
     // ---- Taoist state ----
@@ -13974,7 +13977,9 @@
       slayerSavedColor = playerColor; playerColor = '#fde047';
       MOVE_SPEED_BONUS = MOVE_SPEED;
       updateHPBar();
+      // He says it the moment the ult goes up, in his own synthesized voice.
       showVoiceLine('SLAYER', 'Sacred sword guarding realms!');
+      playSlayerUltVoice();
       createTextParticle(stick.x, stick.y - 115, '⚔ "Sacred sword guarding realms!"', '#fde047', 18);
       createTextParticle(CW / 2, 70, '⭑ SLAYER AWAKENS — ×2 DMG / SPD / HP', '#fde047', 22);
       createParticles(stick.x, stick.y - 40, 40, '#fde047');
@@ -14321,8 +14326,7 @@
           updateHPBar();
           // Freeze into a dramatic "hurl the sacred sword" cinematic
           slayerThrowScene = { active: true, timer: SLAYER_THROW_SCENE_DUR, thrown: false, dir: 1 };
-          createTextParticle(CW / 2, 90, '⚔ SACRED SWORD — GUARDING REALMS!', '#fde047', 24);
-          playSlayerUltVoice();
+          createTextParticle(CW / 2, 90, '⚔ THE SACRED SWORD DESCENDS!', '#fde047', 24);
         }
       }
       // Throw cinematic: grab sword with one hand, aim with the other, then hurl it
@@ -14330,11 +14334,19 @@
         slayerThrowScene.timer--;
         if (slayerThrowScene.timer <= SLAYER_THROW_SCENE_DUR - SLAYER_THROW_FRAME && !slayerThrowScene.thrown) {
           slayerThrowScene.thrown = true;
-          // Launch the sword toward the mouse
-          var tdx = mouseX - stick.x, tdy = mouseY - (stick.y - 30);
-          var td = Math.sqrt(tdx * tdx + tdy * tdy) || 1;
-          var tx = CW / 2 + (tdx / td) * 40, ty = 120 + (tdy / td) * 20;
-          slayerSwordFall = { active: true, timer: 240, x: stick.x, y: stick.y - 40, vx: (tx - stick.x) / 40, vy: -15, rot: -0.6, rotSpd: 0.08 };
+          // The blade answers from the sky: it picks a mark, hangs above it, then plunges
+          // point-first into the ground where it lands.
+          var markX = CW / 2, pickX = null, pickD = Infinity;
+          dummies.forEach(function(t) { if (t.alive && Math.abs(t.x - stick.x) < pickD) { pickD = Math.abs(t.x - stick.x); pickX = t.x; } });
+          if (boss && boss.alive && Math.abs(boss.x - stick.x) < pickD) { pickX = boss.x; }
+          if (typeof pickX === 'number') markX = pickX;
+          markX = Math.max(60, Math.min(CW - 60, markX));
+          // rot PI: the blade hangs point-down, ready to plunge.
+          // Hover for SLAYER_SKY_HOVER frames (1s), then plunge.
+          slayerSwordFall = { active: true, timer: SLAYER_SKY_DROP_DUR, x: markX, y: -150, vx: 0, vy: 0, rot: Math.PI, rotSpd: 0, dropAt: SLAYER_SKY_DROP_DUR - SLAYER_SKY_HOVER };
+          ultraFx.push({ x: markX, y: GROUND_Y, r: 24, max: 110, color: '#fde047', type: 'pillar', width: 40, life: 40, maxLife: 40 });
+          ultraFx.push({ x: markX, y: GROUND_Y, r: 30, max: 90, color: '#fef08a', type: 'gear', count: 10, spin: 0, life: 40, maxLife: 40 });
+          createTextParticle(markX, 70, '⚔ THE SACRED SWORD DESCENDS', '#fde047', 20);
           canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 400);
         }
         if (slayerThrowScene.timer <= 0) slayerThrowScene.active = false;
@@ -14342,14 +14354,21 @@
       // Flying giant sword → cool aerial arc, then a 1000 dmg detonation
       if (slayerSwordFall.active) {
         slayerSwordFall.timer--;
-        slayerSwordFall.vy += 0.6;
-        slayerSwordFall.x += slayerSwordFall.vx; slayerSwordFall.y += slayerSwordFall.vy;
-        slayerSwordFall.rot += slayerSwordFall.rotSpd;
-        if (slayerSwordFall.timer % 2 === 0) createParticles(slayerSwordFall.x, slayerSwordFall.y, 2, '#fef08a');
-        if (slayerSwordFall.vy > 0) createParticles(slayerSwordFall.x, slayerSwordFall.y - 30, 3, '#fde047');
+        var skyHover = slayerSwordFall.timer > (slayerSwordFall.dropAt || 0);
+        if (skyHover) {
+          // Hanging in the sky, gathering light: the beacon shows where it will land.
+          slayerSwordFall.y = -150 + Math.sin(time * 0.12) * 8;
+          if (slayerSwordFall.timer % 6 === 0) createParticles(slayerSwordFall.x + (Math.random() - 0.5) * 90, -10, 2, '#fef08a');
+        } else {
+          slayerSwordFall.vy = Math.min(30, slayerSwordFall.vy + 1.5);
+          slayerSwordFall.y += slayerSwordFall.vy;
+          slayerSwordFall.x += slayerSwordFall.vx; slayerSwordFall.rot += slayerSwordFall.rotSpd;
+          if (slayerSwordFall.timer % 2 === 0) createParticles(slayerSwordFall.x, slayerSwordFall.y, 2, '#fef08a');
+        }
         if (slayerSwordFall.x < 40) slayerSwordFall.x = 40;
         if (slayerSwordFall.x > CW - 40) slayerSwordFall.x = CW - 40;
-        if (slayerSwordFall.vy > 0 && slayerSwordFall.y >= GROUND_Y - 90) {
+        // Point-first: with the blade flipped, its tip is ~200px below the pivot.
+        if (slayerSwordFall.vy > 0 && slayerSwordFall.y >= GROUND_Y - 200) {
           var lx = slayerSwordFall.x;
           slayerSwordFall.active = false;
           slayerSwordShock = { active: true, timer: 34, x: lx };
@@ -14358,6 +14377,12 @@
           createParticles(lx, GROUND_Y - 40, 60, '#fef08a');
           createParticles(lx, GROUND_Y - 40, 40, '#ffffff');
           phantomHitAll(lx, 99999, SLAYER_ULT_EXPLODE_DMG, 'ult');
+          // Impact dressing: a white core, a gold wall of force, cracked ground and dust.
+          ultraFx.push({ x: lx, y: GROUND_Y - 40, r: 24, max: 120, color: '#ffffff', type: 'flash', life: 16, maxLife: 16 });
+          ultraFx.push({ x: lx, y: GROUND_Y, r: 18, max: 420, color: '#fde047', type: 'wave', life: 26, maxLife: 26 });
+          ultraFx.push({ x: lx, y: GROUND_Y, r: 14, max: 300, color: '#ffffff', type: 'wave', life: 20, maxLife: 20 });
+          ultraFx.push({ x: lx, y: GROUND_Y, r: 16, max: 360, color: '#facc15', type: 'crack', count: 11, life: 30, maxLife: 30 });
+          ultraFx.push({ x: lx, y: GROUND_Y - 60, r: 20, max: 90, color: '#fde047', type: 'burst', count: 10, spin: 0, life: 22, maxLife: 22 });
           playSlayerSwordExplodeSfx();
           canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 800);
         }
@@ -14639,7 +14664,7 @@
       slayerProjectiles = []; slayerMultiSlashActive = false; slayerMultiSlashTimer = 0; slayerMultiSlashTick = 0; slayerMultiSlashWavesDone = 0;
       slayerTornadoCD = 0; slayerTornadoActive = false; slayerTornadoTimer = 0; slayerTornadoTick = 0;
       slayerUltActive = false; slayerUltTimer = 0;
-      slayerSwordFall = { active: false, timer: 0, x: CW / 2, y: -300, vx: 0, vy: 0, rot: 0, rotSpd: 0 };
+      slayerSwordFall = { active: true, timer: SLAYER_SKY_DROP_DUR, x: CW / 2, y: -150, vx: 0, vy: 0, rot: Math.PI, rotSpd: 0, dropAt: SLAYER_SKY_DROP_DUR - SLAYER_SKY_HOVER }
       slayerThrowScene = { active: false, timer: 0, thrown: false, dir: 1 };
       slayerSwordShock = { active: false, timer: 0, x: CW / 2 };
       // Taoist: cooldowns, summons, talismans and the revival charge are per-round.

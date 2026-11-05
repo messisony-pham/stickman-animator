@@ -1056,9 +1056,10 @@ function check(name, cond, extra) {
       /if \(!obj \|\| hitList\.indexOf\(obj\) >= 0\) return;/.test(html) &&
       /phantomHitOnce\(p\.x, p\.range, p\.dmg, 'slash', p\.hits \|\| \(p\.hits = \[\]\)\);/.test(html) &&
       !/phantomHitAll\(p\.x, p\.range, p\.dmg, 'slash'\);/.test(html) &&
-      // Design value stays 9 waves x 5 damage.
-      num(/SLAYER_MULTI_SLASH_DMG = (\d+)/) === 5 &&
-      num(/SLAYER_MULTI_SLASH_HITS = (\d+)/) === 9);
+      // Nerfed on request: 7 waves x 3 = 21 per enemy per cast (was 9 x 5 = 45).
+      num(/SLAYER_MULTI_SLASH_DMG = (\d+)/) === 2 &&
+      num(/SLAYER_MULTI_SLASH_HITS = (\d+)/) === 7 &&
+      num(/SLAYER_MULTI_SLASH_CD = (\d+)/) === 540);
 
     check(file + ': levelling up also raises damage and speed',
       /const LV_DMG_PER_LEVEL = 0\.06, LV_SPEED_PER_LEVEL = 0\.015;/.test(html) &&
@@ -1067,6 +1068,17 @@ function check(name, cond, extra) {
       /spdMult \*= lvSpeedMult\(\);/.test(html) &&
       (html.match(/pickupDmgMult\(\) \* lvDmgMult\(\)/g) || []).length >= 6 &&
       /\+ Math\.round\(\(lvDmgMult\(\) - 1\) \* 100\) \+ '% DMG/.test(html));
+
+    // The ult line is spoken at cast, and the sword now falls from the sky at the end.
+    check(file + ': the Slayer speaks his line on cast and calls the sword from the sky',
+      /showVoiceLine\('SLAYER', 'Sacred sword guarding realms!'\);\n      playSlayerUltVoice\(\);/.test(html) &&
+      /const SLAYER_SKY_DROP_DUR = (\d+), SLAYER_SKY_HOVER = (\d+);/.test(html) &&
+      /slayerSwordFall = \{ active: true, timer: SLAYER_SKY_DROP_DUR, x: markX, y: -150, vx: 0, vy: 0, rot: Math\.PI, rotSpd: 0, dropAt: SLAYER_SKY_DROP_DUR - SLAYER_SKY_HOVER \};/.test(html) &&
+      /var skyHover = slayerSwordFall\.timer > \(slayerSwordFall\.dropAt \|\| 0\);/.test(html) &&
+      /slayerSwordFall\.vy = Math\.min\(30, slayerSwordFall\.vy \+ 1\.5\);/.test(html) &&
+      /slayerSwordFall\.y >= GROUND_Y - 200/.test(html) &&
+      // The old throw-toward-the-mouse launch must be gone.
+      !/vy: -15, rot: -0\.6, rotSpd: 0\.08/.test(html));
 
     check(file + ': Slayer blades are drawn and Ultra carries an energy aura',
       /type: 'crescent', spin: slDir > 0 \? -0\.7 : Math\.PI - 0\.7/.test(html) &&
