@@ -96,11 +96,17 @@ function check(name, cond, extra) {
     check(file + ': in portrait the arena centres above the pads, not under them',
       /body\.mob-hud #playArea \{ align-items: center; padding-bottom: calc\(128px \+ env\(safe-area-inset-bottom\)\); \}/.test(html));
     // 120Hz phones ran the whole fight at double speed until the loop became fixed-step.
+    // Counting the steps is not enough: a catch-up burst used to paint every one of them,
+    // so a phone that fell behind did 3x the drawing per frame and stayed behind.
     check(file + ': the game runs on a fixed 60Hz step instead of one step per frame',
       /var FRAME = \{ last: 0, acc: 0, step: 1000 \/ 60, maxSteps: 3 \};/.test(html) &&
-      /function gameStep\(\) \{/.test(html) &&
+      /function gameStep\(skipDraw\) \{/.test(html) &&
       /while \(FRAME\.acc >= FRAME\.step && steps < FRAME\.maxSteps\)/.test(html) &&
-      !/function gameStep\(\)[\s\S]{0,200}?requestAnimationFrame\(gameLoop\)[\s\S]{0,40}?loopFrameArmed = true/.test(html));
+      /var lastStep = !\(FRAME\.acc >= FRAME\.step && steps < FRAME\.maxSteps\);/.test(html) &&
+      /gameStep\(!lastStep\);/.test(html) &&
+      !/function gameStep\([^)]*\)[\s\S]{0,200}?requestAnimationFrame\(gameLoop\)[\s\S]{0,40}?loopFrameArmed = true/.test(html));
+    check(file + ': catch-up steps skip the drawing entirely',
+      /\/\/ === DRAW ===\n      if \(!skipDraw\) \{/.test(html));
     check(file + ': a backgrounded tab pauses instead of losing the run',
       /addEventListener\('visibilitychange'/.test(html) && /if \(document\.hidden && gameState === 'playing'\)/.test(html));
     check(file + ': the canvas is not re-fitted on every URL-bar twitch',
@@ -164,8 +170,14 @@ function check(name, cond, extra) {
     check(file + ': the player is drawn from the rig, with joints visible',
       /const rig = stickRig\(\{ x: x, y: y, facing: facing, state: state, vy: vy/.test(html) &&
       /strokeLimb\(x, bbY, lg\.kx, lg\.ky, lg\.fx, lg\.fy\)/.test(html));
-    check(file + ': ground enemies walk on the same rig',
-      /var erg = stickRig\(\{[\s\S]{0,200}?legLen: 13/.test(html) && /strokeLimb\(dx, wHip, elg\.kx, elg\.ky, elg\.fx, elg\.fy\)/.test(html));
+    // The crowd is the frame's biggest cost, so every enemy draws its whole skeleton in
+    // one path with a single stroke() instead of five, and off-screen enemies draw nothing.
+    check(file + ': ground enemies walk on the same rig, batched into one path',
+      /var erg = stickRig\(\{[\s\S]{0,200}?legLen: 13/.test(html) &&
+      /ctx\.moveTo\(dx, wHip\); ctx\.lineTo\(elg\.kx, elg\.ky\); ctx\.lineTo\(elg\.fx, elg\.fy\);/.test(html) &&
+      /ctx\.moveTo\(dx, wSh \+ 10\); ctx\.lineTo\(ear\.ex, ear\.ey\); ctx\.lineTo\(ear\.hx, ear\.hy \+ 2\);/.test(html) &&
+      /if \(dx < -70 \|\| dx > CW \+ 70\) return;/.test(html) &&
+      !/strokeLimb\(dx, wHip, elg\.kx, elg\.ky, elg\.fx, elg\.fy\)/.test(html));
     check(file + ': idle / walk / sprint / jump all have their own pose',
       /var sprint = state === 'sprint';/.test(html) && /if \(state === 'jump'\) \{\n\s*\/\/ Rising/.test(html));
     check(file + ': sprint is reachable without an extra button (hold a direction)',
@@ -881,6 +893,196 @@ function check(name, cond, extra) {
   });
 }
 
+// --- ULTRA: the purple gear-halo character ----------------------------------
+{
+  console.log('\n===== Ultra =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const num = (re) => { const m = html.match(re); return m ? Number(m[1]) : NaN; };
+
+    check(file + ': Ultra is a buyable character card',
+      /id="charUltra"/.test(html) &&
+      /onclick="buyChar\('ultra'\)"/.test(html) &&
+      /let boughtUltra = localStorage\.getItem\('sm_boughtUltra'\) === 'true';/.test(html) &&
+      /if \(c === 'ultra'\) return boughtUltra;/.test(html) &&
+      /c === 'ultra' && ultraUnlocked\(\) && totalPoints >= ULTRA_COST && bossPoints >= ULTRA_BOSS_COST/.test(html) &&
+      /var ulEl = document\.getElementById\('charUltra'\);\n      if \(ulEl\) ulEl\.classList\.toggle\('selected', c === 'ultra'\);/.test(html));
+
+    check(file + ': he costs 5,000 points and 10 boss points, and is kept forever',
+      num(/var ULTRA_COST = (\d+)/) === 5000 &&
+      num(/ULTRA_BOSS_COST = (\d+)/) === 10 &&
+      /totalPoints -= ULTRA_COST; bossPoints -= ULTRA_BOSS_COST;/.test(html) &&
+      // A five-round rental would silently delete a 5,000 point character.
+      /if \(c === 'ultra'\) return; \/\/ bought outright, never burns out/.test(html) &&
+      !/if \(c === 'ultra'\) \{ boughtUltra = false;/.test(html));
+
+    check(file + ': the Fifty badge and a cleared Fighter Lv 11 are required to buy him',
+      /function ultraHasFifty\(\)/.test(html) &&
+      /a\['deathWaves:50'\]/.test(html) &&
+      /\(l\.deathWaves \|\| 0\) >= 50/.test(html) &&
+      /function ultraBeatLv11\(\) \{ return localStorage\.getItem\('sm_fighterLv11Down'\) === '1'; \}/.test(html) &&
+      /function ultraUnlocked\(\) \{ return ultraHasFifty\(\) && ultraBeatLv11\(\); \}/.test(html) &&
+      // Winning the last level is what stamps it, since progress clamps at 11 either way.
+      /try \{ localStorage\.setItem\('sm_fighterLv11Down', '1'\); \} catch \(e\) \{\}/.test(html) &&
+      /if \(!ultraHasFifty\(\)\) ulMiss\.push\('🏅 THE FIFTY'\);/.test(html) &&
+      /if \(!ultraBeatLv11\(\)\) ulMiss\.push\('📖 FIGHTER LV 11'\);/.test(html));
+
+    check(file + ': 450 HP, and fullReset knows about him',
+      num(/ULTRA_HP = (\d+)/) === 450 &&
+      /selectedChar === 'ultra' \? ULTRA_HP : 100\) \* skinHpMult\(\)/.test(html) &&
+      /selectedChar === 'ultra' \? ULTRA_HP/.test(html));
+
+    check(file + ': punch 20, blast 23, pulse 30 with +5% per use capped at +50%',
+      num(/ULTRA_PUNCH_DMG = (\d+)/) === 20 &&
+      num(/ULTRA_BLAST_DMG = (\d+)/) === 23 &&
+      num(/ULTRA_PULSE_DMG = (\d+)/) === 30 &&
+      /const ULTRA_PULSE_STEP = 0\.05, ULTRA_PULSE_MAX_USES = 10;/.test(html) &&
+      /return 1 \+ Math\.min\(ULTRA_PULSE_MAX_USES, ultraPulseUses\) \* ULTRA_PULSE_STEP;/.test(html) &&
+      /ultraPulseUses = Math\.min\(ULTRA_PULSE_MAX_USES, ultraPulseUses \+ 1\);/.test(html));
+
+    check(file + ': sky laser ticks 1 damage every 0.1s for 10s',
+      num(/ULTRA_LASER_DMG = (\d+)/) === 1 &&
+      num(/ULTRA_LASER_DUR = (\d+)/) === 600 &&
+      /if \(ultraLaser\.tick % ULTRA_LASER_TICK === 0\) \{/.test(html) &&
+      /ultraHitRadius\(ultraLaser\.x, 46, ULTRA_LASER_DMG, 'laser'\)/.test(html) &&
+      num(/ULTRA_LASER_TICK = (\d+)/) === 6);
+
+    check(file + ': super slam is 45 + stun, super dash is 35 + a shockwave',
+      num(/ULTRA_SLAM_DMG = (\d+)/) === 45 &&
+      /ultraStunAround\(stick\.x, ULTRA_SLAM_RADIUS\);/.test(html) &&
+      num(/ULTRA_DASH_DMG = (\d+)/) === 35 &&
+      /ultraHitRadius\(\(fromX \+ toX\) \/ 2, Math\.abs\(toX - fromX\) \/ 2 \+ 45, ULTRA_DASH_DMG, 'dash'\);/.test(html) &&
+      /ultraHitRadius\(stick\.x, ULTRA_WAVE_RADIUS, ULTRA_WAVE_DMG, 'wave'\);/.test(html) &&
+      // A boss can be stunned too, not just the small stuff.
+      /if \(boss\.stunTimer > 0\) \{ boss\.stunTimer--;/.test(html));
+
+    check(file + ': heaven time strike is 40/0.5s for 5s then a 65% supernova',
+      num(/ULTRA_ULT_TICK_DMG = (\d+)/) === 40 &&
+      num(/ULTRA_ULT_DUR = (\d+)/) === 300 &&
+      num(/ULTRA_ULT_NOVA_PCT = ([0-9.]+)/) === 0.65 &&
+      /ultraHitAll\(ULTRA_ULT_TICK_DMG, 'ult'\);/.test(html) &&
+      // Percentage of each enemy's OWN max HP, bosses included.
+      /function ultraHitAllPct\(pct\)/.test(html) &&
+      /Math\.round\(\(t\.maxHp \|\| t\.hp \|\| 1\) \* pct\)/.test(html) &&
+      /if \(boss && boss\.alive\) dealDamageToBoss\(pctOf\(boss\), 'nova'\);/.test(html));
+
+    check(file + ': 20% damage reduction, extra speed, and a 10% heal every 15s',
+      num(/ULTRA_TAKEN_MULT = ([0-9.]+)/) === 0.8 &&
+      /if \(selectedChar === 'ultra'\) dmg = Math\.max\(1, Math\.floor\(dmg \* ULTRA_TAKEN_MULT\)\);/.test(html) &&
+      /if \(selectedChar === 'ultra'\) spdMult \*= ULTRA_SPEED_MULT;/.test(html) &&
+      num(/ULTRA_HEAL_EVERY = (\d+)/) === 900 &&
+      num(/ULTRA_HEAL_PCT = ([0-9.]+)/) === 0.1);
+
+    check(file + ': purple gear halo behind him and a purple star eye',
+      /ULTRA: the purple gear halo sits BEHIND him/.test(html) &&
+      /Purple star eye — five points, turning slowly/.test(html) &&
+      /ctx\.strokeStyle = 'rgba\(192,132,252,0\.5\)'; ctx\.lineWidth = 3;/.test(html) &&
+      /fillStyle = '#c084fc'/.test(html));
+
+    check(file + ': every input path reaches his abilities',
+      /} else if \(selectedChar === 'ultra'\) \{\n        if \(e\.key === '1'\) performUltraLaser\(\);/.test(html) &&
+      /if \(e\.button === 2\) performUltraBlast\(\); else performUltraPunch\(\);/.test(html) &&
+      /else if \(selectedChar === 'ultra'\) performUltraPulse\(\);/.test(html) &&
+      /ultBtn3\.addEventListener\('click', \(e\) => \{ e\.stopPropagation\(\); selectedChar === 'ultra' \? performUltraUlt\(\)/.test(html) &&
+      /updateKnightAbilities\(\); updateHyperAbilities\(\); updateUltraAbilities\(\);/.test(html));
+
+    // Every ability has to look like something, not just deal a number: each one pushes at
+    // least two of the bespoke effect types the renderer now understands.
+    // The effect pass used to sit in updateHyperAbilities(), which runs before the frame is
+    // painted — every Ultra visual was drawn underneath the background and never seen.
+    const hyperUpdateBody = html.slice(html.indexOf('function updateHyperAbilities()'), html.indexOf('function updateUltraAbilities()'));
+    check(file + ': the effect pass draws with the scene, not inside an update function',
+      hyperUpdateBody.length > 0 &&
+      hyperUpdateBody.indexOf('Ultra effects') === -1 &&
+      /Ultra effects: the orbiting[\s\S]{0,14000}drawHollowLaser\(\); drawStickman\(\);/.test(html));
+
+    check(file + ': every ability is visually dressed',
+      // The renderer knows all eight effect shapes.
+      /f\.type === 'crescent'/.test(html) &&
+      /f\.type === 'burst'/.test(html) &&
+      /f\.type === 'gear'/.test(html) &&
+      /f\.type === 'flash'/.test(html) &&
+      /f\.type === 'pillar'/.test(html) &&
+      /f\.type === 'crack'/.test(html) &&
+      // Punch: crescent + burst + flash.
+      /ubPf > 0 \? -0.72 : Math\.PI - 0\.72, width: 5/.test(html) &&
+      // Blast: a third ring, a cog imprint and a white core.
+      /type: 'gear', count: 8, spin: 0, life: 22, maxLife: 22/.test(html) &&
+      // Laser: targeting cog and a starlight column at cast.
+      /type: 'pillar', width: 26, life: 22, maxLife: 22/.test(html) &&
+      // Pulse: strobing triple wave keeps the stacking buff readable.
+      /ULTRA_PULSE_RADIUS \* 1\.1, '#7c3aed', 'wave', 26/.test(html) &&
+      // Slam: fractured floor plus a second wall of force.
+      /type: 'crack', count: 9, life: 26, maxLife: 26/.test(html) &&
+      // Dash: launch crescent and speed lines.
+      /ultraDashDir > 0 \? Math\.PI - 0\.7 : -0\.7, width: 4/.test(html) &&
+      // Ult: gears on the floor and overhead, plus a light column.
+      /type: 'gear', count: 16, spin: 0, life: 40, maxLife: 40/.test(html) &&
+      /type: 'gear', count: 14, spin: 0, life: 70, maxLife: 70/.test(html) &&
+      // Live beam visuals while the 10s laser runs.
+      /for \(var ubScanI = 0; ubScanI < 3; ubScanI\+\+\)/.test(html) &&
+      // Time stop: clock hands and cracked-glass spokes.
+      /var ubTsAng = -Math\.PI \/ 2 \+ \(1 - tsLeft\) \* Math\.PI \* 2;/.test(html) &&
+      /for \(var ubSpokeI = 0; ubSpokeI < 10; ubSpokeI\+\+\)/.test(html));
+
+    // The brief is a comparison, so it is checked as one: every Ultra number against the
+    // Slayer's same-slot number, read from the same file.
+    const sl = {
+      hp: num(/SLAYER_HP = (\d+)/),
+      basic: num(/SLAYER_SLASH_DMG = (\d+)/), basicCD: num(/SLAYER_SLASH_CD = (\d+)/), basicR: num(/SLAYER_SLASH_RANGE = (\d+)/),
+      slam: num(/SLAYER_BLADE_SLAM_DMG = (\d+)/), slamCD: num(/SLAYER_BLADE_SLAM_CD = (\d+)/), slamR: num(/SLAYER_BLADE_SLAM_RADIUS = (\d+)/),
+      superSlash: num(/SLAYER_SUPER_SLASH_DMG = (\d+)/), superSlashCD: num(/SLAYER_SUPER_SLASH_CD = (\d+)/),
+      multi: num(/SLAYER_MULTI_SLASH_DMG = (\d+)/) * num(/SLAYER_MULTI_SLASH_HITS = (\d+)/), multiCD: num(/SLAYER_MULTI_SLASH_CD = (\d+)/),
+      tornado: num(/SLAYER_TORNADO_DMG = (\d+)/), tornadoCD: num(/SLAYER_TORNADO_CD = (\d+)/),
+      lungeCD: num(/SLAYER_LUNGE_CD = (\d+)/), lungeDist: num(/SLAYER_LUNGE_DIST = (\d+)/),
+      ult: num(/SLAYER_ULT_EXPLODE_DMG = (\d+)/)
+    };
+    const ul = {
+      hp: num(/ULTRA_HP = (\d+)/),
+      basic: num(/ULTRA_PUNCH_DMG = (\d+)/), basicCD: num(/ULTRA_PUNCH_CD = (\d+)/), basicR: num(/ULTRA_PUNCH_RANGE = (\d+)/),
+      blast: num(/ULTRA_BLAST_DMG = (\d+)/), blastCD: num(/ULTRA_BLAST_CD = (\d+)/),
+      slam: num(/ULTRA_SLAM_DMG = (\d+)/), slamCD: num(/ULTRA_SLAM_CD = (\d+)/), slamR: num(/ULTRA_SLAM_RADIUS = (\d+)/),
+      dash: num(/ULTRA_DASH_DMG = (\d+)/), dashCD: num(/ULTRA_DASH_CD = (\d+)/), dashDist: num(/ULTRA_DASH_DIST = (\d+)/),
+      laser: num(/ULTRA_LASER_DMG = (\d+)/) * (num(/ULTRA_LASER_DUR = (\d+)/) / num(/ULTRA_LASER_TICK = (\d+)/)), laserCD: num(/ULTRA_LASER_CD = (\d+)/),
+      pulse: num(/ULTRA_PULSE_DMG = (\d+)/), pulseCD: num(/ULTRA_PULSE_CD = (\d+)/),
+      ultTick: num(/ULTRA_ULT_TICK_DMG = (\d+)/) * (num(/ULTRA_ULT_DUR = (\d+)/) / num(/ULTRA_ULT_TICK = (\d+)/)),
+      ultNova: num(/ULTRA_ULT_NOVA_PCT = ([0-9.]+)/)
+    };
+    // Damage done to a boss-scale target (the 1,200 HP Ancient Colossal) is the only fair
+    // way to compare a flat nuke against a percentage one.
+    const BOSS_HP = 1200, SMALL_BOSS_HP = 1000;
+    const ultraOnBoss = ul.ultTick + Math.round(BOSS_HP * ul.ultNova);
+    const ultraOnSmallBoss = ul.ultTick + Math.round(SMALL_BOSS_HP * ul.ultNova);
+    const pairs = [
+      ['HP', ul.hp, sl.hp],
+      ['M1 damage', ul.basic, sl.basic], ['M1 reach', ul.basicR, sl.basicR], ['M1 cooldown (lower wins)', sl.basicCD, ul.basicCD],
+      ['M2 blast vs lunge', ul.blast, 0], ['M2 cooldown (lower wins)', sl.lungeCD, ul.blastCD],
+      ['1 laser total', ul.laser, sl.multi], ['1 cooldown (lower wins)', sl.multiCD, ul.laserCD],
+      ['2 pulse', ul.pulse, sl.tornado], ['2 cooldown (lower wins)', sl.tornadoCD, ul.pulseCD],
+      ['F slam', ul.slam, sl.slam], ['F cooldown (lower wins)', sl.slamCD, ul.slamCD], ['F radius', ul.slamR, sl.slamR],
+      ['E dash', ul.dash, sl.superSlash], ['E cooldown (lower wins)', sl.superSlashCD, ul.dashCD], ['E distance', ul.dashDist, sl.lungeDist],
+      ['3 ult on a 1200 HP boss', ultraOnBoss, sl.ult],
+      ['3 ult on a 1000 HP boss', ultraOnSmallBoss, sl.ult]
+    ];
+    const worse = pairs.filter((p) => !(p[1] >= p[2])).map((p) => p[0] + ' ' + p[1] + ' < ' + p[2]);
+    check(file + ': every ability beats the Slayer on damage, reach and cooldown', worse.length === 0, worse.join(', '));
+
+    check(file + ': every third ultimate stops time for 7s, then a 60% supernova',
+      num(/ULTRA_ULT_CASTS_FOR_STOP = (\d+)/) === 3 &&
+      num(/ULTRA_TIME_STOP_DUR = (\d+)/) === 420 &&
+      num(/ULTRA_TIME_STOP_NOVA_PCT = ([0-9.]+)/) === 0.6 &&
+      // The cast counter still gates the freeze; effect lines may sit between them.
+      /ultraUltCasts\+\+;(?:[^\n]*\n){0,12}\s*if \(ultraUltCasts >= ULTRA_ULT_CASTS_FOR_STOP\) \{/.test(html) &&
+      /ultraUltCasts = 0;\n        ultraTimeStop = ULTRA_TIME_STOP_DUR;/.test(html) &&
+      /if \(ultraTimeStop === 0\) \{\n          ultraHitAllPct\(ULTRA_TIME_STOP_NOVA_PCT\);/.test(html) &&
+      // Enemies stop dead; the player and his own attacks keep running.
+      /function ultraTimeFrozen\(\) \{ return ultraTimeStop > 0; \}/.test(html) &&
+      /var frozen = ultraTimeFrozen\(\);\n      updateStickman\(\); if \(!frozen\) \{ updateNormalDummies\(\);/.test(html) &&
+      /if \(ultraTimeStop > 0\) \{\n          \/\/ Time stop: a violet film/.test(html) &&
+      /ultraUltCasts = 0; ultraTimeStop = 0;/.test(html));
+  });
+}
+
 // --- TIME CHAINER: the fighter campaign's new final boss --------------------
 {
   console.log('\n===== the Time Chainer (Fighter Lv 11) =====');
@@ -941,7 +1143,7 @@ function check(name, cond, extra) {
       /The power I emerge\.\.\. has already started\./.test(html) &&
       /\{ speaker: 'Hyper', color: '#c084fc', text: 'Your hour is up\. I will be taking it\.'/.test(html) &&
       // Hyper's real HP pool — fullReset used to fall through to 100 for him.
-      /selectedChar === 'hyper' \? HYPER_HP : 100\) \* skinHpMult\(\)/.test(html));
+      /selectedChar === 'hyper' \? HYPER_HP : selectedChar === 'ultra' \? ULTRA_HP : 100\) \* skinHpMult\(\)/.test(html));
 
     check(file + ': the level is won only once he is truly broken',
       /if \(lv\.spawnTimeChainer\) \{/.test(html) &&

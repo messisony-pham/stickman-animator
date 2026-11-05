@@ -249,6 +249,13 @@
             <div class="text-[9px] text-emerald-400">Punch 13</div>
             <div class="text-[9px] text-cyan-500/60">HP:350 Fly</div>
           </div>
+          <div id="charUltra" class="char-card bg-slate-800 border border-slate-600 rounded-lg p-2 cursor-pointer hover:border-purple-400 transition-all text-center relative" onclick="buyChar('ultra')">
+            <div id="ultraLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">🔒</span><span class="text-purple-400 text-[9px] font-bold">5000🪙+10🏆</span></div>
+            <div class="text-2xl">🌌</div>
+            <div class="font-bold text-purple-400 text-[11px]">ULTRA</div>
+            <div class="text-[9px] text-emerald-400">Punch 20</div>
+            <div class="text-[9px] text-purple-400/60">HP:450 ⚙</div>
+          </div>
           <div id="charCheeser" class="char-card bg-slate-800 border border-slate-600 rounded-lg p-2 cursor-pointer hover:border-yellow-400 transition-all text-center relative hidden" onclick="buyChar('cheeser')">
             <div id="cheeserLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">🔒</span><span class="text-yellow-400 text-[9px] font-bold">100🏆</span></div>
             <div class="text-2xl">🧀</div>
@@ -965,6 +972,7 @@
     let boughtBots = localStorage.getItem('sm_boughtBots') === 'true';
     let boughtKnight = localStorage.getItem('sm_boughtKnight') === 'true';
     let boughtHyper = localStorage.getItem('sm_boughtHyper') === 'true';
+    let boughtUltra = localStorage.getItem('sm_boughtUltra') === 'true';
     let cheeserUnlocked = localStorage.getItem('sm_cheeserUnlocked') === 'true';
     let boughtCheeser = localStorage.getItem('sm_boughtCheeser') === 'true';
     let phantomUnlocked = localStorage.getItem('sm_phantomUnlocked') === 'true';
@@ -980,16 +988,35 @@
       if (c === 'bots') return boughtBots;
       if (c === 'knight') return boughtKnight;
       if (c === 'hyper') return boughtHyper;
+      if (c === 'ultra') return boughtUltra;
       if (c === 'cheeser') return boughtCheeser;
       if (c === 'phantom') return boughtPhantom;
       if (c === 'slayer') return boughtSlayer;
       if (c === 'taoist') return boughtTaoist;
       return false;
     }
+    // Ultra is a one-off purchase: 5000 points and 10 boss points, kept for good.
+    var ULTRA_COST = 5000, ULTRA_BOSS_COST = 10;
+    // "The Fifty" (DEATH wave 50) and the fighter campaign's final level are the keys.
+    // Both are read straight from their own saves so this cannot drift from the real
+    // achievement/quest state, and it works before those systems finish initialising.
+    function ultraHasFifty() {
+      try {
+        var a = JSON.parse(localStorage.getItem('sm_ach_unlocked') || '{}') || {};
+        if (a['deathWaves:50']) return true;
+      } catch (e) {}
+      try {
+        var l = JSON.parse(localStorage.getItem('sm_life_stats') || '{}') || {};
+        return (l.deathWaves || 0) >= 50;
+      } catch (e) { return false; }
+    }
+    function ultraBeatLv11() { return localStorage.getItem('sm_fighterLv11Down') === '1'; }
+    function ultraUnlocked() { return ultraHasFifty() && ultraBeatLv11(); }
     function trackCharUse(c) {
       if (c === 'fighter') return;
       if (c === 'slayer') return; // permanent like ninja
       if (c === 'taoist') return; // permanent
+      if (c === 'ultra') return; // bought outright, never burns out
       charUses[c] = (charUses[c] || 0) + 1;
       localStorage.setItem('sm_' + c + 'Uses', charUses[c]);
       if (charUses[c] >= 5) {
@@ -1042,6 +1069,9 @@
       } else if (c === 'hyper' && totalPoints >= 1500 && bossPoints >= 6) {
         totalPoints -= 1500; bossPoints -= 6; savePoints(); boughtHyper = true; localStorage.setItem('sm_boughtHyper', 'true');
         charUses.hyper = 0; localStorage.setItem('sm_hyperUses', 0);
+      } else if (c === 'ultra' && ultraUnlocked() && totalPoints >= ULTRA_COST && bossPoints >= ULTRA_BOSS_COST) {
+        totalPoints -= ULTRA_COST; bossPoints -= ULTRA_BOSS_COST; savePoints(); boughtUltra = true; localStorage.setItem('sm_boughtUltra', 'true');
+        charUses.ultra = 0; localStorage.setItem('sm_ultraUses', 0);
       } else if (c === 'cheeser' && cheeserUnlocked && bossPoints >= 100) {
         bossPoints -= 100; savePoints(); boughtCheeser = true; localStorage.setItem('sm_boughtCheeser', 'true');
         charUses.cheeser = 0; localStorage.setItem('sm_cheeserUses', 0);
@@ -1053,6 +1083,18 @@
       } else {
         if (c === 'phantom' && !phantomUnlocked) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🌑</span><span class="text-purple-300 text-[8px] font-bold text-center px-1">A dark secret hides Phantom...</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2500); }
         if (c === 'phantom' && phantomUnlocked && totalPoints < 100) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🪙</span><span class="text-red-400 text-[8px] font-bold">Need 100 points!</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2000); }
+        if (c === 'ultra') {
+          var ulLockMsg = document.getElementById('ultraLock');
+          if (ulLockMsg) {
+            var miss = [];
+            if (!ultraHasFifty()) miss.push('🏅 THE FIFTY');
+            if (!ultraBeatLv11()) miss.push('📖 FIGHTER LV 11');
+            ulLockMsg.innerHTML = miss.length
+              ? '<span class="text-lg">🔒</span><span class="text-purple-300 text-[8px] font-bold text-center px-1 leading-tight">NEED ' + miss.join(' + ') + '</span>'
+              : '<span class="text-lg">🔒</span><span class="text-red-400 text-[8px] font-bold text-center px-1 leading-tight">NEED 5,000🪙 + 10🏆</span>';
+            setTimeout(function() { if (!isCharBought('ultra')) updateCharLockUI(); }, 2600);
+          }
+        }
         return;
       }
       updateCharLockUI(); updateMenuPoints(); selectChar(c);
@@ -1079,6 +1121,18 @@
       var hy = document.getElementById('charHyper');
       var hyLock = document.getElementById('hyperLock');
       if (hyLock) hyLock.classList.toggle('hidden', isCharBought('hyper'));
+      var ulLock = document.getElementById('ultraLock');
+      if (ulLock) {
+        ulLock.classList.toggle('hidden', isCharBought('ultra'));
+        if (!isCharBought('ultra')) {
+          var ulMiss = [];
+          if (!ultraHasFifty()) ulMiss.push('🏅 THE FIFTY');
+          if (!ultraBeatLv11()) ulMiss.push('📖 FIGHTER LV 11');
+          ulLock.innerHTML = ulMiss.length
+            ? '<span class="text-lg">🔒</span><span class="text-purple-300 text-[8px] font-bold text-center px-1 leading-tight">NEED ' + ulMiss.join(' + ') + '</span>'
+            : '<span class="text-lg">🔒</span><span class="text-purple-400 text-[9px] font-bold">5000🪙+10🏆</span>';
+        }
+      }
       // Cheeser: only show if code was redeemed
       var chEl = document.getElementById('charCheeser');
       var chLock = document.getElementById('cheeserLock');
@@ -1121,6 +1175,8 @@
       document.getElementById('charBots').classList.toggle('selected', c === 'bots');
       document.getElementById('charKnight').classList.toggle('selected', c === 'knight');
       document.getElementById('charHyper').classList.toggle('selected', c === 'hyper');
+      var ulEl = document.getElementById('charUltra');
+      if (ulEl) ulEl.classList.toggle('selected', c === 'ultra');
       document.getElementById('charCheeser').classList.toggle('selected', c === 'cheeser');
       document.getElementById('charPhantom').classList.toggle('selected', c === 'phantom');
       document.getElementById('charSlayer').classList.toggle('selected', c === 'slayer');
@@ -1188,6 +1244,27 @@
     const HYPER_SPIRIT_TICK_DMG = 15, HYPER_SPIRIT_NUKE_DMG = 200, HYPER_SPIRIT_CD = 1200, HYPER_SPIRIT_DUR = 180, HYPER_SPIRIT_TICK_INT = 19, HYPER_SPIRIT_RADIUS = 120;
     const HYPER_AURA_DMG = 2, HYPER_AURA_RADIUS = 80, HYPER_AURA_INTERVAL = 30; // every 0.5s
     const HYPER_FLY_SPD = 5;
+
+    // Ultra — the purple gear-halo character. These numbers are the design spec.
+    // Ultra is the premium unlock, so every number below is deliberately ahead of the
+    // Slayer's equivalent (see the comparisons in the comments): damage, reach and
+    // cooldown all win, and 3 casts of the ultimate stop time.
+    const ULTRA_HP = 450, ULTRA_SPEED_MULT = 1.35, ULTRA_TAKEN_MULT = 0.8; // ~20% less damage taken
+    const ULTRA_PUNCH_DMG = 20, ULTRA_PUNCH_CD = 14, ULTRA_PUNCH_RANGE = 75;   // Slayer slash: 15 @ 14 / r75
+    const ULTRA_BLAST_DMG = 23, ULTRA_BLAST_CD = 30, ULTRA_BLAST_RANGE = 190;
+    const ULTRA_LASER_DMG = 1, ULTRA_LASER_TICK = 6, ULTRA_LASER_DUR = 600; // 1 dmg every 0.1s, 10s = 100 total
+    const ULTRA_LASER_CD = 480;                                              // Slayer multi-slash: 45 total @ 480
+    const ULTRA_PULSE_DMG = 30, ULTRA_PULSE_CD = 240, ULTRA_PULSE_RADIUS = 150;
+    const ULTRA_PULSE_STEP = 0.05, ULTRA_PULSE_MAX_USES = 10;               // +5% per use, cap +50%
+    const ULTRA_SLAM_DMG = 45, ULTRA_SLAM_CD = 240, ULTRA_SLAM_RADIUS = 170, ULTRA_SLAM_STUN = 180; // Slayer blade slam: 20 @ 240
+    const ULTRA_DASH_DMG = 35, ULTRA_DASH_CD = 150, ULTRA_DASH_DIST = 380, ULTRA_DASH_SPD = 22;     // Slayer super slash: 15 @ 150
+    const ULTRA_WAVE_DMG = 25, ULTRA_WAVE_RADIUS = 160;
+    // 40 x 10 ticks + 65% of the target's own max HP clears the Slayer's flat 1,000 at every
+    // boss-sized HP pool, and the percentage is what makes bosses the point.
+    const ULTRA_ULT_TICK_DMG = 40, ULTRA_ULT_TICK = 30, ULTRA_ULT_DUR = 300, ULTRA_ULT_NOVA_PCT = 0.65;
+    // Every 3rd ultimate: time stops for 7s, then a second, bigger nova (60% max HP).
+    const ULTRA_ULT_CASTS_FOR_STOP = 3, ULTRA_TIME_STOP_DUR = 420, ULTRA_TIME_STOP_NOVA_PCT = 0.60;
+    const ULTRA_HEAL_EVERY = 900, ULTRA_HEAL_PCT = 0.10;                    // 10% max HP every 15s
 
     // Cheeser constants
     const CHEESER_HP = 5000, CHEESER_HP_LV10 = 12000;
@@ -1775,6 +1852,16 @@
     let hyperFlyActive = false;
     let hyperQuakeSpikes = [], hyperAuraTimer = 0;
     let hyperLaserDir = null;  // beam direction for laser eyes
+    // ---- Ultra state ----
+    let ultraPunchCD = 0, ultraBlastCD = 0, ultraLaserCD = 0, ultraPulseCD = 0;
+    let ultraSlamCD = 0, ultraDashCD = 0, ultraHealTimer = 0;
+    let ultraLaser = null;        // {anchor, x, phase, timer, tick}
+    let ultraPulseUses = 0;       // every pulse adds +5% to all of his damage
+    let ultraDashActive = false, ultraDashDist = 0, ultraDashDir = 1;
+    let ultraUlt = null;          // {timer, tick}
+    let ultraUltCasts = 0;        // ultimates cast since the last time stop
+    let ultraTimeStop = 0;        // frames left in the 3rd-ult time freeze
+    let ultraFx = [];             // expanding rings / waves / sky strikes
     // Cheeser state
     let cheeserThrowCD = 0, cheeserHealCD = 0, cheeserCheeseBullets = [], cheeserMultishot = parseInt(localStorage.getItem('sm_cheeserMultishot')) || 1;
     // Phantom state
@@ -3116,6 +3203,7 @@
       else if (selectedChar === 'super') performSuperPunch();
       else if (selectedChar === 'bots') performBotBlast();
       else if (selectedChar === 'hyper') performHyperPunch();
+      else if (selectedChar === 'ultra') performUltraPunch();
       else if (selectedChar === 'cheeser') performCheeserThrow();
       else if (selectedChar === 'phantom') performPhantomPunch();
       else if (selectedChar === 'slayer') performSlayerSlash();
@@ -3131,6 +3219,7 @@
       else if (selectedChar === 'ninja') performNinjaKunai();
       else if (selectedChar === 'bots') performBotParry();
       else if (selectedChar === 'hyper') performHyperSmallSlam();
+      else if (selectedChar === 'ultra') performUltraBlast();
       else if (selectedChar === 'cheeser') performCheeserHeal();
       else if (selectedChar === 'phantom') performPhantomTeleport();
       else if (selectedChar === 'slayer') performSlayerLunge();
@@ -3144,6 +3233,7 @@
       else if (selectedChar === 'ninja') performNinjaFarDash();
       else if (selectedChar === 'bots') performBotJetpack();
       else if (selectedChar === 'hyper') performHyperEarthquake();
+      else if (selectedChar === 'ultra') performUltraLaser();
       else if (selectedChar === 'phantom') performPhantomPossess();
       else if (selectedChar === 'slayer') performSlayerBladeSlam();
       else if (selectedChar === 'taoist') performTaoistZombies();
@@ -3156,6 +3246,7 @@
       else if (selectedChar === 'ninja') performNinjaInvis();
       else if (selectedChar === 'bots') performBotStrider();
       else if (selectedChar === 'hyper') performHyperLaserEyes();
+      else if (selectedChar === 'ultra') performUltraPulse();
       else if (selectedChar === 'phantom') performPhantomExplode();
       else if (selectedChar === 'slayer') performSlayerSuperSlash();
       else if (selectedChar === 'taoist') performTaoistSeal();
@@ -3168,6 +3259,7 @@
       else if (selectedChar === 'ninja') performNinjaUlt();
       else if (selectedChar === 'bots') performBotNuclear();
       else if (selectedChar === 'hyper') performHyperSpiritOrb();
+      else if (selectedChar === 'ultra') performUltraUlt();
       else if (selectedChar === 'phantom') performPhantomDarkRealm();
       else if (selectedChar === 'slayer') performSlayerUlt();
       else if (selectedChar === 'taoist') performTaoistUlt();
@@ -3180,6 +3272,7 @@
       else if (selectedChar === 'ninja') performNinjaClones();
       else if (selectedChar === 'bots') performBotLaserCore();
       else if (selectedChar === 'hyper') performHyperGreatSlam();
+      else if (selectedChar === 'ultra') performUltraSlam();
       else if (selectedChar === 'phantom') performPhantomShadowDash();
       else if (selectedChar === 'slayer') performSlayerMultiSlash();
       else if (selectedChar === 'taoist') performTaoistBigZombie();
@@ -3191,6 +3284,7 @@
       else if (selectedChar === 'mage') performMageIceShield();
       else if (selectedChar === 'ninja') performNinjaSharin();
       else if (selectedChar === 'hyper') performHyperShield();
+      else if (selectedChar === 'ultra') performUltraDash();
       else if (selectedChar === 'phantom') performPhantomShadowRain();
       else if (selectedChar === 'slayer') performSlayerTornado();
       else if (selectedChar === 'taoist') performTaoistAmulet();
@@ -4864,6 +4958,9 @@
       } else if (isFinalLevel) {
         campaignProgress = campaignMaxLevels;
         localStorage.setItem('sm_campaignFighter', campaignProgress);
+        // Beating Lv 11 is one of Ultra's two keys, and progress alone cannot prove it:
+        // the campaign clamps progress at the last level, so unlock and clear look alike.
+        try { localStorage.setItem('sm_fighterLv11Down', '1'); } catch (e) {}
       }
       var reward = campaignLevel * 200;
       totalPoints += reward; savePoints();
@@ -5279,6 +5376,10 @@
         PLAYER_MAX_HP_CURRENT = HYPER_HP;
         document.getElementById('charIcon').textContent = '⚡';
         document.getElementById('charName').textContent = 'Hyper' + modeLabel;
+      } else if (selectedChar === 'ultra') {
+        PLAYER_MAX_HP_CURRENT = ULTRA_HP;
+        document.getElementById('charIcon').textContent = '🌌';
+        document.getElementById('charName').textContent = 'Ultra' + modeLabel;
       } else if (selectedChar === 'cheeser') {
         PLAYER_MAX_HP_CURRENT = CHEESER_HP;
         document.getElementById('charIcon').textContent = '🧀';
@@ -6431,6 +6532,30 @@
         ctx.restore();
       }
 
+      // ULTRA: the purple gear halo sits BEHIND him — same machinery as the Time Chainer,
+      // recoloured. Drawn before the head/body so the figure stays in front of it.
+      if (selectedChar === 'ultra') {
+        ctx.save();
+        ctx.globalAlpha = 0.13 + Math.sin(time * 0.1) * 0.05;
+        ctx.fillStyle = '#a855f7';
+        ctx.beginPath(); ctx.arc(x, y - 40, 48 + Math.sin(time * 0.06) * 3, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(192,132,252,0.5)'; ctx.lineWidth = 3;
+        for (var ug = 0; ug < 2; ug++) {
+          var ugr = ug === 0 ? 44 : 30;
+          var ugsp = ug === 0 ? time * 0.022 : -time * 0.032;
+          var ugteeth = ug === 0 ? 12 : 8;
+          ctx.beginPath(); ctx.arc(x, y - 42, ugr, 0, Math.PI * 2); ctx.stroke();
+          for (var ut = 0; ut < ugteeth; ut++) {
+            var ua = ugsp + ut / ugteeth * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(x + Math.cos(ua) * ugr, y - 42 + Math.sin(ua) * ugr);
+            ctx.lineTo(x + Math.cos(ua) * (ugr + 7), y - 42 + Math.sin(ua) * (ugr + 7));
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
       if (selectedChar !== 'knight') { ctx.beginPath(); ctx.arc(x, headY, 14, 0, Math.PI * 2); ctx.stroke(); }
       // (The fighter used to have a drawn face here. It is gone: he is a plain
       //  stickman with a blank head again, like every other stick figure.)
@@ -6602,6 +6727,26 @@
           ctx.beginPath(); ctx.arc(x, y - 30, HYPER_AURA_RADIUS * 0.7, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
         }
+      } else if (selectedChar === 'ultra') {
+        // Purple star eye — five points, turning slowly, with a soft bloom around it.
+        var uStar = 7 + Math.sin(time * 0.2) * 1.2;
+        var uStarX = x + 5 * facing, uStarY = headY;
+        ctx.save();
+        ctx.translate(uStarX, uStarY);
+        ctx.rotate(time * 0.02);
+        ctx.fillStyle = '#c084fc';
+        ctx.beginPath();
+        for (var usi = 0; usi < 10; usi++) {
+          var usr = usi % 2 === 0 ? uStar : uStar * 0.42;
+          var usa = (usi / 10) * Math.PI * 2 - Math.PI / 2;
+          if (usi === 0) ctx.moveTo(Math.cos(usa) * usr, Math.sin(usa) * usr);
+          else ctx.lineTo(Math.cos(usa) * usr, Math.sin(usa) * usr);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 0.45;
+        ctx.beginPath(); ctx.arc(0, 0, uStar * 1.9, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        ctx.globalAlpha = 1;
       } else if (selectedChar === 'cheeser') {
         // Cheese hat — yellow wedge on top of head
         var hatY = headY - 14;
@@ -7240,6 +7385,9 @@
       if (!d.alive) return;
       // Hit shake — the body recoils for the few frames it's flashing white
       const dx = d.x + (d.hitFlash > 0 ? Math.sin(time * 3.4) * 3.5 * Math.min(1, d.hitFlash / 6) * (d.x > stick.x ? 1 : -1) : 0);
+      // Nothing outside the arena is visible, so a crowd that has spawned off-screen
+      // (or been blasted off it) costs nothing to draw.
+      if (dx < -70 || dx > CW + 70) return;
       let bodyColor, headColor, headR = 12, lineW = 3.5, label = '';
 
       if (d.big) {
@@ -7362,16 +7510,20 @@
       var wHead = erg.headY, wSh = erg.shoulderY, wHip = erg.hipY;
       ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = headColor; ctx.lineWidth = lineW;
       ctx.beginPath(); ctx.arc(dx, wHead, headR, 0, Math.PI * 2); ctx.stroke();
+      // Sparkline costs add up at 60-strong crowds: torso, both arms and both legs are
+      // one path with one stroke instead of five separate stroke() calls.
       ctx.strokeStyle = bodyColor;
-      ctx.beginPath(); ctx.moveTo(dx, wSh); ctx.lineTo(dx, wHip); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(dx, wSh); ctx.lineTo(dx, wHip);
       for (var eai = 0; eai < erg.arms.length; eai++) {
         var ear = erg.arms[eai];
-        strokeLimb(dx, wSh + 10, ear.ex, ear.ey, ear.hx, ear.hy + 2);
+        ctx.moveTo(dx, wSh + 10); ctx.lineTo(ear.ex, ear.ey); ctx.lineTo(ear.hx, ear.hy + 2);
       }
       for (var eli = 0; eli < erg.legs.length; eli++) {
         var elg = erg.legs[eli];
-        strokeLimb(dx, wHip, elg.kx, elg.ky, elg.fx, elg.fy);
+        ctx.moveTo(dx, wHip); ctx.lineTo(elg.kx, elg.ky); ctx.lineTo(elg.fx, elg.fy);
       }
+      ctx.stroke();
       if (label) { ctx.font = '10px serif'; ctx.textAlign = 'center'; ctx.fillText(label, dx, GROUND_Y - 72); ctx.textAlign = 'start'; }
       const barW = d.isSummon ? 24 : 36, barH = 4;
       const barX = dx - barW / 2, barY = GROUND_Y - (label ? 78 : 75);
@@ -8105,6 +8257,8 @@
       if (deathDmgMult() > 1 && !noDeathScale) dmg = Math.max(1, Math.round(dmg * deathDmgMult()));
       // The taoist's amulet can bless (-35% taken) or curse (+40% taken) him.
       if (selectedChar === 'taoist') dmg = Math.max(1, Math.floor(dmg * taoistTakenMult()));
+      // Ultra's plating eats a fifth of every hit.
+      if (selectedChar === 'ultra') dmg = Math.max(1, Math.floor(dmg * ULTRA_TAKEN_MULT));
       if (ninjaIsInvis) { createTextParticle(stick.x, stick.y - 55, '👻 PHASE!', '#94a3b8', 12); return; }
       if (isShielded && !bypassShield) {
         createTextParticle(stick.x, stick.y - 55, '🛡 BLOCKED!', '#38bdf8', 14);
@@ -8412,6 +8566,8 @@
 
     function updateBoss() {
       if (!boss || !boss.alive || gracePeriod > 0) return;
+      // Ultra's SUPER SLAM can knock even a boss out for a few seconds.
+      if (boss.stunTimer > 0) { boss.stunTimer--; boss.hitFlash = 2; return; }
       const isTitan = boss.type === 'titan';
       const dx = stick.x - boss.x, dist = Math.abs(dx);
       boss.facing = dx > 0 ? 1 : -1;
@@ -9192,7 +9348,7 @@
       if (pickupDmgTimer > 0) pickupDmgTimer--;
       if (pickupJumpTimer > 0) pickupJumpTimer--;
       let targetVx = 0;
-      var spdMult = (getShopUpgradeEffect('speed') + MOVE_SPEED_BONUS / MOVE_SPEED) * skinSpeedMult(); if (pickupSpeedTimer > 0) spdMult *= PICKUP_SPEED_MULT;
+      var spdMult = (getShopUpgradeEffect('speed') + MOVE_SPEED_BONUS / MOVE_SPEED) * skinSpeedMult(); if (pickupSpeedTimer > 0) spdMult *= PICKUP_SPEED_MULT; if (selectedChar === 'ultra') spdMult *= ULTRA_SPEED_MULT;
       // ---- Sprint ------------------------------------------------------------
       // Deliberately works with NO extra button: holding a direction for ~half a second
       // breaks into a sprint, and SHIFT breaks into it instantly on a keyboard. That way
@@ -10139,7 +10295,10 @@
     }
 
     // ==================== GAME LOOP ====================
-    function gameStep() {
+    // skipDraw: catch-up steps exist so the physics keeps real time, not so three frames
+    // nobody sees get painted. When a slow device hands the loop 50ms, gameLoop() runs up
+    // to 3 steps; without this the frame cost (and the lag) triples instead of recovering.
+    function gameStep(skipDraw) {
       if (gameState === 'menu' || gameState === 'paused' || gameState === 'cutscene') { animFrameId = null; return; }
       if (gameState !== 'playing') { if (gameState === 'gameover') { drawGameOver(); if (themePlaying) stopThemeMusic(); if (bossMusicPlaying) stopBossMusic(); } animFrameId = null; return; }
       // Frame-body guard: the body arms the next frame near its end, so an error thrown
@@ -10705,7 +10864,10 @@
       if (isShielded) { shieldTimer--; if (shieldTimer <= 0) { isShielded = false; createTextParticle(stick.x, stick.y - 90, 'SHIELD DOWN', '#94a3b8', 14); } }
       if (shieldCD > 0) shieldCD--;
       updateUltUI(); updateUltimate();
-      updateStickman(); updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateCheeserAbilities(); updatePhantomAbilities(); updateSlayerAbilities(); updateTaoistAbilities(); updateDarkUniverseBoss(); updateCampaignSpawns(); checkCampaignWin();
+      // Ultra's 3rd-ult time stop freezes every enemy (they do not walk, shoot or summon),
+      // while the player, his abilities and his own projectiles keep running.
+      var frozen = ultraTimeFrozen();
+      updateStickman(); if (!frozen) { updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); } updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); if (!frozen) updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateUltraAbilities(); updateCheeserAbilities(); updatePhantomAbilities(); updateSlayerAbilities(); updateTaoistAbilities(); if (!frozen) updateDarkUniverseBoss(); updateCampaignSpawns(); checkCampaignWin();
       // A taoist with his revival intact never stays dead: this catches every damage path
       // that sets 'gameover' directly (boss auras, airstrikes, bone hands, campaign deaths).
       if (gameState === 'gameover' && selectedChar === 'taoist' && !taoistReviveUsed) { gameState = 'playing'; reviveTaoist(); }
@@ -10745,6 +10907,7 @@
       if (particles.length > 120) particles.length = 120;
 
       // === DRAW ===
+      if (!skipDraw) {
       ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, CW, CH);
       // Sun
       const sunPulse = Math.sin(time * 0.02) * 3;
@@ -12181,6 +12344,178 @@
         phantomRealmFade = Math.max(0, phantomRealmFade - 0.06);
         if (phantomRealmFade > 0) { ctx.globalAlpha = 0.82 * phantomRealmFade; ctx.fillStyle = '#05050d'; ctx.fillRect(0, 0, CW, CH); ctx.globalAlpha = 1; }
       }
+      // Ultra effects: the orbiting sky laser, pulse/shockwave rings and sky strikes
+      if (selectedChar === 'ultra') {
+        if (ultraLaser) {
+          var ulx = ultraLaser.x;
+          ctx.fillStyle = 'rgba(168,85,247,0.10)'; ctx.fillRect(ulx - 48, 0, 96, GROUND_Y);
+          ctx.fillStyle = 'rgba(192,132,252,0.22)'; ctx.fillRect(ulx - 24, 0, 48, GROUND_Y);
+          ctx.fillStyle = 'rgba(233,213,255,0.8)'; ctx.fillRect(ulx - 6, 0, 12, GROUND_Y);
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(ulx - 2, 0, 4, GROUND_Y);
+          ctx.strokeStyle = 'rgba(192,132,252,0.55)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.ellipse(ulx, GROUND_Y, 46, 14, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = 'rgba(233,213,255,0.25)';
+          ctx.beginPath(); ctx.ellipse(ulx, GROUND_Y, 46, 14, 0, 0, Math.PI * 2); ctx.fill();
+          // Live beam visuals: a breathing impact ring, three scan rings falling from orbit and
+          // a turning cog burned into the floor, so ten seconds of beam never looks static.
+          var ubLp = 0.5 + Math.sin(time * 0.18) * 0.5;
+          ctx.strokeStyle = 'rgba(192,132,252,' + (0.4 + ubLp * 0.35).toFixed(2) + ')'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.ellipse(ulx, GROUND_Y, 52 + 6 * ubLp, 16 + 2 * ubLp, 0, 0, Math.PI * 2); ctx.stroke();
+          for (var ubScanI = 0; ubScanI < 3; ubScanI++) {
+            var ubScanPh = (time * 0.008 + ubScanI / 3) % 1;
+            var ubScanY = 20 + ubScanPh * (GROUND_Y - 30);
+            ctx.globalAlpha = 0.5 * (1 - ubScanPh) + 0.15;
+            ctx.beginPath(); ctx.ellipse(ulx, ubScanY, 40 - ubScanPh * 22, 8, 0, 0, Math.PI * 2); ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = 'rgba(168,85,247,0.55)';
+          for (var ubLgI = 0; ubLgI < 10; ubLgI++) {
+            var ubLgA = time * 0.03 + ubLgI * (Math.PI * 2 / 10);
+            ctx.beginPath();
+            ctx.moveTo(ulx + Math.cos(ubLgA) * 30, GROUND_Y + Math.sin(ubLgA) * 9);
+            ctx.lineTo(ulx + Math.cos(ubLgA) * 40, GROUND_Y + Math.sin(ubLgA) * 12);
+            ctx.stroke();
+          }
+        }
+        if (ultraUlt) {
+          // The sky is open while the strike is running
+          ctx.globalAlpha = 0.12 + Math.sin(time * 0.3) * 0.05;
+          ctx.fillStyle = '#a855f7'; ctx.fillRect(0, 0, CW, 120);
+          ctx.globalAlpha = 1;
+          // A turning sigil overhead and starlight drifting down: the sky is open.
+          var ubUsSpin = time * 0.012;
+          ctx.strokeStyle = 'rgba(233,213,255,0.5)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(CW / 2, 60, 46, ubUsSpin, ubUsSpin + 4.6); ctx.stroke();
+          ctx.beginPath(); ctx.arc(CW / 2, 60, 30, -ubUsSpin * 1.6, -ubUsSpin * 1.6 + 3.9); ctx.stroke();
+          for (var ubMoteI = 0; ubMoteI < 4; ubMoteI++) {
+            var ubMotePh = (time * 0.01 + ubMoteI * 0.25) % 1;
+            ctx.globalAlpha = (1 - ubMotePh) * 0.5;
+            ctx.fillStyle = '#e9d5ff';
+            ctx.fillRect(CW / 4 + ubMoteI * (CW / 6) + Math.sin(time * 0.02 + ubMoteI) * 20, ubMotePh * GROUND_Y, 3, 12);
+          }
+          ctx.globalAlpha = 1;
+        }
+        if (ultraTimeStop > 0) {
+          // Time stop: a violet film held over the arena with a shrinking clock ring and
+          // the seconds left, so it is obvious the frozen enemies are a state, not a bug.
+          var tsLeft = ultraTimeStop / ULTRA_TIME_STOP_DUR;
+          ctx.globalAlpha = 0.16 + Math.sin(time * 0.25) * 0.04;
+          ctx.fillStyle = '#4c1d95'; ctx.fillRect(0, 0, CW, CH);
+          ctx.globalAlpha = 0.5 + Math.sin(time * 0.2) * 0.2;
+          ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(CW / 2, GROUND_Y - 60, 60 + 200 * tsLeft, 0, Math.PI * 2); ctx.stroke();
+          // Clock hands sweeping round the frozen core, plus cracked-glass spokes across the arena.
+          var ubTsAng = -Math.PI / 2 + (1 - tsLeft) * Math.PI * 2;
+          ctx.globalAlpha = 0.9; ctx.strokeStyle = '#e9d5ff'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(CW / 2, GROUND_Y - 60);
+          ctx.lineTo(CW / 2 + Math.cos(ubTsAng) * 70, GROUND_Y - 60 + Math.sin(ubTsAng) * 70); ctx.stroke();
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(CW / 2, GROUND_Y - 60);
+          ctx.lineTo(CW / 2 + Math.cos(ubTsAng * 3) * 46, GROUND_Y - 60 + Math.sin(ubTsAng * 3) * 46); ctx.stroke();
+          ctx.globalAlpha = 0.25 + Math.sin(time * 0.2) * 0.1;
+          ctx.strokeStyle = '#7e22ce'; ctx.lineWidth = 2;
+          for (var ubSpokeI = 0; ubSpokeI < 10; ubSpokeI++) {
+            var ubSpokeA = ubSpokeI * (Math.PI * 2 / 10) + time * 0.004;
+            ctx.beginPath(); ctx.moveTo(CW / 2, GROUND_Y - 60);
+            ctx.lineTo(CW / 2 + Math.cos(ubSpokeA) * (200 + 60 * tsLeft), GROUND_Y - 60 + Math.sin(ubSpokeA) * (200 + 60 * tsLeft));
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 0.9;
+          ctx.fillStyle = '#e9d5ff'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center';
+          ctx.fillText('⏳ TIME STOP ' + Math.ceil(ultraTimeStop / 60) + 's', CW / 2, 46);
+          ctx.textAlign = 'start';
+          ctx.globalAlpha = 1;
+        }
+        ultraFx.forEach(function(f) {
+          var p = Math.max(0, f.life / f.maxLife);
+          var rr = f.r + (f.max - f.r) * (1 - p);
+          ctx.globalAlpha = p;
+          ctx.strokeStyle = f.color; ctx.lineWidth = f.width || (f.type === 'wave' ? 4 : 3);
+          if (f.type === 'wave') {
+            ctx.beginPath(); ctx.ellipse(f.x, f.y, rr, rr * 0.32, 0, 0, Math.PI * 2); ctx.stroke();
+            // Inner echo so a shockwave reads as a wall of force, not a lone outline.
+            ctx.globalAlpha = p * 0.45;
+            ctx.beginPath(); ctx.ellipse(f.x, f.y, rr * 0.62, rr * 0.2, 0, 0, Math.PI * 2); ctx.stroke();
+          } else if (f.type === 'strike') {
+            ctx.globalAlpha = p * 0.4; ctx.lineWidth = (f.width || 3) * 3;
+            ctx.beginPath(); ctx.moveTo(f.x, 0); ctx.lineTo(f.x, f.y); ctx.stroke();
+            ctx.globalAlpha = p; ctx.lineWidth = f.width || 3;
+            ctx.beginPath(); ctx.moveTo(f.x, 0); ctx.lineTo(f.x, f.y); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(f.x, f.y, rr, rr * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+          } else if (f.type === 'crescent') {
+            // Swept slash: a bright leading edge with a faded echo trailing it.
+            var ubCa = f.spin || 0;
+            ctx.lineWidth = (f.width || 4) + 2;
+            ctx.beginPath(); ctx.arc(f.x, f.y, rr, ubCa, ubCa + 1.45); ctx.stroke();
+            ctx.globalAlpha = p * 0.5; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(f.x, f.y, rr * 0.82, ubCa + 0.18, ubCa + 1.3); ctx.stroke();
+          } else if (f.type === 'burst') {
+            // Radial spikes — used on impacts so a hit has a silhouette, not just sparks.
+            var ubN = f.count || 8;
+            var ubSpin = (f.spin || 0) + (1 - p) * 0.35;
+            for (var ubI = 0; ubI < ubN; ubI++) {
+              var ubA = ubSpin + ubI * (Math.PI * 2 / ubN);
+              ctx.beginPath();
+              ctx.moveTo(f.x + Math.cos(ubA) * rr * 0.42, f.y + Math.sin(ubA) * rr * 0.33);
+              ctx.lineTo(f.x + Math.cos(ubA) * rr, f.y + Math.sin(ubA) * rr * 0.78);
+              ctx.stroke();
+            }
+          } else if (f.type === 'gear') {
+            // Rotating cog — the purple gear motif, reused by every ability of his.
+            var ubGSpin = (f.spin || 0) + (1 - p) * 1.6;
+            var ubTeeth = f.count || 12;
+            ctx.beginPath(); ctx.arc(f.x, f.y, rr, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(f.x, f.y, rr * 0.74, 0, Math.PI * 2); ctx.stroke();
+            for (var ubT = 0; ubT < ubTeeth; ubT++) {
+              var ubTA = ubGSpin + ubT * (Math.PI * 2 / ubTeeth);
+              ctx.beginPath();
+              ctx.moveTo(f.x + Math.cos(ubTA) * rr, f.y + Math.sin(ubTA) * rr);
+              ctx.lineTo(f.x + Math.cos(ubTA) * rr * 1.16, f.y + Math.sin(ubTA) * rr * 1.16);
+              ctx.stroke();
+            }
+            ctx.globalAlpha = p * 0.4;
+            for (var ubS = 0; ubS < 4; ubS++) {
+              var ubSA = -ubGSpin + ubS * (Math.PI / 2);
+              ctx.beginPath();
+              ctx.moveTo(f.x + Math.cos(ubSA) * rr * 0.3, f.y + Math.sin(ubSA) * rr * 0.3);
+              ctx.lineTo(f.x + Math.cos(ubSA) * rr * 0.72, f.y + Math.sin(ubSA) * rr * 0.72);
+              ctx.stroke();
+            }
+          } else if (f.type === 'flash') {
+            // Solid core flare — short lived, gives an impact its punch.
+            ctx.globalAlpha = p * 0.45;
+            ctx.fillStyle = f.color;
+            ctx.beginPath(); ctx.arc(f.x, f.y, rr, 0, Math.PI * 2); ctx.fill();
+          } else if (f.type === 'pillar') {
+            // Column of starlight dropping from the ceiling.
+            var ubPW = f.width || 14;
+            ctx.beginPath();
+            ctx.moveTo(f.x - ubPW / 2, 0); ctx.lineTo(f.x + ubPW / 2, 0);
+            ctx.lineTo(f.x + ubPW / 4, f.y); ctx.lineTo(f.x - ubPW / 4, f.y);
+            ctx.closePath();
+            ctx.globalAlpha = p * 0.2; ctx.fillStyle = f.color; ctx.fill();
+            ctx.globalAlpha = p * 0.5; ctx.lineWidth = 1; ctx.stroke();
+            // Bright core, so it reads as a beam of light rather than a white pole.
+            ctx.globalAlpha = p * 0.85; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(f.x, 0); ctx.lineTo(f.x, f.y); ctx.stroke();
+          } else if (f.type === 'crack') {
+            // Fractured ground: jagged spurs running out along the floor.
+            var ubCN = f.count || 7, ubSpan = f.max;
+            for (var ubC = 0; ubC < ubCN; ubC++) {
+              var ubOff = (ubC - (ubCN - 1) / 2) * (ubSpan / ubCN);
+              var ubJag = (ubC % 2 ? 1 : -1) * 7;
+              ctx.beginPath();
+              ctx.moveTo(f.x, f.y);
+              ctx.lineTo(f.x + ubOff * 0.6, f.y - rr * 0.55);
+              ctx.lineTo(f.x + ubOff, f.y + ubJag);
+              ctx.stroke();
+            }
+          } else {
+            ctx.beginPath(); ctx.arc(f.x, f.y, rr, 0, Math.PI * 2); ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+        });
+      }
       drawHollowLaser(); drawStickman(); drawBullets(); drawPlayerBullets(); drawGrenades(); drawEnemyGrenades(); drawSuperBlastOrbs(); drawMageFireballs(); drawMageFrostOrbs(); drawLightningBolts(); drawNinjaKunais(); drawNinjaClones(); drawNinjaSharins();
       if (ninjaIsInvis && gameState === 'playing') { ctx.globalAlpha = 0.15; ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 22, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.font = 'bold 9px monospace'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.fillText('👻 INVIS ' + Math.ceil(ninjaInvisTimer / 60) + 's', stick.x, stick.y - 65); ctx.textAlign = 'start'; }
       if (ninjaUltActive && gameState === 'playing') { ctx.globalAlpha = 0.2 + Math.sin(time * 0.3) * 0.1; ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(stick.x, stick.y - 30, 80 + Math.sin(time * 0.2) * 10, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
@@ -12196,6 +12531,7 @@
       loopFrameArmed = true;
       if (boss && boss.alive) { const tC = boss.type === 'titan' ? 'rgba(217,119,6,' : 'rgba(168,85,247,'; const tN = boss.type === 'titan' ? '⛏ TITAN LOCK — Kill the Titan!' : '🟣 BOSS LOCK — Kill the boss!'; ctx.fillStyle = tC + (0.5 + Math.sin(time * 0.1) * 0.3) + ')'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText(tN, CW / 2, CH - 8); ctx.textAlign = 'start'; }
       if (campaignMode) { var campLv = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS[campaignLevel - 1] : CAMPAIGN_LEVELS[campaignLevel - 1]; if (campLv && campLv.duration) { var remain = Math.max(0, Math.ceil((campLv.duration - campaignTimer) / 60)); ctx.fillStyle = '#facc15'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('📖 TIME: ' + remain + 's', CW / 2, 20); ctx.textAlign = 'start'; } } else if (deathOn()) { var dwLeft = Math.max(0, Math.ceil((WAVE_FRAMES - waveTimer) / 60)); ctx.fillStyle = '#fb7185'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center'; ctx.fillText('☠️ WAVE ' + wave + (wave <= DEATH_TOTAL_WAVES ? ' / ' + DEATH_TOTAL_WAVES : ' · ENDLESS') + ' · next in ' + dwLeft + 's', CW / 2, 20); ctx.textAlign = 'start'; } else if (!boss || !boss.alive) { const ts = SPAWN_INTERVAL - spawnTimer; if (ts < 120 && ts > 0 && spawnTimer > 30) { ctx.fillStyle = `rgba(251,146,60,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⚠ WAVE ' + Math.ceil(ts / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; } const tk = KAMIKAZE_INTERVAL - kamikazeTimer; if (tk < 120 && tk > 0) { ctx.fillStyle = `rgba(239,68,68,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💣 KAMIKAZE ' + Math.ceil(tk / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const tt = TITAN_SPAWN_INTERVAL - titanTimer; if (tt < 180 && tt > 0) { ctx.fillStyle = `rgba(217,119,6,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⛏ TITAN ' + Math.ceil(tt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; }      const tg = GRENADER_INTERVAL - grenaderTimer; if (tg < 120 && tg > 0) { ctx.fillStyle = `rgba(249,115,22,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💥 GRENADER ' + Math.ceil(tg / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const bt = BOSS_RESPAWN_INTERVAL - bossTimer; if (bossSpawnedOnce && bt < 180 && bt > 0) { ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('🟣 BOSS ' + Math.ceil(bt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; } if (gameMode === 'hard') { var tse = SENTINEL_SPAWN_INTERVAL - sentinelTimer; if (tse < 180 && tse > 0 && !(sentinel && sentinel.alive)) { ctx.fillStyle = `rgba(6,182,212,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('👁 SENTINEL ' + Math.ceil(tse / 60) + 's', CW / 2, 65); ctx.textAlign = 'start'; } } }
+      }
       } catch (err) {
         reportLoopError('gameLoop', err);
         // The id we still hold is the frame that just threw, so drop it: otherwise
@@ -12223,7 +12559,9 @@
       while (FRAME.acc >= FRAME.step && steps < FRAME.maxSteps) {
         FRAME.acc -= FRAME.step;
         steps++;
-        gameStep();
+        // Only the step that ends the burst is ever displayed; the others are physics only.
+        var lastStep = !(FRAME.acc >= FRAME.step && steps < FRAME.maxSteps);
+        gameStep(!lastStep);
         if (gameState !== 'playing') break;
       }
       if (FRAME.acc > FRAME.step * FRAME.maxSteps) FRAME.acc = 0;
@@ -12255,6 +12593,10 @@
         if (ultDashUnlocked) { ultBtn1.style.opacity = mageLightningCD > 0 ? '0.4' : '1'; ultBtn1.querySelector('span').textContent = mageLightningCD > 0 ? Math.ceil(mageLightningCD / 60) : '1'; }
         if (ultGrenadeUnlocked) { ultBtn2.style.opacity = mageFrostCD > 0 ? '0.4' : '1'; ultBtn2.querySelector('span').textContent = mageFrostCD > 0 ? Math.ceil(mageFrostCD / 60) : '2'; }
         if (ultAllyUnlocked) { ultBtn3.style.opacity = mageTeleportCD > 0 ? '0.4' : '1'; ultBtn3.querySelector('span').textContent = mageTeleportCD > 0 ? Math.ceil(mageTeleportCD / 60) : 'F'; }
+      } else if (selectedChar === 'ultra') {
+        if (ultDashUnlocked) { ultBtn1.style.opacity = ultraLaserCD > 0 ? '0.4' : '1'; ultBtn1.querySelector('span').textContent = ultraLaserCD > 0 ? Math.ceil(ultraLaserCD / 60) : '1'; }
+        if (ultGrenadeUnlocked) { ultBtn2.style.opacity = ultraPulseCD > 0 ? '0.4' : '1'; ultBtn2.querySelector('span').textContent = ultraPulseCD > 0 ? Math.ceil(ultraPulseCD / 60) : '2'; }
+        if (ultAllyUnlocked) { ultBtn3.style.opacity = ultraSlamCD > 0 ? '0.4' : '1'; ultBtn3.querySelector('span').textContent = ultraSlamCD > 0 ? Math.ceil(ultraSlamCD / 60) : 'F'; }
       } else {
         if (ultSlamUnlocked) { ultBtn2.style.opacity = ultSlamCD > 0 ? '0.4' : '1'; ultBtn2.querySelector('span').textContent = ultSlamCD > 0 ? Math.ceil(ultSlamCD / 60) : '2'; }
         if (ultParryUnlocked) { ultBtn3.style.opacity = parryCD > 0 ? '0.4' : '1'; ultBtn3.querySelector('span').textContent = parryCD > 0 ? Math.ceil(parryCD / 60) : 'F'; }
@@ -12727,6 +13069,302 @@
         if (hyperFlyActive && stick.y >= GROUND_Y) { hyperFlyActive = false; }
         // Cap height — don't fly above sun level
         if (stick.y < 80) { stick.y = 80; stick.vy = 0; }
+      }
+    }
+
+    // ==================== ULTRA ====================
+    // Every Ultra hit funnels through ultraHitRadius / ultraHitAllPct, so a new enemy type
+    // can only ever need wiring in TWO places instead of seven.
+    function ultraDmgMult() {
+      return 1 + Math.min(ULTRA_PULSE_MAX_USES, ultraPulseUses) * ULTRA_PULSE_STEP;
+    }
+    function ultraScaled(dmg) { return Math.max(1, Math.round(dmg * ultraDmgMult())); }
+
+    // Flat damage in a horizontal band centred on cx (the whole arena when radius is CW).
+    function ultraHitRadius(cx, radius, dmg, source) {
+      var d = ultraScaled(dmg);
+      dummies.forEach(function(t) { if (t.alive && Math.abs(t.x - cx) < radius) dealDamageToDummy(t, d, source); });
+      miniBosses.forEach(function(t) { if (t.alive && Math.abs(t.x - cx) < radius) dealDamageToMiniBoss(t, d, source); });
+      if (boss && boss.alive && Math.abs(boss.x - cx) < radius) dealDamageToBoss(d, source);
+      if (sentinel && sentinel.alive && Math.abs(sentinel.x - cx) < radius) dealDamageToSentinel(d, source);
+      if (commander && commander.alive && Math.abs(commander.x - cx) < radius) { commander.hp -= d; commander.hitFlash = 6; createTextParticle(commander.x, GROUND_Y - 80, '-' + d, '#c084fc', 14); }
+      if (bossRushDeath && bossRushDeath.hp > 0 && Math.abs(bossRushDeath.x - cx) < radius) { bossRushDeath.hp -= d; bossRushDeath.hitFlash = 6; }
+      if (bossRushUltra && bossRushUltra.hp > 0 && Math.abs(bossRushUltra.x - cx) < radius) dealUltraBossDamage(d);
+      if (bossRushSentinel1 && bossRushSentinel1.alive && Math.abs(bossRushSentinel1.x - cx) < radius) dealColossalSentinelDamage(bossRushSentinel1, d, source);
+      if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(bossRushSentinel2.x - cx) < radius) dealColossalSentinelDamage(bossRushSentinel2, d, source);
+      if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(bossRushColossal.x - cx) < radius) dealColossalDamage(d, source);
+    }
+    function ultraHitAll(dmg, source) { ultraHitRadius(CW / 2, CW, dmg, source); }
+
+    // The supernova is percentage-based: 65% of EACH enemy's own max HP, bosses included.
+    function ultraHitAllPct(pct) {
+      function pctOf(t) { return Math.max(1, Math.round((t.maxHp || t.hp || 1) * pct)); }
+      dummies.forEach(function(t) { if (t.alive) dealDamageToDummy(t, pctOf(t), 'nova'); });
+      miniBosses.forEach(function(t) { if (t.alive) dealDamageToMiniBoss(t, pctOf(t), 'nova'); });
+      if (boss && boss.alive) dealDamageToBoss(pctOf(boss), 'nova');
+      if (sentinel && sentinel.alive) dealDamageToSentinel(pctOf(sentinel), 'nova');
+      if (commander && commander.alive) { commander.hp -= pctOf(commander); commander.hitFlash = 10; createTextParticle(commander.x, GROUND_Y - 80, '-' + pctOf(commander), '#facc15', 18); }
+      if (bossRushDeath && bossRushDeath.hp > 0) { bossRushDeath.hp -= pctOf(bossRushDeath); bossRushDeath.hitFlash = 12; }
+      if (bossRushUltra && bossRushUltra.hp > 0) dealUltraBossDamage(pctOf(bossRushUltra));
+      if (bossRushSentinel1 && bossRushSentinel1.alive) dealColossalSentinelDamage(bossRushSentinel1, pctOf(bossRushSentinel1), 'nova');
+      if (bossRushSentinel2 && bossRushSentinel2.alive) dealColossalSentinelDamage(bossRushSentinel2, pctOf(bossRushSentinel2), 'nova');
+      if (bossRushColossal && bossRushColossal.hp > 0) dealColossalDamage(pctOf(bossRushColossal), 'nova');
+    }
+
+    // Where the sky laser should sit: on whatever is closest, so its 1 dmg / 0.1s actually
+    // lands for the full ten seconds instead of sweeping off into the wall.
+    function ultraNearestEnemyX(fromX) {
+      var best = null, bestD = Infinity;
+      function consider(x) { var dd = Math.abs(x - fromX); if (dd < bestD) { bestD = dd; best = x; } }
+      dummies.forEach(function(t) { if (t.alive) consider(t.x); });
+      miniBosses.forEach(function(t) { if (t.alive) consider(t.x); });
+      if (boss && boss.alive) consider(boss.x);
+      if (sentinel && sentinel.alive) consider(sentinel.x);
+      return best;
+    }
+
+    function ultraStunAround(cx, radius) {
+      dummies.forEach(function(t) { if (t.alive && Math.abs(t.x - cx) < radius) t.stunTimer = ULTRA_SLAM_STUN; });
+      miniBosses.forEach(function(t) { if (t.alive && Math.abs(t.x - cx) < radius) t.sealTimer = ULTRA_SLAM_STUN; });
+      if (boss && boss.alive && Math.abs(boss.x - cx) < radius) boss.stunTimer = ULTRA_SLAM_STUN;
+    }
+
+    function ultraRing(x, y, r, max, color, type, life) {
+      ultraFx.push({ x: x, y: y, r: r, max: max, color: color, type: type || 'ring', life: life || 18, maxLife: life || 18 });
+    }
+
+    // M1 — punch, 20
+    function performUltraPunch() {
+      if (ultraPunchCD > 0 || stick.state === 'dash') return;
+      ultraPunchCD = ULTRA_PUNCH_CD;
+      stick.state = 'shoot'; stick.animTime = 0; attackCooldown = ULTRA_PUNCH_CD;
+      var px = stick.x + 24 * stick.facing;
+      ultraHitRadius(px, ULTRA_PUNCH_RANGE, ULTRA_PUNCH_DMG, 'punch');
+      createParticles(px, stick.y - 40, 12, '#a855f7');
+      ultraRing(px, stick.y - 40, 6, 34, '#c084fc', 'ring', 12);
+      // Visual: violet crescent slash, a six-point spark and a white core flash.
+      var ubPf = stick.facing || 1;
+      ultraFx.push({ x: px, y: stick.y - 40, r: 16, max: 70, color: '#e9d5ff', type: 'crescent', spin: ubPf > 0 ? -0.72 : Math.PI - 0.72, width: 5, life: 14, maxLife: 14 });
+      ultraFx.push({ x: px, y: stick.y - 40, r: 8, max: 52, color: '#a855f7', type: 'burst', count: 6, spin: Math.random() * 6.283, life: 13, maxLife: 13 });
+      ultraFx.push({ x: px, y: stick.y - 40, r: 4, max: 24, color: '#ffffff', type: 'flash', life: 9, maxLife: 9 });
+    }
+    // M2 — blast, 23
+    function performUltraBlast() {
+      if (ultraBlastCD > 0) return;
+      ultraBlastCD = ULTRA_BLAST_CD;
+      stick.state = 'kick'; stick.animTime = 0; attackCooldown = ULTRA_BLAST_CD;
+      var bx = stick.x + 80 * stick.facing;
+      ultraHitRadius(bx, ULTRA_BLAST_RANGE, ULTRA_BLAST_DMG, 'blast');
+      createExplosion(bx, GROUND_Y - 40, 70, '#a855f7');
+      createParticles(bx, GROUND_Y - 40, 18, '#c084fc');
+      ultraRing(bx, GROUND_Y - 40, 12, ULTRA_BLAST_RANGE, '#c084fc', 'ring', 18);
+      // Visual: triple ring, radial ray burst, cog imprint and a hot white core.
+      ultraRing(bx, GROUND_Y - 40, 4, ULTRA_BLAST_RANGE * 0.55, '#e9d5ff', 'ring', 13);
+      ultraRing(bx, GROUND_Y - 40, 22, ULTRA_BLAST_RANGE * 0.8, '#7c3aed', 'ring', 20);
+      ultraFx.push({ x: bx, y: GROUND_Y - 40, r: 10, max: ULTRA_BLAST_RANGE * 1.2, color: '#a855f7', type: 'burst', count: 10, spin: Math.random() * 6.283, life: 18, maxLife: 18 });
+      ultraFx.push({ x: bx, y: GROUND_Y - 40, r: 12, max: 46, color: '#c084fc', type: 'gear', count: 8, spin: 0, life: 22, maxLife: 22 });
+      ultraFx.push({ x: bx, y: GROUND_Y - 40, r: 6, max: 30, color: '#ffffff', type: 'flash', life: 11, maxLife: 11 });
+    }
+    // 1 — laser orbit sky: a beam sweeps overhead, 1 dmg every 0.1s for 10s
+    function performUltraLaser() {
+      if (ultraLaserCD > 0 || ultraLaser) return;
+      ultraLaserCD = ULTRA_LASER_CD;
+      ultraLaser = { anchor: stick.x, x: stick.x, phase: 0, timer: ULTRA_LASER_DUR, tick: 0 };
+      createTextParticle(stick.x, stick.y - 90, '🌌 LASER ORBIT!', '#c084fc', 18);
+      createTextParticle(stick.x, stick.y - 110, '1 DMG / 0.1s · 10s', '#e9d5ff', 12);
+      // Visual: the sky opens above him — a targeting cog and a column of starlight.
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 26, max: 54, color: '#c084fc', type: 'gear', count: 10, spin: 0, life: 30, maxLife: 30 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 30, max: 66, color: '#7c3aed', type: 'pillar', width: 26, life: 22, maxLife: 22 });
+      ultraFx.push({ x: stick.x, y: 0, r: 14, max: 52, color: '#e9d5ff', type: 'flash', life: 14, maxLife: 14 });
+    }
+    // 2 — energy pulse: 30 dmg, and every use permanently adds +5% (cap +50%)
+    function performUltraPulse() {
+      if (ultraPulseCD > 0) return;
+      ultraPulseCD = ULTRA_PULSE_CD;
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 16;
+      var pct = Math.round((ultraDmgMult() - 1) * 100);
+      ultraHitRadius(stick.x, ULTRA_PULSE_RADIUS, ULTRA_PULSE_DMG, 'pulse');
+      ultraPulseUses = Math.min(ULTRA_PULSE_MAX_USES, ultraPulseUses + 1);
+      createExplosion(stick.x, GROUND_Y - 40, ULTRA_PULSE_RADIUS, '#8b5cf6');
+      ultraRing(stick.x, GROUND_Y - 40, 14, ULTRA_PULSE_RADIUS, '#a855f7', 'wave', 20);
+      createTextParticle(stick.x, stick.y - 100, '⚡ PULSE 30' + (pct > 0 ? ' (+' + pct + '%)' : ''), '#c084fc', 18);
+      createTextParticle(stick.x, stick.y - 122, 'NEXT HITS +' + Math.round((ultraDmgMult() - 1) * 100) + '%', '#e9d5ff', 12);
+      // Visual: strobing triple wave, a rising cog of stored power and a violet flash.
+      ultraRing(stick.x, GROUND_Y - 40, 6, ULTRA_PULSE_RADIUS * 0.62, '#e9d5ff', 'wave', 14);
+      ultraRing(stick.x, GROUND_Y - 40, 24, ULTRA_PULSE_RADIUS * 1.1, '#7c3aed', 'wave', 26);
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 40, r: 16, max: 90, color: '#c084fc', type: 'gear', count: 10, spin: 0, life: 24, maxLife: 24 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 70, r: 10, max: 40, color: '#e9d5ff', type: 'burst', count: 5, spin: 0, life: 18, maxLife: 18 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 40, r: 10, max: 44, color: '#ffffff', type: 'flash', life: 12, maxLife: 12 });
+    }
+    // F — super slam: 45 dmg and a stun
+    function performUltraSlam() {
+      if (ultraSlamCD > 0) return;
+      ultraSlamCD = ULTRA_SLAM_CD;
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 20;
+      ultraHitRadius(stick.x, ULTRA_SLAM_RADIUS, ULTRA_SLAM_DMG, 'slam');
+      ultraStunAround(stick.x, ULTRA_SLAM_RADIUS);
+      createExplosion(stick.x, GROUND_Y - 10, ULTRA_SLAM_RADIUS, '#8b5cf6');
+      ultraRing(stick.x, GROUND_Y, 16, ULTRA_SLAM_RADIUS, '#c084fc', 'wave', 22);
+      createTextParticle(stick.x, stick.y - 120, '🔨 SUPER SLAM ' + ULTRA_SLAM_DMG + ' · STUN', '#c084fc', 22);
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 420);
+      for (var i = 0; i < 18; i++) particles.push({ x: stick.x, y: GROUND_Y, vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 10, life: 28 + Math.random() * 18, color: '#a855f7' });
+      // Visual: the floor fractures, a second wall of force rolls out, and the core flares.
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 10, max: ULTRA_SLAM_RADIUS, color: '#a855f7', type: 'crack', count: 9, life: 26, maxLife: 26 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 14, max: ULTRA_SLAM_RADIUS * 0.75, color: '#e9d5ff', type: 'wave', life: 16, maxLife: 16 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 40, r: 14, max: 70, color: '#c084fc', type: 'burst', count: 9, spin: 0, life: 18, maxLife: 18 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 20, r: 12, max: 60, color: '#ffffff', type: 'flash', life: 12, maxLife: 12 });
+    }
+    // E — super dash: 35 dmg through everything in the path, then a shockwave
+    function performUltraDash() {
+      if (ultraDashCD > 0 || ultraDashActive) return;
+      ultraDashCD = ULTRA_DASH_CD;
+      ultraDashDir = stick.facing;
+      ultraDashActive = true;
+      ultraDashDist = ULTRA_DASH_DIST;
+      var fromX = stick.x;
+      var toX = Math.max(50, Math.min(CW - 50, stick.x + ULTRA_DASH_DIST * ultraDashDir));
+      ultraDashDist = Math.abs(toX - fromX);
+      // Damage everything the dash will sweep through, once (not once per frame).
+      ultraHitRadius((fromX + toX) / 2, Math.abs(toX - fromX) / 2 + 45, ULTRA_DASH_DMG, 'dash');
+      createTextParticle(stick.x, stick.y - 90, '💨 SUPER DASH ' + ULTRA_DASH_DMG, '#a855f7', 20);
+      ultraRing(fromX, stick.y - 35, 10, 60, '#c084fc', 'ring', 16);
+      // Visual: a launch crescent snapping off the floor plus a burst of speed lines.
+      ultraFx.push({ x: fromX, y: stick.y - 35, r: 20, max: 92, color: '#c084fc', type: 'crescent', spin: ultraDashDir > 0 ? Math.PI - 0.7 : -0.7, width: 4, life: 14, maxLife: 14 });
+      ultraFx.push({ x: fromX, y: stick.y - 35, r: 10, max: 56, color: '#e9d5ff', type: 'burst', count: 7, spin: 0, life: 13, maxLife: 13 });
+      ultraFx.push({ x: fromX, y: GROUND_Y, r: 8, max: 34, color: '#ffffff', type: 'flash', life: 9, maxLife: 9 });
+    }
+    // 3 — heaven time strike: 30 dmg every 0.5s for 5s, then a 65% supernova. Every third
+    // cast tears time open instead: 7s frozen, then a second 60% nova.
+    function performUltraUlt() {
+      if (!ultReady || ultraUlt) return;
+      ultReady = false; ultCharge = 0;
+      ultBar.style.width = '0%'; ultBarText.textContent = '0%';
+      ultraUlt = { timer: ULTRA_ULT_DUR, tick: 0 };
+      createTextParticle(CW / 2, 58, '🌠 HEAVEN TIME STRIKE', '#c084fc', 28);
+      createTextParticle(CW / 2, 88, ULTRA_ULT_TICK_DMG + ' DMG / 0.5s × 5s → SUPERNOVA 65%', '#e9d5ff', 13);
+      ultraUltCasts++;
+      // Visual: his gears answer from the floor and the sky before the first strike lands.
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 60, max: 150, color: '#a855f7', type: 'gear', count: 16, spin: 0, life: 40, maxLife: 40 });
+      ultraFx.push({ x: CW / 2, y: 44, r: 34, max: 96, color: '#e9d5ff', type: 'gear', count: 14, spin: 0, life: 70, maxLife: 70 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 26, max: 80, color: '#c084fc', type: 'pillar', width: 30, life: 26, maxLife: 26 });
+      if (ultraUltCasts >= ULTRA_ULT_CASTS_FOR_STOP) {
+        ultraUltCasts = 0;
+        ultraTimeStop = ULTRA_TIME_STOP_DUR;
+        createTextParticle(CW / 2, 118, '⏳ 3RD STRIKE — TIME STOP 7s', '#a855f7', 26);
+        // Visual: the freeze slams outward as a violet wall with a cog burned into the air.
+        ultraFx.push({ x: CW / 2, y: GROUND_Y - 60, r: 20, max: 300, color: '#a855f7', type: 'wave', life: 34, maxLife: 34 });
+        ultraFx.push({ x: CW / 2, y: GROUND_Y - 60, r: 40, max: 140, color: '#e9d5ff', type: 'gear', count: 14, spin: 0, life: 90, maxLife: 90 });
+        ultraFx.push({ x: CW / 2, y: GROUND_Y - 60, r: 20, max: 180, color: '#ffffff', type: 'flash', life: 16, maxLife: 16 });
+        canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 700);
+      } else {
+        createTextParticle(CW / 2, 118, 'ULT ' + ultraUltCasts + '/' + ULTRA_ULT_CASTS_FOR_STOP + ' → TIME STOP', '#7e22ce', 12);
+      }
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 500);
+    }
+    // Frozen enemies: everything that walks, shoots or casts stops, the player does not.
+    function ultraTimeFrozen() { return ultraTimeStop > 0; }
+
+    function updateUltraAbilities() {
+      if (ultraPunchCD > 0) ultraPunchCD--;
+      if (ultraBlastCD > 0) ultraBlastCD--;
+      if (ultraLaserCD > 0) ultraLaserCD--;
+      if (ultraPulseCD > 0) ultraPulseCD--;
+      if (ultraSlamCD > 0) ultraSlamCD--;
+      if (ultraDashCD > 0) ultraDashCD--;
+      // Every 15s he patches himself for a tenth of his pool.
+      if (selectedChar === 'ultra' && gameState === 'playing') {
+        ultraHealTimer++;
+        if (ultraHealTimer >= ULTRA_HEAL_EVERY) {
+          ultraHealTimer = 0;
+          if (playerHP < PLAYER_MAX_HP_CURRENT) {
+            var healAmt = Math.max(1, Math.round(PLAYER_MAX_HP_CURRENT * ULTRA_HEAL_PCT));
+            playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + healAmt);
+            updateHPBar();
+            createTextParticle(stick.x, stick.y - 82, '+' + healAmt + ' ⚙', '#c084fc', 16);
+            createParticles(stick.x, stick.y - 30, 12, '#a855f7');
+          }
+        }
+      }
+      // Sky laser — a beam from orbit that hunts the nearest enemy and orbits *it*,
+      // ticking 1 damage every 0.1s for its full 10 seconds.
+      if (ultraLaser) {
+        ultraLaser.timer--; ultraLaser.tick++;
+        ultraLaser.phase += 0.045;
+        var lockX = ultraNearestEnemyX(stick.x);
+        if (lockX === null) lockX = stick.x;
+        ultraLaser.anchor += (lockX - ultraLaser.anchor) * 0.18;
+        ultraLaser.x = Math.max(40, Math.min(CW - 40, ultraLaser.anchor + Math.sin(ultraLaser.phase) * 38));
+        if (ultraLaser.tick % ULTRA_LASER_TICK === 0) {
+          ultraHitRadius(ultraLaser.x, 46, ULTRA_LASER_DMG, 'laser');
+          createParticles(ultraLaser.x, GROUND_Y - 8, 2, '#e9d5ff');
+        }
+        if (ultraLaser.timer <= 0) { ultraLaser = null; createTextParticle(stick.x, stick.y - 90, 'LASER OFF', '#64748b', 12); }
+      }
+      // Dash travel + landing shockwave
+      if (ultraDashActive) {
+        var step = Math.min(ULTRA_DASH_SPD, ultraDashDist);
+        stick.x = Math.max(50, Math.min(CW - 50, stick.x + step * ultraDashDir));
+        ultraDashDist -= step;
+        ultraRing(stick.x, stick.y - 35, 8, 40, '#c084fc', 'ring', 12);
+        if (ultraDashDist <= 0) {
+          ultraDashActive = false;
+          ultraHitRadius(stick.x, ULTRA_WAVE_RADIUS, ULTRA_WAVE_DMG, 'wave');
+          ultraRing(stick.x, GROUND_Y, 14, ULTRA_WAVE_RADIUS, '#a855f7', 'wave', 22);
+          // Visual: the landing cracks the floor and throws a second wave inside the first.
+          ultraFx.push({ x: stick.x, y: GROUND_Y, r: 12, max: ULTRA_WAVE_RADIUS, color: '#a855f7', type: 'crack', count: 7, life: 24, maxLife: 24 });
+          ultraFx.push({ x: stick.x, y: GROUND_Y - 30, r: 12, max: ULTRA_WAVE_RADIUS * 0.7, color: '#e9d5ff', type: 'wave', life: 18, maxLife: 18 });
+          ultraFx.push({ x: stick.x, y: GROUND_Y - 20, r: 8, max: 40, color: '#ffffff', type: 'flash', life: 10, maxLife: 10 });
+          createExplosion(stick.x, GROUND_Y - 20, ULTRA_WAVE_RADIUS, '#a855f7');
+          createTextParticle(stick.x, GROUND_Y - 130, '💥 SHOCKWAVE ' + ULTRA_WAVE_DMG, '#c084fc', 18);
+          canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 320);
+        }
+      }
+      // Heaven time strike
+      if (ultraUlt) {
+        ultraUlt.timer--; ultraUlt.tick++;
+        if (ultraUlt.tick % ULTRA_ULT_TICK === 0) {
+          ultraHitAll(ULTRA_ULT_TICK_DMG, 'ult');
+          for (var ui = 0; ui < 3; ui++) {
+            var sx = 80 + Math.random() * (CW - 160);
+            ultraFx.push({ x: sx, y: GROUND_Y, r: 4, max: 46, color: '#e9d5ff', type: 'strike', life: 16, maxLife: 16 });
+            ultraFx.push({ x: sx, y: GROUND_Y, r: 20, max: 44, color: '#e9d5ff', type: 'pillar', width: 12, life: 14, maxLife: 14 });
+          }
+          createTextParticle(CW / 2, 104, '⚡ HEAVEN STRIKE ' + ULTRA_ULT_TICK_DMG, '#c084fc', 13);
+        }
+        if (ultraUlt.timer <= 0) {
+          ultraUlt = null;
+          // SUPERNOVA — 65% of every enemy's own max HP, boss included
+          ultraHitAllPct(ULTRA_ULT_NOVA_PCT);
+          createExplosion(CW / 2, GROUND_Y - 60, 200, '#c084fc');
+          createExplosion(CW / 2, GROUND_Y - 120, 160, '#e9d5ff');
+          for (var ni = 0; ni < 6; ni++) ultraFx.push({ x: CW / 2, y: GROUND_Y - 40, r: 20, max: 460 + ni * 60, color: ni % 2 ? '#ffffff' : '#c084fc', type: 'wave', life: 30 + ni * 4, maxLife: 30 + ni * 4 });
+          ultraFx.push({ x: CW / 2, y: GROUND_Y, r: 20, max: CW / 2, color: '#c084fc', type: 'crack', count: 11, life: 30, maxLife: 30 });
+          ultraFx.push({ x: CW / 2, y: GROUND_Y - 70, r: 30, max: 240, color: '#ffffff', type: 'flash', life: 16, maxLife: 16 });
+          createTextParticle(CW / 2, 120, '💥 SUPERNOVA! 65%', '#ffffff', 30);
+          canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 900);
+        }
+      }
+      // 3rd ultimate: the freeze, then the second nova when the clock starts again.
+      if (ultraTimeStop > 0) {
+        ultraTimeStop--;
+        if (ultraTimeStop > 0 && ultraTimeStop % 60 === 0) {
+          createTextParticle(CW / 2, 152, '⏳ ' + Math.ceil(ultraTimeStop / 60) + 's', '#a855f7', 16);
+        }
+        if (ultraTimeStop === 0) {
+          ultraHitAllPct(ULTRA_TIME_STOP_NOVA_PCT);
+          createExplosion(CW / 2, GROUND_Y - 70, 220, '#7e22ce');
+          createExplosion(CW / 2, GROUND_Y - 130, 170, '#ffffff');
+          for (var tsi = 0; tsi < 8; tsi++) ultraFx.push({ x: CW / 2, y: GROUND_Y - 40, r: 20, max: 420 + tsi * 70, color: tsi % 2 ? '#ffffff' : '#a855f7', type: 'wave', life: 34 + tsi * 4, maxLife: 34 + tsi * 4 });
+          ultraFx.push({ x: CW / 2, y: GROUND_Y, r: 20, max: CW / 2, color: '#e9d5ff', type: 'crack', count: 11, life: 34, maxLife: 34 });
+          ultraFx.push({ x: CW / 2, y: GROUND_Y - 60, r: 24, max: 220, color: '#ffffff', type: 'flash', life: 18, maxLife: 18 });
+          createTextParticle(CW / 2, 120, '💥 TIME NOVA! 60%', '#ffffff', 32);
+          canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 900);
+        }
+      }
+      // Rings decay
+      if (ultraFx.length) {
+        ultraFx.forEach(function(f) { f.life--; });
+        ultraFx = ultraFx.filter(function(f) { return f.life > 0; });
       }
     }
 
@@ -13712,6 +14350,12 @@
         if (e.key === '3') performHyperSpiritOrb();
         if (e.key.toLowerCase() === 'f') performHyperGreatSlam();
         if (e.key.toLowerCase() === 'e') performHyperShield();
+      } else if (selectedChar === 'ultra') {
+        if (e.key === '1') performUltraLaser();
+        if (e.key === '2') performUltraPulse();
+        if (e.key === '3') performUltraUlt();
+        if (e.key.toLowerCase() === 'f') performUltraSlam();
+        if (e.key.toLowerCase() === 'e') performUltraDash();
       } else if (selectedChar === 'cheeser') {
         if (e.key === '3') performCheeserUlt();
       } else if (selectedChar === 'phantom') {
@@ -13761,6 +14405,8 @@
         if (e.button === 2) performKnightParry(); else performKnightSlash();
       } else if (selectedChar === 'hyper') {
         if (e.button === 2) performHyperSmallSlam(); else performHyperPunch();
+      } else if (selectedChar === 'ultra') {
+        if (e.button === 2) performUltraBlast(); else performUltraPunch();
       } else if (selectedChar === 'cheeser') {
         if (e.button === 2) performCheeserHeal(); else performCheeserThrow();
       } else if (selectedChar === 'phantom') {
@@ -13794,7 +14440,7 @@
       mouseY = (t.clientY - rect.top) * (CH / rect.height);
       mobAimTimer = 0; // a direct tap takes the aim back from the sticks
       if (mouseX > stick.x) stick.facing = 1; else stick.facing = -1;
-      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else if (selectedChar === 'cheeser') performCheeserThrow(); else if (selectedChar === 'phantom') performPhantomPunch(); else if (selectedChar === 'slayer') performSlayerSlash(); else if (selectedChar === 'taoist') performTaoistSword(); else performPunch();
+      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else if (selectedChar === 'ultra') performUltraPunch(); else if (selectedChar === 'cheeser') performCheeserThrow(); else if (selectedChar === 'phantom') performPhantomPunch(); else if (selectedChar === 'slayer') performSlayerSlash(); else if (selectedChar === 'taoist') performTaoistSword(); else performPunch();
     }, { passive: false });
 
     // ==================== RESET ====================
@@ -13838,6 +14484,11 @@
       hyperPunchCD = 0; hyperSlamCD = 0; hyperQuakeCD = 0; hyperLaserCD = 0; hyperLaserActive = false;
       hyperGSlamCD = 0; hyperShieldCD = 0; hyperShieldActive = false;
       hyperSpiritLaser = null; hyperLaserDir = null; hyperQuakeSpikes = []; hyperFlyActive = false;
+      ultraPunchCD = 0; ultraBlastCD = 0; ultraLaserCD = 0; ultraPulseCD = 0;
+      ultraSlamCD = 0; ultraDashCD = 0; ultraHealTimer = 0;
+      ultraLaser = null; ultraPulseUses = 0; ultraUlt = null; ultraFx = [];
+      ultraUltCasts = 0; ultraTimeStop = 0;
+      ultraDashActive = false; ultraDashDist = 0; ultraDashDir = 1;
       cheeserThrowCD = 0; cheeserHealCD = 0; cheeserCheeseBullets = []; // cheeserMultishot persists across levels!
       phantomPunchCD = 0; phantomTeleportCD = 0; phantomTeleportWinding = false; phantomTeleportTimer = 0;
       phantomPossessCD = 0; phantomPossessProjectiles = []; phantomExplodeCD = 0;
@@ -13881,7 +14532,7 @@
       var hasSummonAlly = false;
       for (var k in shopUpgrades) { if (k.indexOf('summon') === 0 && shopUpgrades[k] > 0) { hasSummonAlly = true; break; } }
       if (hasSummonAlly) { allySpawnTimer = ALLY_SPAWN_INTERVAL; }
-      PLAYER_MAX_HP_CURRENT = Math.floor((selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? taoistMaxHp() : selectedChar === 'hyper' ? HYPER_HP : 100) * skinHpMult());
+      PLAYER_MAX_HP_CURRENT = Math.floor((selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? taoistMaxHp() : selectedChar === 'hyper' ? HYPER_HP : selectedChar === 'ultra' ? ULTRA_HP : 100) * skinHpMult());
       PLAYER_MAX_HP_CURRENT += getShopUpgradeEffect('maxHp');
       // Knight shield init
       if (selectedChar === 'knight') { knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { knightShieldHP = 0; knightShieldMax = 0; }
@@ -13896,9 +14547,9 @@
     document.getElementById('resetBtn').addEventListener('click', () => { document.getElementById('cutsceneUI').style.display = ''; fullReset(); gameState = 'playing'; resumeGameLoop(); });
     document.getElementById('campSecret').addEventListener('click', function() { startPhantomMission(); });
     document.getElementById('closeInstructions').addEventListener('click', () => { showInstructions = false; instructionsEl.style.display = 'none'; });
-    ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaFarDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
-    ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : performSlam(); });
-    ultBtn3.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'soldier' ? performAllyGunner() : selectedChar === 'super' ? performSuperCrossbowAlly() : selectedChar === 'mage' ? performMageHeal() : selectedChar === 'ninja' ? performNinjaClones() : selectedChar === 'bots' ? performBotLaserCore() : performParry(); });
+    ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraLaser() : selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaFarDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
+    ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraPulse() : selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : performSlam(); });
+    ultBtn3.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraUlt() : selectedChar === 'soldier' ? performAllyGunner() : selectedChar === 'super' ? performSuperCrossbowAlly() : selectedChar === 'mage' ? performMageHeal() : selectedChar === 'ninja' ? performNinjaClones() : selectedChar === 'bots' ? performBotLaserCore() : performParry(); });
     // Gameover screen buttons
     document.getElementById('retryBtn').addEventListener('click', function() {
       document.getElementById('gameoverScreen').classList.add('hidden');
@@ -13990,6 +14641,17 @@
         rows.push(['3', 'SPIRIT LASER 15/tick + 200 NUKE', 'text-white']);
         rows.push(['3 REQ', 'NEEDS 100% ULT', 'text-amber-400']);
         rows.push(['W/SPACE', 'FLY', 'text-cyan-400']);
+      } else if (selectedChar === 'ultra') {
+        rows.push(['L-CLICK', 'PUNCH 20', 'text-emerald-400']);
+        rows.push(['R-CLICK', 'BLAST 23', 'text-rose-400']);
+        rows.push(['1', 'LASER ORBIT 1/0.1s 10s', 'text-purple-300']);
+        rows.push(['2', 'PULSE 30 (+5% dmg/use)', 'text-violet-400']);
+        rows.push(['F', 'SUPER SLAM 45 + STUN', 'text-fuchsia-400']);
+        rows.push(['E', 'SUPER DASH 35 + WAVE', 'text-purple-400']);
+        rows.push(['3', 'HEAVEN STRIKE 40/0.5s + 65% NOVA', 'text-white']);
+        rows.push(['3 REQ', 'NEEDS 100% ULT', 'text-amber-400']);
+        rows.push(['3 ×3', 'TIME STOP 7s → 60% NOVA', 'text-violet-300']);
+        rows.push(['PASSIVE', '450 HP · -20% DMG · +10%/15s', 'text-cyan-400']);
       } else if (selectedChar === 'cheeser') {
         rows.push(['L-CLICK', 'CHEESE 200', 'text-yellow-400']);
         rows.push(['R-CLICK', 'EAT HEAL 100%', 'text-green-400']);
