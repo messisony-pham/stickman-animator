@@ -131,7 +131,52 @@ const HOOK = `
         return o;
       },
       frame: function () { return { acc: FRAME.acc, step: FRAME.step, maxSteps: FRAME.maxSteps }; },
-      loop: function (dt) { FRAME.acc = dt; FRAME.last = 0; gameLoop(0); }
+      loop: function (dt) { FRAME.acc = dt; FRAME.last = 0; gameLoop(0); },
+      // --- Shadow Magic campaign -------------------------------------------------
+      shadow: function () {
+        var def = campaignLvDef();
+        return {
+          type: activeCampaignType, level: campaignLevel, mode: campaignMode,
+          timer: campaignTimer, name: def ? def.name : null, duration: def ? def.duration : null,
+          progress: shadowProgress, max: shadowMaxLevels, state: gameState,
+          char: selectedChar, maxhp: PLAYER_MAX_HP_CURRENT,
+          runes: masterRunes.map(function (r) { return { x: Math.round(r.x), delay: r.delay, life: r.life }; }),
+          minis: miniBosses.map(function (m) {
+            return { type: m.type, hp: Math.round(m.hp), max: m.maxHp, phase: m.phase || 1, state: m.state || null };
+          }),
+          summoners: dummies.filter(function (d) { return d.isSummoner; }).length,
+          dummies: dummies.length, bullets: bullets.length, magicBullets: bullets.filter(function (b) { return b.magic; }).length
+        };
+      },
+      shadowStart: function (lv) { startShadowCutscene(lv - 1); return true; },
+      shadowLaunch: function (lv) { launchShadowLevel(lv); return true; },
+      advanceAll: function () { var g = 0; while (!document.getElementById('cutsceneScreen').classList.contains('hidden') && g++ < 60) advanceCutscene(); return g; },
+      shadowStep: function (n) { for (var i = 0; i < (n || 1); i++) gameStep(true); return true; },
+      shadowHitMaster: function (dmg) {
+        var m = null;
+        for (var i = 0; i < miniBosses.length; i++) if (miniBosses[i].type === 'master_mage') m = miniBosses[i];
+        if (!m) return null;
+        dealDamageToMiniBoss(m, dmg, 'punch');
+        return { hp: Math.round(m.hp), max: m.maxHp, alive: m.alive, phase: m.phase || 1 };
+      },
+      shadowKillMaster: function () {
+        var m = null;
+        for (var i = 0; i < miniBosses.length; i++) if (miniBosses[i].type === 'master_mage') m = miniBosses[i];
+        if (!m) return null;
+        m.hp = 1;
+        dealDamageToMiniBoss(m, 50, 'punch');
+        return { alive: m.alive };
+      },
+      shadowResetProgress: function () {
+        shadowProgress = 1; localStorage.setItem('sm_campaignShadow', 1); return true;
+      },
+      cutscene: function () {
+        return {
+          open: !document.getElementById('cutsceneScreen').classList.contains('hidden'),
+          data: cutsceneData === SHADOW_WIN_CUTSCENE ? 'shadow-win' : 'other',
+          speaker: document.getElementById('cutsceneName').textContent
+        };
+      }
     };
 `;
 

@@ -464,7 +464,7 @@
 
   <!-- Campaign Selection Overlay -->
   <div id="campaignScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
-    <div class="bg-slate-800 border-2 border-purple-500 rounded-2xl p-6 w-96 max-w-[92vw] shadow-2xl fade-in">
+    <div class="bg-slate-800 border-2 border-purple-500 rounded-2xl p-6 w-96 max-w-[92vw] max-h-[92vh] overflow-y-auto shadow-2xl fade-in">
       <h2 class="text-white font-bold text-xl mb-1 text-center">📖 Campaign <span class="text-purple-400 text-sm">(DEMO)</span></h2>
       <p class="text-slate-400 text-xs text-center mb-4">Complete levels to unlock more campaigns!</p>
       <div class="space-y-3 mb-4">
@@ -489,6 +489,17 @@
             </div>
           </div>
           <div id="soldierLevelSelect" class="grid grid-cols-5 gap-1.5 hidden"></div>
+        </div>
+        <div id="campShadow" class="bg-slate-700 border border-slate-600 rounded-xl p-4 transition-all cursor-pointer hover:border-purple-400">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="text-3xl">🧙</div>
+            <div class="flex-1">
+              <div class="font-bold text-purple-300">Shadow Magic</div>
+              <div class="text-[10px] text-slate-400">5 levels • Become a mage!</div>
+              <div id="campShadowProgress" class="text-[10px] text-amber-400 mt-1">Level 1/5</div>
+            </div>
+          </div>
+          <div id="shadowLevelSelect" class="grid grid-cols-5 gap-1.5 hidden"></div>
         </div>
         <div class="bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 opacity-50">
           <div class="flex items-center gap-3">
@@ -1375,6 +1386,17 @@
     const TC_CONTACT_DMG = 12, TC_CHAIN_FRAMES = 150, TC_CHAIN2_FRAMES = 200;
     const TC_BLAST_DMG = 30, TC_BLAST_RADIUS = 72, TC_BLAST_WARN = 45, TC_BLAST_FALL = 26;
     const TC_ZAP_DMG = 16, TC_ZAP_EVERY = 26, TC_ZAP2_EVERY = 18;
+    // ===== SHADOW MAGIC CAMPAIGN (the Mage's origin) =====
+    // The apprentice is a real mage, and a real mage has 70 HP — two touches from the
+    // Master and the story ends on level 5. The rite itself is what keeps him upright,
+    // so these five levels hand him a campaign-sized pool without touching the mage's
+    // stats anywhere else.
+    const SHADOW_MAGE_HP = 240;
+    const MAGICER_HP = 110, MAGICER_SPD = 0.62, MAGICER_DMG = 10, MAGICER_CD = 150; // bolt every 2.5s
+    const BIG_MONSTER_HP = 420, BIG_MONSTER_SPD = 0.45, BIG_MONSTER_DMG = 22, BIG_MONSTER_CD = 110;
+    const BIG_SUMMONER_HP = 260, BIG_SUMMONER_SPD = 0.38, BIG_SUMMONER_DMG = 12, BIG_SUMMONER_CD = 90, BIG_SUMMONER_CALL = 300;
+    const MASTER_MAGE_HP = 900, MASTER_MAGE_SPD = 0.75;
+    const MASTER_MAGE_ORB_DMG = 12, MASTER_MAGE_RUNE_DMG = 20, MASTER_MAGE_CONTACT_DMG = 16;
     const COMMANDER_HP = 800, COMMANDER_SPD = 0.5, COMMANDER_DMG = 8, COMMANDER_CD = 90;
     const COMMANDER_AIRSTRIKE_DMG = 40, COMMANDER_AIRSTRIKE_CD = 300; // 5s
     const MINI_BOSS_INTERVAL = 1500;
@@ -3331,10 +3353,13 @@
     // ==================== CAMPAIGN SYSTEM ====================
     var campaignProgress = parseInt(localStorage.getItem('sm_campaignFighter') || '1');
     var soldierProgress = parseInt(localStorage.getItem('sm_campaignSoldier') || '1');
+    var shadowProgress = parseInt(localStorage.getItem('sm_campaignShadow') || '1');
     var activeCampaignType = 'fighter';
     var campaignMode = false, campaignLevel = 1, campaignMaxLevels = 10;
     var victoryMode = false;
     var campaignTimer = 0, campaignSpawnTimer = 0, campaignSpecialTimers = {};
+    // Rune circles called down by the Master Mage (Shadow Magic Lv 5).
+    var masterRunes = [];
     // Commander (Soldier Lv 5 boss)
     var commander = null, commanderAirstrikes = [], commanderTalkTimer = 0;
     var cutsceneData = [], cutsceneIndex = 0, cutsceneTyping = false, cutsceneCharIdx = 0, cutsceneTimer = 0;
@@ -3687,6 +3712,87 @@
       { speaker: 'Narrator', color: '#22d3ee', text: 'A little further on, his Gun Friend is waiting for him.', portrait: 'gunfriend' },
       { speaker: 'Narrator', color: '#facc15', text: 'THE END.', portrait: 'trophy' },
     ];
+
+    // ===== SHADOW MAGIC CAMPAIGN =====
+    // "Become a mage": the apprentice's own story, five levels, ending on the teacher he
+    // was never supposed to surpass. He plays as the Mage the whole way through.
+    var SHADOW_WIN_CUTSCENE = [
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The Master Mage folds into his own shadow and is gone.', portrait: 'narrator' },
+      { speaker: 'Apprentice', color: '#a855f7', text: 'You said I would never hold a spell of my own...', portrait: 'apprentice' },
+      { speaker: 'Apprentice', color: '#a855f7', text: '...and then you threw every shadow in this tower at me.', portrait: 'apprentice' },
+      { speaker: 'Narrator', color: '#94a3b8', text: 'The black pages burn down to ash in his hands. The magic does not.', portrait: 'narrator' },
+      { speaker: 'Apprentice', color: '#c084fc', text: 'I am not an apprentice anymore.', portrait: 'apprentice' },
+      { speaker: 'Narrator', color: '#facc15', text: 'SHADOW MAGIC — COMPLETE.', portrait: 'trophy' },
+    ];
+
+    var SHADOW_CAMPAIGN_LEVELS = [
+      {
+        name: 'Level 1: The First Rite',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'A tower with no windows. A book with no title.', portrait: 'narrator' },
+          { speaker: 'Master Mage', color: '#a855f7', text: 'You want to become a mage? Then summon something that obeys you.', portrait: 'mastermage' },
+          { speaker: 'Apprentice', color: '#c084fc', text: 'Thirty seconds. One summoner every five seconds.', portrait: 'apprentice' },
+          { speaker: 'Master Mage', color: '#a855f7', text: 'And if one of them bites you, do not come crying to me.', portrait: 'mastermage' },
+        ],
+        duration: 1800, spawnInterval: 0, spawnCount: 0,
+        specialSpawns: [{ type: 'summoner', interval: 300 }]
+      },
+      {
+        name: 'Level 2: Stolen Pages',
+        cutscene: [
+          { speaker: 'Apprentice', color: '#c084fc', text: 'Summoners are easy. They only call things smaller than themselves.', portrait: 'apprentice' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'A page falls out of the black book — someone has been adding to it.', portrait: 'narrator' },
+          { speaker: 'Master Mage', color: '#a855f7', text: 'So. You found the MAGICER page. Let us see you read it under fire.', portrait: 'mastermage' },
+          { speaker: 'Apprentice', color: '#c084fc', text: 'A magicer? It throws real spells. Good.', portrait: 'apprentice' },
+        ],
+        duration: 1800, spawnInterval: 0, spawnCount: 0,
+        specialSpawns: [{ type: 'summoner', interval: 300 }, { type: 'magicer', interval: 360 }]
+      },
+      {
+        name: 'Level 3: The Big Monster',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'The tower shakes. Something huge is climbing the outside wall.', portrait: 'narrator' },
+          { speaker: 'Apprentice', color: '#c084fc', text: 'What is THAT?!', portrait: 'apprentice' },
+          { speaker: 'Master Mage', color: '#a855f7', text: 'A BIG MONSTER. The shadows make them, not me. Kill it before it eats the tower.', portrait: 'mastermage' },
+          { speaker: 'Apprentice', color: '#c084fc', text: 'Thirty-four seconds. Magicers AND that thing. Fine.', portrait: 'apprentice' },
+        ],
+        duration: 2040, spawnInterval: 0, spawnCount: 0,
+        specialSpawns: [{ type: 'magicer', interval: 360 }, { type: 'big_monster', interval: 600 }]
+      },
+      {
+        name: 'Level 4: The Grand Summoner',
+        cutscene: [
+          { speaker: 'Narrator', color: '#94a3b8', text: 'The candles go out one by one. Every shadow in the room turns to face him.', portrait: 'narrator' },
+          { speaker: 'Master Mage', color: '#a855f7', text: 'You have read enough. Now face what the book keeps for itself.', portrait: 'mastermage' },
+          { speaker: 'Narrator', color: '#8b5cf6', text: 'A BIG SUMMONER rises every ten seconds.', portrait: 'narrator' },
+          { speaker: 'Apprentice', color: '#c084fc', text: 'Then I will unsummon every one of them.', portrait: 'apprentice' },
+        ],
+        duration: 2400, spawnInterval: 0, spawnCount: 0,
+        specialSpawns: [{ type: 'summoner', interval: 300 }, { type: 'magicer', interval: 360 }, { type: 'big_summoner', interval: 600 }]
+      },
+      {
+        name: 'Level 5: The Master Mage',
+        cutscene: [
+          { speaker: 'Master Mage', color: '#a855f7', text: 'Everything you know, I put in your hands. Remember that.', portrait: 'mastermage' },
+          { speaker: 'Apprentice', color: '#c084fc', text: 'And everything you never taught me, I took anyway.', portrait: 'apprentice' },
+          { speaker: 'Narrator', color: '#94a3b8', text: 'The Master Mage steps out of his own shadow. The tower goes quiet.', portrait: 'narrator' },
+          { speaker: 'Master Mage', color: '#a855f7', text: 'Then let us see what you actually learned.', portrait: 'mastermage' },
+        ],
+        duration: 0, spawnInterval: 0, spawnCount: 0,
+        spawnMasterMage: true, defeatMasterMage: true
+      }
+    ];
+    var shadowMaxLevels = SHADOW_CAMPAIGN_LEVELS.length;
+
+    // Returns the definition for the level currently being played, whichever campaign
+    // it belongs to. Every spawn/win/HUD path reads the level through this so a third
+    // campaign cannot be mistaken for the Fighter's table.
+    function campaignLvDef() {
+      var table = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS
+        : activeCampaignType === 'shadow' ? SHADOW_CAMPAIGN_LEVELS
+        : CAMPAIGN_LEVELS;
+      return table[campaignLevel - 1];
+    }
 
     // Cutscene rendering
     function drawCutsceneBg() {
@@ -4104,7 +4210,7 @@
           cctx.fillRect(sx3, sy3, 2, 2);
         }
         cctx.globalAlpha = 1;
-        if (activeCampaignType !== 'soldier') {
+        if (activeCampaignType === 'fighter') {
           // ---- Fighter campaign cutscenes: a living scene behind the dialogue ----
           // Actors animate every frame (breathing, striding, zipping, powering up)
           // and the scene advances as the player clicks through the lines.
@@ -4563,6 +4669,112 @@
           }
         }
       }
+      if (activeCampaignType === 'shadow') {
+        // ---- Shadow Magic cutscenes: the tower's ritual chamber ----
+        // Violet moon, a turning ritual circle, candles, the apprentice with his lit staff,
+        // and from the second level on the Master waiting in the dark on the other side.
+        var sIdx = cutsceneIndex;
+        var sLv = campaignLevel;
+        var sgY = ch - 100;
+        cctx.save();
+        // Moon
+        cctx.globalAlpha = 0.5; cctx.fillStyle = '#4c1d95';
+        cctx.beginPath(); cctx.arc(cw - 150, 96, 46, 0, Math.PI * 2); cctx.fill();
+        cctx.globalAlpha = 0.85; cctx.fillStyle = '#c4b5fd';
+        cctx.beginPath(); cctx.arc(cw - 150, 96, 34, 0, Math.PI * 2); cctx.fill();
+        cctx.globalAlpha = 1;
+        // Ritual circle
+        cctx.strokeStyle = 'rgba(168,85,247,0.55)'; cctx.lineWidth = 2;
+        for (var scR = 0; scR < 2; scR++) {
+          cctx.beginPath();
+          cctx.ellipse(cw / 2, sgY + 12, 150 - scR * 34, 34 - scR * 8, 0, 0, Math.PI * 2);
+          cctx.stroke();
+        }
+        // Runes drifting round the circle
+        for (var scI = 0; scI < 10; scI++) {
+          var scA = t * 0.0006 + scI * (Math.PI * 2 / 10);
+          cctx.globalAlpha = 0.35 + Math.sin(t * 0.002 + scI) * 0.25;
+          cctx.fillStyle = '#c084fc';
+          cctx.fillRect(cw / 2 + Math.cos(scA) * 156 - 2, sgY + 12 + Math.sin(scA) * 36, 4, 4);
+        }
+        cctx.globalAlpha = 1;
+        // Candles along the back wall
+        for (var scC = 0; scC < 6; scC++) {
+          var scX = 110 + scC * 136;
+          cctx.fillStyle = '#3f2d1a'; cctx.fillRect(scX - 3, sgY - 10, 6, 24);
+          var scFlame = 4 + Math.sin(t * 0.008 + scC) * 2;
+          cctx.fillStyle = '#c084fc';
+          cctx.beginPath(); cctx.ellipse(scX, sgY - 16, 3, scFlame, 0, 0, Math.PI * 2); cctx.fill();
+        }
+        // Apprentice (left)
+        var apX = 250, apBob = Math.sin(t * 0.004) * 2;
+        cctx.fillStyle = '#4c1d95';
+        cctx.beginPath();
+        cctx.moveTo(apX - 20, sgY + 16); cctx.lineTo(apX - 10, sgY - 52 + apBob);
+        cctx.lineTo(apX + 10, sgY - 52 + apBob); cctx.lineTo(apX + 20, sgY + 16);
+        cctx.closePath(); cctx.fill();
+        cctx.strokeStyle = '#c4b5fd'; cctx.lineWidth = 3; cctx.lineCap = 'round';
+        cctx.beginPath(); cctx.arc(apX, sgY - 66 + apBob, 12, 0, Math.PI * 2); cctx.stroke();
+        cctx.fillStyle = '#6d28d9';
+        cctx.beginPath(); cctx.moveTo(apX - 14, sgY - 72 + apBob); cctx.lineTo(apX + 2, sgY - 104 + apBob); cctx.lineTo(apX + 14, sgY - 72 + apBob); cctx.closePath(); cctx.fill();
+        cctx.strokeStyle = '#78350f'; cctx.lineWidth = 3;
+        cctx.beginPath(); cctx.moveTo(apX + 26, sgY - 92 + apBob); cctx.lineTo(apX + 26, sgY + 14); cctx.stroke();
+        var apGlow = 6 + Math.sin(t * 0.01) * 2;
+        cctx.fillStyle = 'rgba(192,132,252,0.35)';
+        cctx.beginPath(); cctx.arc(apX + 26, sgY - 96 + apBob, apGlow + 8, 0, Math.PI * 2); cctx.fill();
+        cctx.fillStyle = '#f5f3ff';
+        cctx.beginPath(); cctx.arc(apX + 26, sgY - 96 + apBob, 4, 0, Math.PI * 2); cctx.fill();
+        // The Master (right), present from level 2 or once he speaks
+        if (sLv >= 2 || sIdx >= 2) {
+          var mmX = 660, mmHover = Math.sin(t * 0.003) * 3;
+          cctx.globalAlpha = 0.25; cctx.fillStyle = '#7c3aed';
+          cctx.beginPath(); cctx.arc(mmX, sgY - 70 + mmHover, 64, 0, Math.PI * 2); cctx.fill();
+          cctx.globalAlpha = 0.35; cctx.fillStyle = '#1e1b4b';
+          cctx.beginPath();
+          cctx.moveTo(mmX - 40, sgY + 18); cctx.lineTo(mmX - 18, sgY - 92 + mmHover);
+          cctx.lineTo(mmX + 18, sgY - 92 + mmHover); cctx.lineTo(mmX + 40, sgY + 18);
+          cctx.closePath(); cctx.fill();
+          cctx.globalAlpha = 1;
+          cctx.fillStyle = '#2e1065';
+          cctx.beginPath();
+          cctx.moveTo(mmX - 26, sgY + 16); cctx.lineTo(mmX - 12, sgY - 78 + mmHover);
+          cctx.lineTo(mmX + 12, sgY - 78 + mmHover); cctx.lineTo(mmX + 26, sgY + 16);
+          cctx.closePath(); cctx.fill();
+          cctx.strokeStyle = '#c4b5fd'; cctx.lineWidth = 3;
+          cctx.beginPath(); cctx.arc(mmX, sgY - 92 + mmHover, 13, 0, Math.PI * 2); cctx.stroke();
+          cctx.fillStyle = '#c084fc';
+          cctx.beginPath(); cctx.moveTo(mmX - 15, sgY - 102 + mmHover); cctx.lineTo(mmX - 8, sgY - 132 + mmHover);
+          cctx.lineTo(mmX, sgY - 108 + mmHover); cctx.lineTo(mmX + 8, sgY - 134 + mmHover);
+          cctx.lineTo(mmX + 15, sgY - 102 + mmHover); cctx.closePath(); cctx.fill();
+          cctx.fillStyle = '#fda4af';
+          cctx.beginPath(); cctx.arc(mmX - 5, sgY - 93 + mmHover, 2.5, 0, Math.PI * 2); cctx.fill();
+          cctx.beginPath(); cctx.arc(mmX + 5, sgY - 93 + mmHover, 2.5, 0, Math.PI * 2); cctx.fill();
+        }
+        cctx.globalAlpha = 1;
+        cctx.restore();
+        // Chapter card
+        var sDef = SHADOW_CAMPAIGN_LEVELS[Math.max(0, Math.min(shadowMaxLevels - 1, sLv - 1))];
+        if (sDef) {
+          var sParts = sDef.name.split(': ');
+          cctx.globalAlpha = sIdx === 0 ? 1 : 0.45;
+          cctx.fillStyle = 'rgba(2,6,23,0.78)';
+          cctx.fillRect(16, 14, 340, 56);
+          cctx.strokeStyle = '#a855f7'; cctx.lineWidth = 2;
+          cctx.strokeRect(16, 14, 340, 56);
+          cctx.fillStyle = '#c084fc'; cctx.font = 'bold 17px monospace';
+          cctx.fillText((sParts[0] || '').toUpperCase(), 30, 40);
+          cctx.fillStyle = '#cbd5e1'; cctx.font = '13px monospace';
+          cctx.fillText(sParts.slice(1).join(': '), 30, 62);
+          cctx.globalAlpha = 1;
+        }
+        if (sIdx === 0) {
+          var sof = Math.min(1, (t - cutsceneLineAt) / 700);
+          if (sof < 1) {
+            cctx.fillStyle = 'rgba(0,0,0,' + (1 - sof).toFixed(3) + ')';
+            cctx.fillRect(0, 0, cw, ch);
+          }
+        }
+      }
     }
 
     function startCutscene(levelIdx) {
@@ -4601,7 +4813,7 @@
           return;
         }
         // After soldier ending cutscene: go back to menu
-        if (cutsceneData === SOLDIER_WIN_CUTSCENE || cutsceneData === TIME_CHAINER_WIN_CUTSCENE) {
+        if (cutsceneData === SOLDIER_WIN_CUTSCENE || cutsceneData === TIME_CHAINER_WIN_CUTSCENE || cutsceneData === SHADOW_WIN_CUTSCENE) {
           gameState = 'menu'; animFrameId = null;
           gameUI.classList.add('hidden'); gameUI.classList.remove('flex');
           menuScreen.classList.remove('hidden');
@@ -4610,6 +4822,8 @@
         }
         if (activeCampaignType === 'soldier') {
           launchSoldierLevel(campaignLevel);
+        } else if (activeCampaignType === 'shadow') {
+          launchShadowLevel(campaignLevel);
         } else {
           launchCampaignLevel(campaignLevel);
         }
@@ -4770,6 +4984,34 @@
       }
       resumeGameLoop();
     }
+    function launchShadowLevel(level) {
+      var lv = SHADOW_CAMPAIGN_LEVELS[level - 1];
+      if (!lv) return;
+      campaignMode = true;
+      activeCampaignType = 'shadow';
+      campaignLevel = level;
+      // The whole point of the campaign: you are the Mage, not a reskinned fighter.
+      selectedChar = 'mage';
+      // HP is not set here: charBaseHp() already knows the rite's pool, so the round start,
+      // a level-up and a restart all agree on 240 instead of snapping back to 70.
+      document.getElementById('charIcon').textContent = '\uD83E\uDDD9';
+      gameMode = 'easy';
+      menuScreen.classList.add('hidden');
+      gameUI.classList.remove('hidden');
+      gameUI.classList.add('flex');
+      document.getElementById('charName').textContent = '\uD83D\uDCDC ' + lv.name;
+      ultBarWrap.classList.remove('hidden');
+      updateControlsList();
+      incrementMatch();
+      gameState = 'playing';
+      masterRunes = [];
+      fullReset();
+      // The mage fights with his own spellbook here, so the rite also opens it:
+      // without this the Shadow levels would run on a locked-down ability bar.
+      ultDashUnlocked = true; ultGrenadeUnlocked = true; ultAllyUnlocked = true;
+      shieldUnlocked = true;
+      resumeGameLoop();
+    }
     function launchSoldierLevel(level) {
       var lv = SOLDIER_CAMPAIGN_LEVELS[level - 1];
       if (!lv) return;
@@ -4808,6 +5050,8 @@
       if (prog) prog.textContent = 'Level ' + campaignProgress + '/' + campaignMaxLevels + (campaignProgress >= campaignMaxLevels ? ' ✅ Complete!' : '');
       var sprog = document.getElementById('campSoldierProgress');
       if (sprog) sprog.textContent = 'Level ' + soldierProgress + '/' + soldierMaxLevels + (soldierProgress >= soldierMaxLevels ? ' ✅ Complete!' : '');
+      var shprog = document.getElementById('campShadowProgress');
+      if (shprog) shprog.textContent = 'Level ' + shadowProgress + '/' + shadowMaxLevels + (shadowProgress >= shadowMaxLevels ? ' ✅ Complete!' : '');
     });
     document.getElementById('closeCampaign').addEventListener('click', function() {
       document.getElementById('campaignScreen').classList.add('hidden');
@@ -4883,11 +5127,52 @@
       }
     });
 
+    // ===== SHADOW MAGIC campaign (the Mage's five levels) =====
+    function buildShadowLevelButtons() {
+      var container = document.getElementById('shadowLevelSelect');
+      if (!container) return;
+      container.innerHTML = '';
+      for (var li = 0; li < shadowMaxLevels; li++) {
+        var btn = document.createElement('button');
+        btn.className = li < shadowProgress
+          ? 'py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-xs transition-all'
+          : 'py-2 rounded-lg bg-slate-600 text-slate-500 font-bold text-xs opacity-50 cursor-not-allowed';
+        btn.textContent = 'Lv ' + (li + 1);
+        if (li < shadowProgress) {
+          btn.addEventListener('click', (function(levelIdx) {
+            return function() { startShadowCutscene(levelIdx); };
+          })(li));
+        }
+        container.appendChild(btn);
+      }
+    }
+    function startShadowCutscene(levelIdx) {
+      activeCampaignType = 'shadow';
+      campaignLevel = levelIdx + 1;
+      var level = SHADOW_CAMPAIGN_LEVELS[levelIdx];
+      cutsceneData = level.cutscene;
+      cutsceneIndex = 0; cutsceneTyping = false; cutsceneCharIdx = 0; cutsceneTimer = 0;
+      cutsceneCanvas = document.getElementById('cutsceneCanvas');
+      cutsceneCtx = cutsceneCanvas.getContext('2d');
+      document.getElementById('campaignScreen').classList.add('hidden');
+      document.getElementById('cutsceneScreen').classList.remove('hidden');
+      showCutsceneLine(0);
+    }
+    document.getElementById('campShadow').addEventListener('click', function() {
+      var grid = document.getElementById('shadowLevelSelect');
+      if (grid.classList.contains('hidden')) {
+        buildShadowLevelButtons();
+        grid.classList.remove('hidden');
+      } else {
+        grid.classList.add('hidden');
+      }
+    });
+
     // Campaign hook: override fullReset for campaign levels
     var origFullReset = fullReset;
     fullReset = function() {
       origFullReset();
-      if (campaignMode && campaignLevel <= CAMPAIGN_LEVELS.length) {
+      if (campaignMode && activeCampaignType === 'fighter' && campaignLevel <= CAMPAIGN_LEVELS.length) {
         var lv = CAMPAIGN_LEVELS[campaignLevel - 1];
         // Override spawn counts
         spawnTimer = 0;
@@ -4950,6 +5235,41 @@
         var gos = document.getElementById('gameoverScreen');
         document.getElementById('gameoverMsg').textContent = 'Soldier Level ' + campaignLevel + ' Complete! +' + reward + ' pts';
         gos.classList.remove('hidden');
+        return;
+      }
+      // Shadow Magic: its own five-level track, its own ending.
+      if (activeCampaignType === 'shadow') {
+        var shadowFinal = campaignLevel >= shadowMaxLevels;
+        if (campaignLevel >= shadowProgress && !shadowFinal) {
+          shadowProgress = campaignLevel + 1;
+          localStorage.setItem('sm_campaignShadow', shadowProgress);
+        } else if (shadowFinal) {
+          shadowProgress = shadowMaxLevels;
+          localStorage.setItem('sm_campaignShadow', shadowProgress);
+        }
+        var sreward = campaignLevel * 250;
+        totalPoints += sreward; savePoints();
+        if (shadowFinal) {
+          gameState = 'cutscene'; campaignMode = false;
+          scoreEl.textContent = '\uD83C\uDFC6 SHADOW MAGIC COMPLETE!'; killsEl.textContent = '';
+          setTimeout(function() {
+            cutsceneData = SHADOW_WIN_CUTSCENE;
+            cutsceneIndex = 0; cutsceneTyping = false; cutsceneCharIdx = 0; cutsceneTimer = 0;
+            cutsceneCanvas = document.getElementById('cutsceneCanvas');
+            cutsceneCtx = cutsceneCanvas.getContext('2d');
+            document.getElementById('cutsceneScreen').classList.remove('hidden');
+            showCutsceneLine(0);
+          }, 1000);
+          return;
+        }
+        victoryMode = true; gameState = 'gameover'; campaignMode = false;
+        scoreEl.textContent = '\u2705 SHADOW LEVEL COMPLETE!'; killsEl.textContent = '';
+        createTextParticle(CW / 2, CH / 2 - 40, '\uD83C\uDF89 LEVEL COMPLETE!', '#c084fc', 26);
+        createTextParticle(CW / 2, CH / 2, '+' + sreward + ' pts', '#fbbf24', 18);
+        createParticles(CW / 2, CH / 2 - 20, 40, '#a855f7');
+        var sgos = document.getElementById('gameoverScreen');
+        document.getElementById('gameoverMsg').textContent = 'Shadow Magic Level ' + campaignLevel + ' Complete! +' + sreward + ' pts';
+        sgos.classList.remove('hidden');
         return;
       }
       var isFinalLevel = campaignLevel >= campaignMaxLevels;
@@ -5023,8 +5343,16 @@
     }
     function checkCampaignWin() {
       if (!campaignMode) return;
-      var lv = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS[campaignLevel - 1] : CAMPAIGN_LEVELS[campaignLevel - 1];
+      var lv = campaignLvDef();
       if (!lv) return;
+      // The Master Mage (Shadow Magic Lv 5) — win when the teacher is beaten
+      if (lv.defeatMasterMage) {
+        var mmAlive = miniBosses.some(function(m) { return m.alive && m.type === 'master_mage'; });
+        if (campaignSpecialTimers['mm_spawned'] && !mmAlive && campaignTimer > 60) {
+          campaignWinLevel();
+        }
+        return;
+      }
       // Giant Gunner defeat (Soldier Lv 10)
       if (lv.defeatGiantGunner) {
         if (campaignSpecialTimers['gg_spawned'] && campaignTimer > 60 && !miniBosses.some(function(m) { return m.alive && m.type === 'giant_gunner'; })) {
@@ -5085,7 +5413,7 @@
     }
     function updateCampaignSpawns() {
       if (!campaignMode) return;
-      var lv = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS[campaignLevel - 1] : CAMPAIGN_LEVELS[campaignLevel - 1];
+      var lv = campaignLvDef();
       if (!lv) return;
       campaignTimer++;
       // Normal dummy spawns
@@ -5140,6 +5468,20 @@
               // Soldier Lv 13: one giant gunner every 7 seconds.
               miniBosses.push({ x: spx, y: GROUND_Y, hp: GIANT_GUNNER_HP, maxHp: GIANT_GUNNER_HP, speed: GIANT_GUNNER_SPD, attackCD: GIANT_GUNNER_CD, hitFlash: 0, alive: true, facing: 1, type: 'giant_gunner', animTime: 0, vy: 0, bulletCount: 0 });
               createTextParticle(CW / 2, 60, '🔫 GIANT GUNNER!', '#dc2626', 20);
+            } else if (sp.type === 'summoner') {
+              // Shadow Magic Lv 1+: the ordinary summoner, exactly as the main modes use it.
+              dummies.push(createDummy(spx, { hp: SUMMONER_HP, speed: SUMMONER_SPD, isSummoner: true }));
+              createTextParticle(CW / 2, 60, '🔵 SUMMONER!', '#3b82f6', 18);
+            } else if (sp.type === 'magicer') {
+              // Shadow Magic Lv 2+: a caster that actually shoots back.
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: MAGICER_HP, maxHp: MAGICER_HP, speed: MAGICER_SPD, attackCD: MAGICER_CD, hitFlash: 0, alive: true, facing: 1, type: 'magicer', animTime: 0, vy: 0 });
+              createTextParticle(CW / 2, 60, '🔮 MAGICER!', '#a855f7', 18);
+            } else if (sp.type === 'big_monster') {
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: BIG_MONSTER_HP, maxHp: BIG_MONSTER_HP, speed: BIG_MONSTER_SPD, attackCD: BIG_MONSTER_CD, hitFlash: 0, alive: true, facing: 1, type: 'big_monster', animTime: 0, vy: 0 });
+              createTextParticle(CW / 2, 60, '🦎 BIG MONSTER!', '#a3e635', 20);
+            } else if (sp.type === 'big_summoner') {
+              miniBosses.push({ x: spx, y: GROUND_Y, hp: BIG_SUMMONER_HP, maxHp: BIG_SUMMONER_HP, speed: BIG_SUMMONER_SPD, attackCD: BIG_SUMMONER_CALL, hitFlash: 0, alive: true, facing: 1, type: 'big_summoner', animTime: 0, vy: 0, meleeCD: 0 });
+              createTextParticle(CW / 2, 60, '🔮 BIG SUMMONER!', '#8b5cf6', 20);
             }
           }
         }
@@ -5170,6 +5512,15 @@
         createTextParticle(CW / 2, 60, '💠 THE AMETHYST — ' + AMETHYST_HP + ' HP', '#a855f7', 28);
         createTextParticle(CW / 2, 92, '🛡 20% RESIST · JUMPS · CYAN LIGHTNING', '#67e8f9', 14);
         createParticles(CW / 2, GROUND_Y, 50, '#a855f7');
+        canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 700);
+      }
+      // The Master Mage (Shadow Magic Lv 5) — the campaign's final boss
+      if (lv.spawnMasterMage && !campaignSpecialTimers['mm_spawned']) {
+        campaignSpecialTimers['mm_spawned'] = 1;
+        miniBosses.push({ x: CW / 2, y: GROUND_Y, hp: MASTER_MAGE_HP, maxHp: MASTER_MAGE_HP, speed: MASTER_MAGE_SPD, attackCD: 120, hitFlash: 0, alive: true, facing: -1, type: 'master_mage', animTime: 0, vy: 0, phase: 1, state: 'chase', rotation: 0, contactCD: 0 });
+        createTextParticle(CW / 2, 60, '🌑 THE MASTER MAGE — ' + MASTER_MAGE_HP + ' HP', '#c084fc', 26);
+        createTextParticle(CW / 2, 92, '✴ VOLLEY · SIGILS · SUMMON · SHADOW FORM AT 50%', '#a855f7', 13);
+        createParticles(CW / 2, GROUND_Y, 50, '#7c3aed');
         canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 700);
       }
       // Commander spawn (Lv 5 / Lv 14)
@@ -5410,7 +5761,7 @@
       updateControlsList();
       incrementMatch();
       gameState = 'playing';
-      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = [];
+      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = []; masterRunes = [];
       // The Time Chainer's projectiles, chains and theme are per-round.
       tcBlasts = []; timeChainTimer = 0; tcMusicOn = false;
       fullReset();
@@ -6413,8 +6764,21 @@
     }
     function drawBullets() {
       if (bullets.length === 0) return;
-      ctx.fillStyle = '#f59e0b';
-      bullets.forEach(b => { if (!b.alive) return; ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill(); });
+      bullets.forEach(b => {
+        if (!b.alive) return;
+        if (b.magic) {
+          // Magic orbs (magicer / master mage) read differently from gunfire.
+          ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 9;
+          ctx.fillStyle = '#a855f7';
+          ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#f5f3ff';
+          ctx.beginPath(); ctx.arc(b.x, b.y, 2, 0, Math.PI * 2); ctx.fill();
+          return;
+        }
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill();
+      });
     }
 
     // ==================== DRAWING ====================
@@ -7745,6 +8109,207 @@
         ctx.fillText('💀 NECRO ' + mb.hp, dx, GROUND_Y - 101); ctx.textAlign = 'start';
         return;
       }
+      if (mb.type === 'magicer') {
+        // MAGICER: hooded caster with a pointed hat and a lit staff.
+        var mgcBody = mb.hitFlash > 0 ? '#fff' : '#6d28d9';
+        var mgcHead = mb.hitFlash > 0 ? '#fff' : '#c4b5fd';
+        ctx.globalAlpha = 0.13 + Math.sin(time * 0.09) * 0.05; ctx.fillStyle = '#a855f7';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 46, 34, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        // Robe
+        ctx.fillStyle = mgcBody;
+        ctx.beginPath();
+        ctx.moveTo(dx - 17, GROUND_Y + 4); ctx.lineTo(dx - 10, GROUND_Y - 40);
+        ctx.lineTo(dx + 10, GROUND_Y - 40); ctx.lineTo(dx + 17, GROUND_Y + 4);
+        ctx.closePath(); ctx.fill();
+        // Head + pointed hat
+        ctx.strokeStyle = mgcHead; ctx.lineWidth = 3.5;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 50, 11, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = mb.hitFlash > 0 ? '#fff' : '#4c1d95';
+        ctx.beginPath();
+        ctx.moveTo(dx - 13, GROUND_Y - 58); ctx.lineTo(dx + 2, GROUND_Y - 82 + Math.sin(time * 0.1) * 2); ctx.lineTo(dx + 13, GROUND_Y - 58);
+        ctx.closePath(); ctx.fill();
+        // Eyes
+        ctx.fillStyle = '#f0abfc';
+        ctx.beginPath(); ctx.arc(dx - 4, GROUND_Y - 51, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 4, GROUND_Y - 51, 2, 0, Math.PI * 2); ctx.fill();
+        // Staff + orb (the orb swells as the bolt is about to fire)
+        var mgcLift = mb.attackCD !== undefined && mb.attackCD < 30 ? -6 : 0;
+        ctx.strokeStyle = '#78350f'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(dx + 16 * mb.facing, GROUND_Y - 62); ctx.lineTo(dx + 16 * mb.facing, GROUND_Y + 8 + mgcLift); ctx.stroke();
+        var mgcGlow = 4 + Math.sin(time * 0.16) * 1.4;
+        ctx.fillStyle = '#a855f7';
+        ctx.beginPath(); ctx.arc(dx + 16 * mb.facing, GROUND_Y - 64 + mgcLift, mgcGlow + 2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f5f3ff';
+        ctx.beginPath(); ctx.arc(dx + 16 * mb.facing, GROUND_Y - 64 + mgcLift, 2.5, 0, Math.PI * 2); ctx.fill();
+        // HP bar
+        var mw = 54, mpct = mb.hp / mb.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - mw / 2 - 1, GROUND_Y - 97, mw + 2, 7);
+        ctx.fillStyle = mpct > 0.5 ? '#8b5cf6' : '#f87171';
+        ctx.fillRect(dx - mw / 2, GROUND_Y - 96, mw * Math.max(0, mpct), 5);
+        ctx.fillStyle = '#c4b5fd'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('🔮 MAGICER ' + mb.hp, dx, GROUND_Y - 100); ctx.textAlign = 'start';
+        return;
+      }
+      if (mb.type === 'big_monster') {
+        // BIG MONSTER: a wall of olive muscle with horns and tiny burning eyes.
+        var bmc = mb.hitFlash > 0 ? '#fff' : '#3f6212';
+        var bmh = mb.hitFlash > 0 ? '#fff' : '#a3e635';
+        var bmBob = Math.sin(time * 0.07) * 2;
+        ctx.globalAlpha = 0.14 + Math.sin(time * 0.06) * 0.04; ctx.fillStyle = '#65a30d';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 50 + bmBob, 62, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        // Legs
+        ctx.strokeStyle = bmc; ctx.lineWidth = 13;
+        ctx.beginPath(); ctx.moveTo(dx - 12, GROUND_Y - 46); ctx.lineTo(dx - 26, GROUND_Y + 22); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx + 12, GROUND_Y - 46); ctx.lineTo(dx + 26, GROUND_Y + 22); ctx.stroke();
+        // Torso
+        ctx.lineWidth = 26;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 48 + bmBob); ctx.lineTo(dx, GROUND_Y - 100 + bmBob); ctx.stroke();
+        // Arms, thrown wide
+        ctx.lineWidth = 11;
+        var bmSwing = Math.sin(time * 0.08) * 5;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 92 + bmBob); ctx.lineTo(dx - 44, GROUND_Y - 62 + bmSwing); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 92 + bmBob); ctx.lineTo(dx + 44, GROUND_Y - 62 - bmSwing); ctx.stroke();
+        // Head + horns
+        ctx.strokeStyle = bmh; ctx.lineWidth = 15;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 122 + bmBob, 17, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = bmc;
+        ctx.beginPath(); ctx.moveTo(dx - 14, GROUND_Y - 134 + bmBob); ctx.lineTo(dx - 28, GROUND_Y - 156 + bmBob); ctx.lineTo(dx - 6, GROUND_Y - 140 + bmBob); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(dx + 14, GROUND_Y - 134 + bmBob); ctx.lineTo(dx + 28, GROUND_Y - 156 + bmBob); ctx.lineTo(dx + 6, GROUND_Y - 140 + bmBob); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath(); ctx.arc(dx - 6, GROUND_Y - 124 + bmBob, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 6, GROUND_Y - 124 + bmBob, 2.5, 0, Math.PI * 2); ctx.fill();
+        // HP bar
+        var mbw = 74, mbpct = mb.hp / mb.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - mbw / 2 - 1, GROUND_Y - 173, mbw + 2, 8);
+        ctx.fillStyle = mbpct > 0.5 ? '#65a30d' : mbpct > 0.25 ? '#facc15' : '#f87171';
+        ctx.fillRect(dx - mbw / 2, GROUND_Y - 172, mbw * Math.max(0, mbpct), 6);
+        ctx.fillStyle = '#d9f99d'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('🦎 BIG MONSTER ' + mb.hp, dx, GROUND_Y - 177); ctx.textAlign = 'start';
+        return;
+      }
+      if (mb.type === 'big_summoner') {
+        // BIG SUMMONER: a grand robed figure with three orbs orbiting it.
+        var bsc = mb.hitFlash > 0 ? '#fff' : '#5b21b6';
+        var bsh = mb.hitFlash > 0 ? '#fff' : '#ddd6fe';
+        var bsBob = Math.sin(time * 0.06) * 3;
+        ctx.globalAlpha = 0.15 + Math.sin(time * 0.05) * 0.05; ctx.fillStyle = '#7c3aed';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 60 + bsBob, 58, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        // Orbiting orbs
+        for (var bso = 0; bso < 3; bso++) {
+          var bsa = time * 0.045 + bso * (Math.PI * 2 / 3);
+          var box2 = dx + Math.cos(bsa) * 46;
+          var boy2 = GROUND_Y - 66 + Math.sin(bsa) * 18 + bsBob;
+          ctx.fillStyle = '#c084fc';
+          ctx.beginPath(); ctx.arc(box2, boy2, 4.5, 0, Math.PI * 2); ctx.fill();
+        }
+        // Robe
+        ctx.fillStyle = bsc;
+        ctx.beginPath();
+        ctx.moveTo(dx - 30, GROUND_Y + 12); ctx.lineTo(dx - 15, GROUND_Y - 62 + bsBob);
+        ctx.lineTo(dx + 15, GROUND_Y - 62 + bsBob); ctx.lineTo(dx + 30, GROUND_Y + 12);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 2; ctx.stroke();
+        // Hood + eyes
+        ctx.strokeStyle = bsh; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 70 + bsBob, 13, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#4c1d95';
+        ctx.beginPath(); ctx.moveTo(dx - 15, GROUND_Y - 80 + bsBob); ctx.lineTo(dx, GROUND_Y - 104 + bsBob); ctx.lineTo(dx + 15, GROUND_Y - 80 + bsBob); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#f5d0fe';
+        ctx.beginPath(); ctx.arc(dx - 5, GROUND_Y - 71 + bsBob, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 5, GROUND_Y - 71 + bsBob, 2.2, 0, Math.PI * 2); ctx.fill();
+        // HP bar
+        var bsw = 84, bspct = mb.hp / mb.maxHp;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(dx - bsw / 2 - 1, GROUND_Y - 119, bsw + 2, 8);
+        ctx.fillStyle = bspct > 0.5 ? '#8b5cf6' : '#f87171';
+        ctx.fillRect(dx - bsw / 2, GROUND_Y - 118, bsw * Math.max(0, bspct), 6);
+        ctx.fillStyle = '#ddd6fe'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('🔮 BIG SUMMONER ' + mb.hp, dx, GROUND_Y - 123); ctx.textAlign = 'start';
+        return;
+      }
+      if (mb.type === 'master_mage') {
+        // THE MASTER MAGE: the tower's owner. Violet cloak, horned crown, a staff that
+        // burns, and — from half health — a shadow form that doubles the aura.
+        var mmPhase2 = mb.phase === 2;
+        var mmc = mb.hitFlash > 0 ? '#fff' : mmPhase2 ? '#2e1065' : '#4c1d95';
+        var mmh = mb.hitFlash > 0 ? '#fff' : mmPhase2 ? '#f0abfc' : '#c4b5fd';
+        var mmBob = Math.sin(time * 0.05) * 3;
+        // Sigil warnings: a ring on the floor and a filling column, then the blast.
+        masterRunes.forEach(function(rune) {
+          if (rune.delay <= 0) return;
+          var charge = 1 - rune.delay / 45;
+          ctx.globalAlpha = 0.10 + 0.30 * charge;
+          ctx.fillStyle = '#a855f7';
+          ctx.fillRect(rune.x - 16, 0, 32, GROUND_Y);
+          ctx.globalAlpha = 0.35 + 0.5 * charge;
+          ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.ellipse(rune.x, GROUND_Y - 2, 46, 12, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(rune.x, GROUND_Y - 2, 8 + charge * 10, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 1;
+        });
+        var mmAura = mmPhase2 ? 0.24 : 0.16;
+        var mmPulse = 1 + Math.sin(time * 0.08) * 0.05;
+        ctx.globalAlpha = mmAura + Math.sin(time * 0.06) * 0.05; ctx.fillStyle = mmPhase2 ? '#6b21a8' : '#7c3aed';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 70 + mmBob, 72 * mmPulse, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        // Three slow rings in shadow form only
+        if (mmPhase2) {
+          ctx.strokeStyle = 'rgba(240,171,252,0.55)'; ctx.lineWidth = 1.5;
+          for (var mmr = 0; mmr < 3; mmr++) {
+            var mmra = time * 0.02 + mmr * 2.1;
+            ctx.beginPath();
+            ctx.ellipse(dx, GROUND_Y - 70 + mmBob, 66 + mmr * 9, 20 + mmr * 5, mmra, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        // Cloak
+        ctx.fillStyle = mmc;
+        ctx.beginPath();
+        ctx.moveTo(dx - 26, GROUND_Y + 10); ctx.lineTo(dx - 14, GROUND_Y - 74 + mmBob);
+        ctx.lineTo(dx + 14, GROUND_Y - 74 + mmBob); ctx.lineTo(dx + 26, GROUND_Y + 10);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = mmh; ctx.lineWidth = 1.5; ctx.stroke();
+        // Head
+        ctx.strokeStyle = mmh; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 86 + mmBob, 15, 0, Math.PI * 2); ctx.stroke();
+        // Horned crown
+        ctx.fillStyle = mmPhase2 ? '#f0abfc' : '#c084fc';
+        ctx.beginPath(); ctx.moveTo(dx - 16, GROUND_Y - 96 + mmBob); ctx.lineTo(dx - 10, GROUND_Y - 124 + mmBob);
+        ctx.lineTo(dx - 2, GROUND_Y - 103 + mmBob); ctx.lineTo(dx + 8, GROUND_Y - 128 + mmBob);
+        ctx.lineTo(dx + 16, GROUND_Y - 96 + mmBob); ctx.closePath(); ctx.fill();
+        // Burning eyes
+        ctx.fillStyle = mmPhase2 ? '#fda4af' : '#e9d5ff';
+        ctx.beginPath(); ctx.arc(dx - 5, GROUND_Y - 87 + mmBob, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(dx + 5, GROUND_Y - 87 + mmBob, 2.6, 0, Math.PI * 2); ctx.fill();
+        // Staff
+        ctx.strokeStyle = '#3f2d1a'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(dx + 30 * mb.facing, GROUND_Y - 118 + mmBob); ctx.lineTo(dx + 30 * mb.facing, GROUND_Y + 12); ctx.stroke();
+        var mmStar = 7 + Math.sin(time * 0.14) * 2;
+        ctx.fillStyle = mmPhase2 ? '#fda4af' : '#c084fc';
+        for (var mms = 0; mms < 4; mms++) {
+          var msa = time * 0.03 + mms * (Math.PI / 2);
+          ctx.beginPath();
+          ctx.moveTo(dx + 30 * mb.facing, GROUND_Y - 118 + mmBob);
+          ctx.lineTo(dx + 30 * mb.facing + Math.cos(msa) * mmStar, GROUND_Y - 118 + mmBob + Math.sin(msa) * mmStar);
+          ctx.lineTo(dx + 30 * mb.facing + Math.cos(msa + 0.5) * 3, GROUND_Y - 118 + mmBob + Math.sin(msa + 0.5) * 3);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle = '#f5f3ff';
+        ctx.beginPath(); ctx.arc(dx + 30 * mb.facing, GROUND_Y - 118 + mmBob, 3.5, 0, Math.PI * 2); ctx.fill();
+        // HP bar + phase hint, clamped on screen
+        var mmw = 150, mmpct = mb.hp / mb.maxHp, mmy = GROUND_Y - 168;
+        var mmLabelX = Math.max(mmw / 2 + 8, Math.min(CW - mmw / 2 - 8, dx));
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(mmLabelX - mmw / 2 - 1, mmy, mmw + 2, 12);
+        ctx.fillStyle = mmPhase2 ? '#c084fc' : '#8b5cf6';
+        ctx.fillRect(mmLabelX - mmw / 2, mmy + 1, mmw * Math.max(0, mmpct), 10);
+        ctx.fillStyle = '#f5d0fe'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('🌑 MASTER MAGE ' + Math.ceil(Math.max(0, mb.hp)) + '/' + mb.maxHp, mmLabelX, mmy - 6);
+        ctx.fillStyle = mmPhase2 ? '#fda4af' : '#c4b5fd'; ctx.font = 'bold 9px monospace';
+        ctx.fillText(mmPhase2 ? '🌑 SHADOW FORM — HE IS NOT TESTING YOU ANY MORE' : '✴ VOLLEY · SIGILS · SUMMON', mmLabelX, mmy - 19);
+        ctx.textAlign = 'start';
+        return;
+      }
       if (mb.type === 'boss') {
         // Extra boss — matches main boss purple theme
         const bc = mb.hitFlash > 0 ? '#fbbf24' : '#a855f7';
@@ -8301,7 +8866,7 @@
       if (playerHP <= playerHpFloor()) {
         // Taoist: death is not the end — one revival at half health, every round.
         if (selectedChar === 'taoist' && !taoistReviveUsed) { reviveTaoist(); return; }
-        gameState = 'gameover'; createParticles(stick.x, stick.y - 30, 30, '#ef4444'); if (campaignMode) { var gos = document.getElementById('gameoverScreen'); var dlv = (activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS : CAMPAIGN_LEVELS)[campaignLevel - 1]; document.getElementById('gameoverMsg').textContent = 'You were defeated in ' + (dlv ? dlv.name : ('Level ' + campaignLevel)); gos.classList.remove('hidden'); } }
+        gameState = 'gameover'; createParticles(stick.x, stick.y - 30, 30, '#ef4444'); if (campaignMode) { var gos = document.getElementById('gameoverScreen');        var dlv = campaignLvDef(); document.getElementById('gameoverMsg').textContent = 'You were defeated in ' + (dlv ? dlv.name : ('Level ' + campaignLevel)); gos.classList.remove('hidden'); } }
     }
 
     function dealDamageToDummy(d, dmg, source) {
@@ -8988,6 +9553,51 @@
         } else if (mb.type === 'time_chainer') {
           // THE TIME CHAINER (Fighter Lv 11): chains, sky blasts, teleport and shock.
           updateTimeChainer(mb, dist);
+        } else if (mb.type === 'magicer') {
+          // MAGICER (Shadow Magic): a real caster. Keeps its distance and throws bolts.
+          if (dist > 330) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          else if (dist < 210) mb.x -= Math.sign(stick.x - mb.x) * mb.speed;
+          mb.attackCD--;
+          if (mb.attackCD <= 0 && dist < 470) {
+            mb.attackCD = MAGICER_CD;
+            var moa = Math.atan2((stick.y - 35) - (GROUND_Y - 52), stick.x - mb.x);
+            bullets.push({ x: mb.x, y: GROUND_Y - 52, vx: Math.cos(moa) * 6.2, vy: Math.sin(moa) * 6.2, dmg: MAGICER_DMG, life: 160, alive: true, magic: true });
+            createTextParticle(mb.x, GROUND_Y - 96, '🔮 MAGIC BOLT!', '#c084fc', 13);
+            createParticles(mb.x, GROUND_Y - 52, 5, '#a855f7');
+          }
+        } else if (mb.type === 'big_monster') {
+          // BIG MONSTER: slow, enormous, and it hits like a falling wall.
+          if (dist > 78) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          mb.attackCD--;
+          if (mb.attackCD <= 0 && dist < 118) {
+            damagePlayer(BIG_MONSTER_DMG, '#65a30d');
+            mb.attackCD = BIG_MONSTER_CD;
+            createTextParticle(mb.x, GROUND_Y - 130, '🦎 CRUSH! ' + BIG_MONSTER_DMG, '#a3e635', 18);
+            createParticles(mb.x, GROUND_Y - 40, 14, '#65a30d');
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 220);
+          }
+        } else if (mb.type === 'big_summoner') {
+          // BIG SUMMONER: calls a pair of minions every five seconds, melees up close.
+          if (dist > 260) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          else if (dist < 180) mb.x -= Math.sign(stick.x - mb.x) * mb.speed * 0.6;
+          mb.attackCD--;
+          if (mb.attackCD <= 0) {
+            mb.attackCD = BIG_SUMMONER_CALL;
+            for (var bsi = 0; bsi < 2; bsi++) {
+              dummies.push(createDummy(Math.max(40, Math.min(CW - 40, mb.x + (bsi ? 46 : -46) + (Math.random() - 0.5) * 30)), {}));
+            }
+            createTextParticle(mb.x, GROUND_Y - 110, '🔮 GRAND SUMMON!', '#a855f7', 16);
+            createParticles(mb.x, GROUND_Y - 40, 14, '#8b5cf6');
+          }
+          if (mb.meleeCD === undefined) mb.meleeCD = 0;
+          if (mb.meleeCD > 0) mb.meleeCD--;
+          if (dist < 95 && mb.meleeCD <= 0) {
+            damagePlayer(BIG_SUMMONER_DMG, '#8b5cf6');
+            mb.meleeCD = BIG_SUMMONER_CD;
+          }
+        } else if (mb.type === 'master_mage') {
+          // THE MASTER MAGE (Shadow Magic Lv 5): the teacher, finally serious.
+          updateMasterMage(mb, dist);
         } else if (mb.type === 'colossal') {
           // ANCIENT COLOSSAL: 40 damage a swing, and it only takes half damage back.
           if (dist > 110) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
@@ -9031,10 +9641,133 @@
         }
         if (bolt.life <= 0) { amethystBolts.splice(ab, 1); }
       }
+      // The Master Mage's sigils land even if he dies mid-cast.
+      for (var mr = masterRunes.length - 1; mr >= 0; mr--) {
+        var rune = masterRunes[mr];
+        rune.life--;
+        if (rune.delay > 0) {
+          rune.delay--;
+          if (rune.delay === 0) {
+            createExplosion(rune.x, GROUND_Y - 34, 58, '#a855f7');
+            createTextParticle(rune.x, GROUND_Y - 150, '✴ SIGIL!', '#c084fc', 16);
+            if (Math.abs(stick.x - rune.x) < 62) damagePlayer(MASTER_MAGE_RUNE_DMG, '#a855f7');
+          }
+        }
+        if (rune.life <= 0) masterRunes.splice(mr, 1);
+      }
       // Sky blasts resolve independently of the boss that called them.
       updateTimeChainerBlasts();
       // His theme only lasts as long as he does — or until the round ends.
       if (tcMusicOn && (!miniBosses.some(function(m) { return m.alive && m.type === 'time_chainer'; }) || gameState !== 'playing')) stopTimeChainerMusic();
+    }
+
+    // ==================== THE MASTER MAGE ====================
+    // Five moves on a fixed rotation — volley, sigils, teleport, summon — so the fight
+    // teaches each one instead of leaving it to chance. At half health he drops the
+    // lesson and fights for real: faster, five-orb volleys, three sigils, and students.
+    function updateMasterMage(mb, dist) {
+      if (mb.phase === undefined) mb.phase = 1;
+      if (!mb.state) mb.state = 'chase';
+      if (mb.contactCD === undefined) mb.contactCD = 0;
+      if (mb.rotation === undefined) mb.rotation = 0;
+      if (mb.animTime === undefined) mb.animTime = 0;
+      if (mb.attackCD === undefined) mb.attackCD = 90;
+      if (mb.contactCD > 0) mb.contactCD--;
+
+      if (mb.phase === 1 && mb.hp <= mb.maxHp * 0.5) {
+        mb.phase = 2;
+        mb.state = 'chase';
+        mb.attackCD = 45;
+        createExplosion(mb.x, GROUND_Y - 60, 110, '#7c3aed');
+        createParticles(mb.x, GROUND_Y - 40, 40, '#a855f7');
+        createTextParticle(CW / 2, 110, '🌑 SHADOW FORM', '#c084fc', 26);
+        createTextParticle(CW / 2, 140, 'THE MASTER STOPS HOLDING BACK', '#a855f7', 13);
+        canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 600);
+        // His two best students step out of the dark with him.
+        for (var pi = 0; pi < 2; pi++) {
+          miniBosses.push({ x: Math.max(60, Math.min(CW - 60, mb.x + (pi ? 150 : -150))), y: GROUND_Y, hp: MAGICER_HP, maxHp: MAGICER_HP, speed: MAGICER_SPD, attackCD: 60, hitFlash: 0, alive: true, facing: 1, type: 'magicer', animTime: 0, vy: 0 });
+        }
+      }
+
+      var speed = mb.phase === 2 ? MASTER_MAGE_SPD * 1.35 : MASTER_MAGE_SPD;
+      switch (mb.state) {
+        case 'chase': {
+          if (dist > 230) mb.x += Math.sign(stick.x - mb.x) * speed;
+          else if (dist < 150) mb.x -= Math.sign(stick.x - mb.x) * speed * 0.75;
+          if (dist < 95 && mb.contactCD <= 0) {
+            damagePlayer(MASTER_MAGE_CONTACT_DMG, '#a855f7');
+            mb.contactCD = 80;
+            createParticles(mb.x, GROUND_Y - 40, 6, '#a855f7');
+          }
+          mb.attackCD--;
+          if (mb.attackCD <= 0) {
+            var moves = mb.phase === 2 ? ['orbs', 'runes', 'teleport', 'summon'] : ['orbs', 'runes', 'teleport'];
+            var mv = moves[mb.rotation % moves.length];
+            mb.rotation++;
+            mb.state = mv === 'orbs' ? 'castOrbs' : mv === 'runes' ? 'castRunes' : mv === 'teleport' ? 'teleport' : 'summon';
+            mb.animTime = 0;
+          }
+          break;
+        }
+        case 'castOrbs': {
+          mb.animTime++;
+          if (mb.animTime === 18) {
+            var spread = mb.phase === 2 ? 5 : 3;
+            var oa = Math.atan2((stick.y - 35) - (GROUND_Y - 70), stick.x - mb.x);
+            for (var oi = 0; oi < spread; oi++) {
+              var off = (oi - (spread - 1) / 2) * 0.22;
+              bullets.push({ x: mb.x, y: GROUND_Y - 70, vx: Math.cos(oa + off) * 7, vy: Math.sin(oa + off) * 7, dmg: MASTER_MAGE_ORB_DMG, life: 170, alive: true, magic: true });
+            }
+            createTextParticle(mb.x, GROUND_Y - 145, '🌠 SHADOW VOLLEY!', '#c084fc', 16);
+            createParticles(mb.x, GROUND_Y - 70, 12, '#8b5cf6');
+            mb.state = 'chase';
+            mb.attackCD = mb.phase === 2 ? 90 : 150;
+          }
+          break;
+        }
+        case 'castRunes': {
+          mb.animTime++;
+          if (mb.animTime === 24) {
+            var runeCount = mb.phase === 2 ? 3 : 2;
+            for (var ri = 0; ri < runeCount; ri++) {
+              var rx = stick.x + (ri - (runeCount - 1) / 2) * 130 + (Math.random() - 0.5) * 40;
+              masterRunes.push({ x: Math.max(55, Math.min(CW - 55, rx)), delay: 45, life: 100 });
+            }
+            createTextParticle(mb.x, GROUND_Y - 145, '✴ SIGIL FALL!', '#a855f7', 16);
+            mb.state = 'chase';
+            mb.attackCD = mb.phase === 2 ? 100 : 160;
+          }
+          break;
+        }
+        case 'teleport': {
+          mb.animTime++;
+          if (mb.animTime === 10) {
+            createParticles(mb.x, GROUND_Y - 40, 16, '#7c3aed');
+            mb.x = Math.max(60, Math.min(CW - 60, stick.x > CW / 2 ? 110 : CW - 110));
+            createParticles(mb.x, GROUND_Y - 40, 16, '#a855f7');
+          }
+          if (mb.animTime >= 24) {
+            mb.state = 'chase';
+            mb.attackCD = mb.phase === 2 ? 40 : 70;
+          }
+          break;
+        }
+        case 'summon': {
+          mb.animTime++;
+          if (mb.animTime === 22) {
+            for (var si = 0; si < 2; si++) {
+              miniBosses.push({ x: Math.max(60, Math.min(CW - 60, mb.x + (si ? 120 : -120))), y: GROUND_Y, hp: MAGICER_HP, maxHp: MAGICER_HP, speed: MAGICER_SPD, attackCD: 60, hitFlash: 0, alive: true, facing: 1, type: 'magicer', animTime: 0, vy: 0 });
+            }
+            createTextParticle(mb.x, GROUND_Y - 145, '🔮 CALL THE CIRCLE!', '#c084fc', 16);
+            createParticles(mb.x, GROUND_Y - 40, 16, '#7c3aed');
+            mb.state = 'chase';
+            mb.attackCD = 120;
+          }
+          break;
+        }
+        default:
+          mb.state = 'chase';
+      }
     }
 
     // ==================== THE AMETHYST ====================
@@ -10085,6 +10818,10 @@
     // chain that never listed Fighter or Ultra, so they fell back to the default 80 and
     // levelling up *shrank* the pool (Ultra: 450 → 89 at LV2). Ninja keeps its per-level table.
     function charBaseHp(c, level) {
+      // The Shadow Magic campaign gives the mage a campaign-sized pool. Every path that
+      // sets HP (round start, level-up, restart) comes through here, so the rite's HP
+      // holds for the whole run instead of snapping back to the base 70 on level two.
+      if (campaignMode && activeCampaignType === 'shadow' && c === 'mage') return SHADOW_MAGE_HP;
       switch (c) {
         case 'soldier': return 110;
         case 'fighter': return 100;
@@ -12604,7 +13341,7 @@
       if (gracePeriod > 0) { ctx.fillStyle = `rgba(74,222,128,${0.6 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('🛡 GRACE — ' + Math.ceil(gracePeriod / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; }
       loopFrameArmed = true;
       if (boss && boss.alive) { const tC = boss.type === 'titan' ? 'rgba(217,119,6,' : 'rgba(168,85,247,'; const tN = boss.type === 'titan' ? '⛏ TITAN LOCK — Kill the Titan!' : '🟣 BOSS LOCK — Kill the boss!'; ctx.fillStyle = tC + (0.5 + Math.sin(time * 0.1) * 0.3) + ')'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText(tN, CW / 2, CH - 8); ctx.textAlign = 'start'; }
-      if (campaignMode) { var campLv = activeCampaignType === 'soldier' ? SOLDIER_CAMPAIGN_LEVELS[campaignLevel - 1] : CAMPAIGN_LEVELS[campaignLevel - 1]; if (campLv && campLv.duration) { var remain = Math.max(0, Math.ceil((campLv.duration - campaignTimer) / 60)); ctx.fillStyle = '#facc15'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('📖 TIME: ' + remain + 's', CW / 2, 20); ctx.textAlign = 'start'; } } else if (deathOn()) { var dwLeft = Math.max(0, Math.ceil((WAVE_FRAMES - waveTimer) / 60)); ctx.fillStyle = '#fb7185'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center'; ctx.fillText('☠️ WAVE ' + wave + (wave <= DEATH_TOTAL_WAVES ? ' / ' + DEATH_TOTAL_WAVES : ' · ENDLESS') + ' · next in ' + dwLeft + 's', CW / 2, 20); ctx.textAlign = 'start'; } else if (!boss || !boss.alive) { const ts = SPAWN_INTERVAL - spawnTimer; if (ts < 120 && ts > 0 && spawnTimer > 30) { ctx.fillStyle = `rgba(251,146,60,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⚠ WAVE ' + Math.ceil(ts / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; } const tk = KAMIKAZE_INTERVAL - kamikazeTimer; if (tk < 120 && tk > 0) { ctx.fillStyle = `rgba(239,68,68,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💣 KAMIKAZE ' + Math.ceil(tk / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const tt = TITAN_SPAWN_INTERVAL - titanTimer; if (tt < 180 && tt > 0) { ctx.fillStyle = `rgba(217,119,6,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⛏ TITAN ' + Math.ceil(tt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; }      const tg = GRENADER_INTERVAL - grenaderTimer; if (tg < 120 && tg > 0) { ctx.fillStyle = `rgba(249,115,22,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💥 GRENADER ' + Math.ceil(tg / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const bt = BOSS_RESPAWN_INTERVAL - bossTimer; if (bossSpawnedOnce && bt < 180 && bt > 0) { ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('🟣 BOSS ' + Math.ceil(bt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; } if (gameMode === 'hard') { var tse = SENTINEL_SPAWN_INTERVAL - sentinelTimer; if (tse < 180 && tse > 0 && !(sentinel && sentinel.alive)) { ctx.fillStyle = `rgba(6,182,212,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('👁 SENTINEL ' + Math.ceil(tse / 60) + 's', CW / 2, 65); ctx.textAlign = 'start'; } } }
+      if (campaignMode) {      var campLv = campaignLvDef(); if (campLv && campLv.duration) { var remain = Math.max(0, Math.ceil((campLv.duration - campaignTimer) / 60)); ctx.fillStyle = '#facc15'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.fillText('📖 TIME: ' + remain + 's', CW / 2, 20); ctx.textAlign = 'start'; } } else if (deathOn()) { var dwLeft = Math.max(0, Math.ceil((WAVE_FRAMES - waveTimer) / 60)); ctx.fillStyle = '#fb7185'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center'; ctx.fillText('☠️ WAVE ' + wave + (wave <= DEATH_TOTAL_WAVES ? ' / ' + DEATH_TOTAL_WAVES : ' · ENDLESS') + ' · next in ' + dwLeft + 's', CW / 2, 20); ctx.textAlign = 'start'; } else if (!boss || !boss.alive) { const ts = SPAWN_INTERVAL - spawnTimer; if (ts < 120 && ts > 0 && spawnTimer > 30) { ctx.fillStyle = `rgba(251,146,60,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⚠ WAVE ' + Math.ceil(ts / 60) + 's', CW / 2, 20); ctx.textAlign = 'start'; } const tk = KAMIKAZE_INTERVAL - kamikazeTimer; if (tk < 120 && tk > 0) { ctx.fillStyle = `rgba(239,68,68,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💣 KAMIKAZE ' + Math.ceil(tk / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const tt = TITAN_SPAWN_INTERVAL - titanTimer; if (tt < 180 && tt > 0) { ctx.fillStyle = `rgba(217,119,6,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('⛏ TITAN ' + Math.ceil(tt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; }      const tg = GRENADER_INTERVAL - grenaderTimer; if (tg < 120 && tg > 0) { ctx.fillStyle = `rgba(249,115,22,${0.5 + Math.sin(time * 0.2) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('💥 GRENADER ' + Math.ceil(tg / 60) + 's', CW / 2, 35); ctx.textAlign = 'start'; } const bt = BOSS_RESPAWN_INTERVAL - bossTimer; if (bossSpawnedOnce && bt < 180 && bt > 0) { ctx.fillStyle = `rgba(168,85,247,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('🟣 BOSS ' + Math.ceil(bt / 60) + 's', CW / 2, 50); ctx.textAlign = 'start'; } if (gameMode === 'hard') { var tse = SENTINEL_SPAWN_INTERVAL - sentinelTimer; if (tse < 180 && tse > 0 && !(sentinel && sentinel.alive)) { ctx.fillStyle = `rgba(6,182,212,${0.5 + Math.sin(time * 0.15) * 0.3})`; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center'; ctx.fillText('👁 SENTINEL ' + Math.ceil(tse / 60) + 's', CW / 2, 65); ctx.textAlign = 'start'; } } }
       }
       } catch (err) {
         reportLoopError('gameLoop', err);
@@ -14676,7 +15413,7 @@
       taoistPulseFx = { active: false, timer: 0, x: 0 };
       taoistUltAmulet = { active: false, timer: 0, tick: 0, x: 0 };
       expKills = 0; expNextLevel = 5;
-      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = [];
+      campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = []; masterRunes = [];
       // The Time Chainer's projectiles, chains and theme are per-round.
       tcBlasts = []; timeChainTimer = 0; tcMusicOn = false;
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
@@ -14696,7 +15433,7 @@
       var hasSummonAlly = false;
       for (var k in shopUpgrades) { if (k.indexOf('summon') === 0 && shopUpgrades[k] > 0) { hasSummonAlly = true; break; } }
       if (hasSummonAlly) { allySpawnTimer = ALLY_SPAWN_INTERVAL; }
-      PLAYER_MAX_HP_CURRENT = Math.floor((selectedChar === 'knight' ? KNIGHT_HP : selectedChar === 'soldier' ? 90 : selectedChar === 'super' ? SUPER_HP : selectedChar === 'mage' ? MAGE_HP : selectedChar === 'ninja' ? NINJA_HP : selectedChar === 'bots' ? BOT_HP : selectedChar === 'phantom' ? PHANTOM_HP : selectedChar === 'slayer' ? SLAYER_HP : selectedChar === 'taoist' ? taoistMaxHp() : selectedChar === 'hyper' ? HYPER_HP : selectedChar === 'ultra' ? ULTRA_HP : 100) * skinHpMult());
+      PLAYER_MAX_HP_CURRENT = Math.floor(charBaseHp(selectedChar, playerLevel) * skinHpMult());
       PLAYER_MAX_HP_CURRENT += getShopUpgradeEffect('maxHp');
       // Knight shield init
       if (selectedChar === 'knight') { knightShieldMax = Math.floor(PLAYER_MAX_HP_CURRENT * KNIGHT_SHIELD_PCT); knightShieldHP = knightShieldMax; } else { knightShieldHP = 0; knightShieldMax = 0; }

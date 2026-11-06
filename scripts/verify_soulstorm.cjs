@@ -687,7 +687,8 @@ function check(name, cond, extra) {
       'a leftover char+skin gate is still in the page');
     check(file + ': the skin HP bonus applies to every character',
       /function skinHpMult\(\) \{ return selectedSkin === 'fighter_zombie' \? 1\.25 : selectedSkin === 'soldier_skeleton' \? 1\.2 : 1; \}/.test(html) &&
-      /\: 100\) \* skinHpMult\(\)\);/.test(html) &&
+      // Every round start goes through the one per-character HP table, skin included.
+      /PLAYER_MAX_HP_CURRENT = Math\.floor\(charBaseHp\(selectedChar, playerLevel\) \* skinHpMult\(\)\);/.test(html) &&
       /PLAYER_MAX_HP_CURRENT = Math\.floor\(PLAYER_MAX_HP_CURRENT \* skinHpMult\(\)\)/.test(html) &&
       /skinMaxHpMult|fighterSkinHpMult/.test(html) === false);
     check(file + ': the skin screen says the skins are universal',
@@ -956,8 +957,8 @@ function check(name, cond, extra) {
 
     check(file + ': 450 HP, and fullReset knows about him',
       num(/ULTRA_HP = (\d+)/) === 450 &&
-      /selectedChar === 'ultra' \? ULTRA_HP : 100\) \* skinHpMult\(\)/.test(html) &&
-      /selectedChar === 'ultra' \? ULTRA_HP/.test(html));
+      /PLAYER_MAX_HP_CURRENT = Math\.floor\(charBaseHp\(selectedChar, playerLevel\) \* skinHpMult\(\)\);/.test(html) &&
+      /case 'ultra': return ULTRA_HP;/.test(html));
 
     check(file + ': punch 20, blast 23, pulse 30 with +5% per use capped at +50%',
       num(/ULTRA_PUNCH_DMG = (\d+)/) === 20 &&
@@ -1232,8 +1233,10 @@ function check(name, cond, extra) {
       /if \(level >= 11\) \{\n        selectedChar = 'hyper';/.test(html) &&
       /The power I emerge\.\.\. has already started\./.test(html) &&
       /\{ speaker: 'Hyper', color: '#c084fc', text: 'Your hour is up\. I will be taking it\.'/.test(html) &&
-      // Hyper's real HP pool — fullReset used to fall through to 100 for him.
-      /selectedChar === 'hyper' \? HYPER_HP : selectedChar === 'ultra' \? ULTRA_HP : 100\) \* skinHpMult\(\)/.test(html));
+      // Hyper's real HP pool — fullReset used to fall through to 100 for him, and now
+      // reads it from the per-character table instead of a ternary chain.
+      /PLAYER_MAX_HP_CURRENT = Math\.floor\(charBaseHp\(selectedChar, playerLevel\) \* skinHpMult\(\)\);/.test(html) &&
+      /case 'hyper': return HYPER_HP;/.test(html));
 
     check(file + ': the level is won only once he is truly broken',
       /if \(lv\.spawnTimeChainer\) \{/.test(html) &&
@@ -1241,6 +1244,94 @@ function check(name, cond, extra) {
       /\/\/ Breaking him for good frees anyone still chained\.\n        if \(mb\.type === 'time_chainer'\) \{ timeChainTimer = 0; \}/.test(html) &&
       /var TIME_CHAINER_WIN_CUTSCENE = \[/.test(html) &&
       /cutsceneData === TIME_CHAINER_WIN_CUTSCENE/.test(html));
+  });
+}
+
+// --- Shadow Magic campaign (the Mage's origin) -------------------------------
+// Five levels that have to be played as the mage: summoners, magicers, a big
+// monster, grand summoners, and finally the teacher. Each rule is asserted on the
+// shipped file so the level table cannot drift away from the spawn/AI code.
+{
+  console.log('\n===== shadow magic campaign =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const block = /var SHADOW_CAMPAIGN_LEVELS = \[([\s\S]*?)\n    \];/.exec(html);
+    const body = block ? block[1] : '';
+
+    check(file + ': the Shadow Magic campaign has five levels', !!block &&
+      (body.match(/name: 'Level /g) || []).length === 5 &&
+      /var shadowMaxLevels = SHADOW_CAMPAIGN_LEVELS\.length;/.test(html));
+
+    // Lv 1 — 30s, a summoner every 5 seconds.
+    check(file + ': Lv 1 is 30s of summoners every 5s',
+      /Level 1: The First Rite[\s\S]*?duration: 1800[\s\S]*?type: 'summoner', interval: 300/.test(body));
+    // Lv 2 — 30s, summoner + magicer.
+    check(file + ': Lv 2 adds the magicer',
+      /Level 2: Stolen Pages[\s\S]*?duration: 1800[\s\S]*?type: 'summoner', interval: 300 \}, \{ type: 'magicer', interval: 360/.test(body));
+    // Lv 3 — 34s, magicer + big monster.
+    check(file + ': Lv 3 is 34s of magicers and a big monster',
+      /Level 3: The Big Monster[\s\S]*?duration: 2040[\s\S]*?type: 'big_monster', interval: 600/.test(body));
+    // Lv 4 — magicers + summoners, and a big summoner every 10s (600 frames).
+    check(file + ': Lv 4 sends a big summoner every 10s',
+      /Level 4: The Grand Summoner[\s\S]*?duration: 2400[\s\S]*?type: 'big_summoner', interval: 600/.test(body));
+    // Lv 5 — the Master Mage, won only when he is beaten.
+    check(file + ': Lv 5 is the Master Mage and ends when he falls',
+      /Level 5: The Master Mage[\s\S]*?spawnMasterMage: true, defeatMasterMage: true/.test(body));
+
+    // Played as the mage, with the rite's own HP pool — held for the whole run
+    // because charBaseHp() is what every round start and level-up reads.
+    check(file + ': every Shadow level is played as the mage',
+      /function launchShadowLevel\(level\) \{[\s\S]{0,600}?selectedChar = 'mage';/.test(html) &&
+      /campaignMode && activeCampaignType === 'shadow' && c === 'mage'\) return SHADOW_MAGE_HP;/.test(html) &&
+      /const SHADOW_MAGE_HP = 240;/.test(html));
+
+    check(file + ': the four enemies are spawned by the levels',
+      /sp\.type === 'magicer'/.test(html) && /sp\.type === 'big_monster'/.test(html) &&
+      /sp\.type === 'big_summoner'/.test(html) && /sp\.type === 'summoner'/.test(html) &&
+      /spawnMasterMage && !campaignSpecialTimers\['mm_spawned'\]/.test(html));
+
+    check(file + ': the magicer casts magic bolts that hurt the player',
+      (html.match(/if \(mb\.type === 'magicer'\)/g) || []).length >= 2 &&
+      /bullets\.push\(\{ x: mb\.x, y: GROUND_Y - 52,[^}]*magic: true \}\);/.test(html) &&
+      /if \(b\.magic\)/.test(html));
+
+    check(file + ': the big monster hits hard and the big summoner calls minions',
+      /damagePlayer\(BIG_MONSTER_DMG, '#65a30d'\)/.test(html) &&
+      /mb\.attackCD = BIG_SUMMONER_CALL;[\s\S]{0,320}?dummies\.push\(createDummy/.test(html));
+
+    // Master Mage: 900 HP, a fixed move rotation, and a half-health shadow form.
+    check(file + ': the Master Mage has 900 HP and a shadow-form phase two',
+      /const MASTER_MAGE_HP = 900, MASTER_MAGE_SPD = 0\.75;/.test(html) &&
+      /function updateMasterMage\(mb, dist\)/.test(html) &&
+      /mb\.phase === 1 && mb\.hp <= mb\.maxHp \* 0\.5/.test(html) &&
+      /SHADOW FORM/.test(html) &&
+      /if \(mb\.type === 'master_mage'\)/.test(html));
+
+    check(file + ': he casts volleys, sigils, teleports and summons',
+      /'castOrbs'/.test(html) && /'castRunes'/.test(html) && /'teleport'/.test(html) && /'summon'/.test(html) &&
+      /masterRunes\.push\(\{/.test(html) &&
+      /damagePlayer\(MASTER_MAGE_RUNE_DMG, '#a855f7'\)/.test(html) &&
+      /SIGIL!/.test(html));
+
+    // The win path must ask the active campaign for its level, not the Fighter's table.
+    check(file + ': the Master Mage is a real win condition of his level',
+      /function campaignLvDef\(\)/.test(html) &&
+      /if \(lv\.defeatMasterMage\) \{[\s\S]{0,260}?campaignWinLevel\(\);/.test(html) &&
+      (html.match(/campaignLvDef\(\)/g) || []).length >= 4);
+
+    // Menu: a third campaign card with its own level grid and saved progress.
+    check(file + ': the campaign menu offers Shadow Magic with saved progress',
+      /id="campShadow"/.test(html) && /id="shadowLevelSelect"/.test(html) &&
+      /id="campShadowProgress"/.test(html) &&
+      /function buildShadowLevelButtons\(\)/.test(html) &&
+      /function startShadowCutscene\(levelIdx\)/.test(html) &&
+      /localStorage\.setItem\('sm_campaignShadow', shadowProgress\)/.test(html) &&
+      /var shadowProgress = parseInt\(localStorage\.getItem\('sm_campaignShadow'\) \|\| '1'\);/.test(html));
+
+    check(file + ': the Shadow campaign has its own cutscene scene and ending',
+      /if \(activeCampaignType === 'shadow'\) \{\n        \/\/ ---- Shadow Magic cutscenes/.test(html) &&
+      /var SHADOW_WIN_CUTSCENE = \[/.test(html) &&
+      /cutsceneData === SHADOW_WIN_CUTSCENE/.test(html));
   });
 }
 
