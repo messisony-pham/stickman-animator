@@ -5287,12 +5287,12 @@
       'CH33S3NYPR072711': { points: 0, bossPts: 0, cheeser: true },
       'TRAIT!': { points: 0, bossPts: 5, freeTraitRoll: 1 },
       '2212022019.192010': { points: 30000, bossPts: 1000 },
+      'THEMINHCOOL65': { points: 650, bossPts: 0 },
     };
     function redeemCode() {
       var input = document.getElementById('codeInput');
       var status = document.getElementById('codeStatus');
       var val = input ? input.value : '';
-      'THEMINHCOOL65': { points: 650, bossPts: 0 },
       var code = (val || '').trim().toUpperCase();
       if (!code) { status.textContent = '❌ Enter a code!'; status.style.color = '#f87171'; return; }
       if (usedCodes.indexOf(code) !== -1) { status.textContent = '❌ Already redeemed!'; status.style.color = '#f87171'; return; }

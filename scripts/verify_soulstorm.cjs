@@ -219,6 +219,33 @@ function check(name, cond, extra) {
   const a1 = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const a2 = fs.readFileSync(path.join(ROOT, 'index.standalone.html'), 'utf8');
   check('index.html and index.standalone.html are the same build', a1 === a2);
+
+  // Every rule above is a text match, and text matches keep passing happily while the
+  // page itself refuses to run. An edit that landed a property outside its object left
+  // `'CODE': { ... }` as a bare statement inside a function: one stray ':' and the whole
+  // game was a black screen while all 344 checks stayed green. So actually parse the
+  // inline script of each shipped file, the way the browser has to.
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const m = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/i.exec(html);
+    let err = null;
+    if (!m) err = 'no inline script found';
+    else {
+      try { new vm.Script(m[1], { filename: file }); }
+      catch (e) { err = e.stack.split('\n').slice(0, 2).join(' '); }
+    }
+    check(file + ': the inline script parses like a browser would', !err, err || '');
+  });
+
+  // The redeem table has to stay a real object: one entry per line, all inside CODE_REWARDS.
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const block = /var CODE_REWARDS = \{([\s\S]*?)\n    \};/.exec(html);
+    const body = block ? block[1] : '';
+    check(file + ': the redeem codes live inside CODE_REWARDS',
+      !!block && /'THEMINHCOOL65': \{ points: 650, bossPts: 0 \},/.test(body) &&
+      /'2212022019\.192010': \{ points: 30000, bossPts: 1000 \},/.test(body));
+  });
 }
 
 // --- P: the frame clock must be refresh-rate independent ---------------------
