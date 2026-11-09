@@ -1783,13 +1783,22 @@ function check(name, cond, extra) {
       /novaNightmare = \{ timer: NOVA_NIGHTMARE_DUR, tick: 0/.test(html));
 
     check(file + ': Novarites has his own last-dance boss theme',
-      /novarites: \{ bpm: 126, vol: 0\.34, rain: false, bar: novaritesBar \}/.test(html) &&
+      /novarites: \{ bpm: 126, vol: 0\.34, rain: false, bar: novaritesBar, bars: 48 \}/.test(html) &&
       /function novaritesBar\(ac, dest, t0, bar, step\)/.test(html) &&
       /\{ id: 'novarites',     name: 'Last Dance of the Sleepwalker'/.test(html) &&
       /function startNovaritesMusic\(\)/.test(html) &&
       /function stopNovaritesMusic\(\)/.test(html) &&
       /startNovaritesMusic\(\);/.test(html) &&
       /if \(novaMusicOn && \(!miniBosses\.some\(function\(m\) \{ return m\.alive && m\.type === 'novarites'; \}\)/.test(html));
+
+    check(file + ': the last dance plays once and runs about three minutes',
+      // 48 bars at 126 BPM = 182.9s.
+      Math.round(48 * (60 / 126 / 2) * 16) === 183 &&
+      /var totalBars = T\.bars \|\| 0;/.test(html) &&
+      /if \(totalBars && b \+ 1 >= totalBars\) return;/.test(html) &&
+      /var section = bar < 4 \? 'intro' : bar < 8 \? 'build' : bar < 16 \? 'themeA'/.test(html) &&
+      /section === 'bridge' \? bar - 24 : section === 'climax' \? bar - 32 : bar - 40;/.test(html) &&
+      /if \(section === 'outro' && local >= 6\)/.test(html));
 
     check(file + ': nightmare gas lasts 10s and bites every 2s',
       novaNum(/NOVA_NIGHTMARE_DUR = (\d+)/) === 600 &&

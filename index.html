@@ -2783,34 +2783,78 @@
       [196.00, 246.94, 293.66], // G
       [164.81, 207.65, 246.94]  // E
     ];
-    var NOVA_BELL = [880.00, 1046.50, 987.77, 783.99, 659.25, 783.99, 880.00, 1046.50];
+    var NOVA_BRIDGE_CHORDS = [
+      [146.83, 174.61, 220.00], // Dm
+      [116.54, 146.83, 174.61], // Bb
+      [174.61, 220.00, 261.63], // F
+      [164.81, 207.65, 246.94]  // E
+    ];
+    // Three written melodies: the first theme, its darker sequel, and the climax an
+    // octave up. 0 is a rest, so the bell actually breathes instead of arpeggiating.
+    var NOVA_MEL_A = [659.25, 0, 783.99, 880.00, 0, 783.99, 659.25, 0, 587.33, 659.25, 783.99, 0, 880.00, 1046.50, 987.77, 0];
+    var NOVA_MEL_B = [587.33, 0, 523.25, 493.88, 0, 440.00, 493.88, 0, 523.25, 0, 587.33, 523.25, 493.88, 440.00, 392.00, 0];
+    var NOVA_MEL_C = [880.00, 0, 1046.50, 0, 1174.66, 0, 1046.50, 880.00, 783.99, 0, 880.00, 1046.50, 0, 1318.51, 1174.66, 0];
     function novaritesBar(ac, dest, t0, bar, step) {
-      var chord = NOVA_CHORDS[bar % NOVA_CHORDS.length];
+      // A 48-bar arrangement that plays ONCE (about 3:03 at 126 BPM): a four-bar music
+      // box intro, the dance building under it, two themes, a darker bridge, the climax,
+      // then an outro that thins back down to a single low bell.
+      var section = bar < 4 ? 'intro' : bar < 8 ? 'build' : bar < 16 ? 'themeA'
+        : bar < 24 ? 'themeB' : bar < 32 ? 'bridge' : bar < 40 ? 'climax' : 'outro';
+      var local = section === 'intro' ? bar : section === 'build' ? bar - 4
+        : section === 'themeA' ? bar - 8 : section === 'themeB' ? bar - 16
+        : section === 'bridge' ? bar - 24 : section === 'climax' ? bar - 32 : bar - 40;
+      var isBridge = section === 'bridge';
+      var prog = isBridge ? NOVA_BRIDGE_CHORDS : NOVA_CHORDS;
+      var chord = prog[local % prog.length];
+      var mel = isBridge ? NOVA_MEL_B : (section === 'themeB' || section === 'climax') ? NOVA_MEL_C : NOVA_MEL_A;
+      var full = section !== 'intro';
+      var level = section === 'intro' ? 0.35 : section === 'build' ? 0.55
+        : section === 'themeA' ? 1 : section === 'themeB' ? 1.1
+        : section === 'bridge' ? 1.15 : section === 'climax' ? 1.25
+        : Math.max(0.22, 0.9 - local * 0.12);
       // The ballroom: a wide string bed, one voice a hair flat for unease.
-      _mViolin(ac, dest, chord[0] / 2, 0.05, t0, step * 16);
-      _mViolin(ac, dest, chord[1], 0.032, t0, step * 16);
-      _mViolin(ac, dest, chord[2] * 0.997, 0.026, t0, step * 16);
+      if (full || local === 0) {
+        _mViolin(ac, dest, chord[0] / 2, 0.05 * level, t0, step * 16);
+        _mViolin(ac, dest, chord[1], 0.032 * level, t0, step * 16);
+        _mViolin(ac, dest, chord[2] * 0.997, 0.026 * level, t0, step * 16);
+      }
       for (var s = 0; s < 16; s++) {
         var t = t0 + s * step;
-        // The waltz: 1 · 2 · 3 with the third beaten a little harder.
-        if (s === 0) _mKick(ac, dest, t, 0.34);
-        if (s === 4) _mKick(ac, dest, t, 0.2);
-        if (s === 8) { _mKick(ac, dest, t, 0.27); _mSnare(ac, dest, t, 0.14); }
-        if (s === 12) { _mSnare(ac, dest, t, 0.1); _mHat(ac, dest, t, 0.05); }
-        _mHat(ac, dest, t, s % 2 ? 0.028 : 0.018);
+        // The waltz: 1 · 2 · 3 with the third beaten a little harder. The outro loses
+        // its drums bar by bar until only the strings and the box are left.
+        if (full && section !== 'outro') {
+          if (s === 0) _mKick(ac, dest, t, 0.34 * level);
+          if (s === 4) _mKick(ac, dest, t, 0.2 * level);
+          if (s === 8) { _mKick(ac, dest, t, 0.27 * level); _mSnare(ac, dest, t, 0.14 * level); }
+          if (s === 12) { _mSnare(ac, dest, t, 0.1 * level); _mHat(ac, dest, t, 0.05 * level); }
+          _mHat(ac, dest, t, (s % 2 ? 0.028 : 0.018) * level);
+        }
+        if (section === 'climax' && s === 15 && local % 4 === 3) _mTom(ac, dest, t, 0.32);
         // Root, fifth, octave — the waltz step itself.
-        if (s === 0) _mNote(ac, dest, chord[0] / 2, 'square', 0.1, t, step * 2.4);
-        if (s === 4) _mNote(ac, dest, chord[0] * 0.75, 'square', 0.075, t, step * 1.9);
-        if (s === 8) _mNote(ac, dest, chord[0] / 2, 'square', 0.06, t, step * 1.7);
-        // Music-box lead, with a shimmering octave above it.
-        _mNote(ac, dest, NOVA_BELL[s % NOVA_BELL.length], 'triangle', 0.05, t, step * 1.4);
-        _mNote(ac, dest, NOVA_BELL[s % NOVA_BELL.length] * 2, 'sine', 0.018, t, step * 1.1);
+        if (full) {
+          if (s === 0) _mNote(ac, dest, chord[0] / 2, 'square', 0.1 * level, t, step * 2.4);
+          if (s === 4) _mNote(ac, dest, chord[0] * 0.75, 'square', 0.075 * level, t, step * 1.9);
+          if (s === 8) _mNote(ac, dest, chord[0] / 2, 'square', 0.06 * level, t, step * 1.7);
+        }
+        // Music box: the written melody, with a shimmering octave above it.
+        var note = mel[s];
+        if (note) {
+          _mNote(ac, dest, note, 'triangle', 0.055 * level, t, step * 1.5);
+          _mNote(ac, dest, note * 2, 'sine', 0.018 * level, t, step * 1.2);
+        }
       }
-      // A swell across the dance floor, then the falling phrase that ends each turn.
-      if (bar % 2 === 0) _mNoise(ac, dest, t0, 0.3, 2400, 0.05);
-      if (bar % 4 === 3) {
+      // A swell across the dance floor at the top of a phrase, and one at the climax.
+      if (!full && local === 0) _mNoise(ac, dest, t0, 0.3, 2400, 0.05);
+      if (section === 'themeB' && local % 4 === 0) _mNoise(ac, dest, t0, 0.3, 2400, 0.05);
+      if (section === 'climax' && local % 4 === 0) _mNoise(ac, dest, t0, 0.5, 3200, 0.09);
+      // The falling two-note phrase that ends each turn of the dance.
+      if (section !== 'outro' && local % 4 === 3) {
         _mNote(ac, dest, chord[1] * 2, 'triangle', 0.06, t0 + step * 12, step * 1.6);
         _mNote(ac, dest, chord[0] * 2, 'triangle', 0.055, t0 + step * 14, step * 1.8);
+      }
+      // Last two bars: the floor empties — one low bell, then a lower one, and silence.
+      if (section === 'outro' && local >= 6) {
+        _mNote(ac, dest, local === 7 ? 110.00 : 220.00, 'triangle', 0.08, t0, step * 12);
       }
     }
     // ---- Bonus tracks: music with no map attached ------------------------------------
@@ -2903,7 +2947,8 @@
       bossrush: { bpm: 196, vol: 0.36, rain: false, bar: bossrushBar },
       multiverse: { bpm: 140, vol: 0.34, rain: false, bar: multiverseBar },
       timechainer: { bpm: 132, vol: 0.34, rain: false, bar: timeChainerBar },
-      novarites: { bpm: 126, vol: 0.34, rain: false, bar: novaritesBar }
+      // bars: a finite track. The scheduler stops after this many bars instead of looping.
+      novarites: { bpm: 126, vol: 0.34, rain: false, bar: novaritesBar, bars: 48 }
     };
     function startThemeMusic(theme) {
       if (!theme) return;
@@ -2927,9 +2972,12 @@
         }
         var step = 60 / T.bpm / 2;
         var barDurMs = step * 16 * 1000;
+        var totalBars = T.bars || 0;
         (function scheduleBar(startT, b) {
           if (!themePlaying || themeCurrent !== theme) return;
           T.bar(ac, master, startT, b, step);
+          // A finite track (Novarites' last dance) plays its written bars once and ends.
+          if (totalBars && b + 1 >= totalBars) return;
           var tm = setTimeout(function() { scheduleBar(startT + step * 16, b + 1); }, barDurMs - 60);
           themeTimers.push(tm);
         })(ac.currentTime + 0.1, 0);
