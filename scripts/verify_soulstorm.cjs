@@ -204,7 +204,7 @@ function check(name, cond, extra) {
     check(file + ': numeric saves are healed instead of loading as NaN',
       /function loadNum\(key, fallback\)/.test(html) && /let totalPoints = loadNum\('sm_totalPoints'\)/.test(html));
     check(file + ': saves carry a version that migrates old data',
-      /const SAVE_VERSION = 3, BUILD = '3\.0\.0';/.test(html) && /function migrateSave\(\)/.test(html) &&
+      /const SAVE_VERSION = 3, BUILD = '3\.2\.0';/.test(html) && /function migrateSave\(\)/.test(html) &&
       /localStorage\.setItem\('sm_saveVersion', SAVE_VERSION\)/.test(html));
     check(file + ': the menu shows the build so a second device can be checked',
       /id="buildStamp"/.test(html));
@@ -297,7 +297,7 @@ function check(name, cond, extra) {
       /hp: gameMode === 'easy' \? EASY_TANK_HP : TANK_HP, maxHp: gameMode === 'easy' \? EASY_TANK_HP : TANK_HP, speed: TANK_SPD/.test(html) &&
       /hp: gameMode === 'easy' \? EASY_SPEED_HP : SPEED_HP, maxHp: gameMode === 'easy' \? EASY_SPEED_HP : SPEED_HP, speed: SPEED_SPD/.test(html));
     check(file + ': clearing wave 100 is a win with a payout, then endless',
-      /totalPoints \+= 5000; bossPoints \+= 25; savePoints\(\);/.test(html) &&
+      /grantPoints\(5000\); bossPoints \+= 25; savePoints\(\);/.test(html) &&
       /localStorage\.setItem\('sm_deathCleared', 'true'\)/.test(html) &&
       /'endless continues — good luck'/.test(html));
     check(file + ': the best wave is kept and shown in the menu',
@@ -579,7 +579,7 @@ function check(name, cond, extra) {
       /advanceQuestProgress\('kills', dk\)/.test(html) &&
       /advanceQuestProgress\('points', dp\)/.test(html) &&
       /advanceQuestProgress\('rounds', 1\)/.test(html) &&
-      /totalPoints \+= paid;/.test(html));
+      /grantPoints\(paid\);/.test(html));
     check(file + ': a finished daily quest counts toward taoist quest 3',
       /stats\.dailies \+= finished\.length/.test(html) &&
       /metric: 'dailies'/.test(html) &&
@@ -680,13 +680,15 @@ function check(name, cond, extra) {
       /if \(selectedSkin === 'phantom_reaper'\) return 1\.5;/.test(html) &&
       /selectedSkin === 'phantom_reaper' \? 1\.5 : 1/.test(html) &&
       /selectedSkin === 'fighter_zombie' \? 0\.88 : 1/.test(html) &&
-      /function vampireHeal\(dmg\) \{ if \(selectedSkin === 'ninja_vampire'\)/.test(html) &&
+      // The Vampire skin still heals full damage; the shop adds lifesteal on the same hook.
+      /var heal = selectedSkin === 'ninja_vampire' \? Math\.round\(dmg\) : 0;/.test(html) &&
+      /lifestealPool \+= dmg \* steal;/.test(html) &&
       /if \(selectedSkin === 'fighter_ghost' && ghostDodgeCharges > 0\)/.test(html) &&
       /if \(selectedSkin === 'fighter_ghost'\) \{ ghostDodgeTimer\+\+;/.test(html) &&
       /if \(selectedChar === 'fighter' && selectedSkin ===/.test(html) === false,
       'a leftover char+skin gate is still in the page');
     check(file + ': the skin HP bonus applies to every character',
-      /function skinHpMult\(\) \{ return selectedSkin === 'fighter_zombie' \? 1\.25 : selectedSkin === 'soldier_skeleton' \? 1\.2 : 1; \}/.test(html) &&
+      /function skinHpMult\(\) \{ return selectedSkin === 'fighter_zombie' \? 1\.25 : selectedSkin === 'soldier_skeleton' \? 1\.2 : selectedSkin === 'pharaoh' \? 1\.3 : 1; \}/.test(html) &&
       // Every round start goes through the one per-character HP table, skin included.
       /PLAYER_MAX_HP_CURRENT = Math\.floor\(charBaseHp\(selectedChar, playerLevel\) \* skinHpMult\(\)\);/.test(html) &&
       /PLAYER_MAX_HP_CURRENT = Math\.floor\(PLAYER_MAX_HP_CURRENT \* skinHpMult\(\)\)/.test(html) &&
@@ -859,7 +861,10 @@ function check(name, cond, extra) {
       /function backToCustomize\(\)/.test(html) &&
       /document\.getElementById\('skinClose'\)\.addEventListener\('click', function\(\) \{ backToCustomize\(\); \}\)/.test(html) &&
       /document\.getElementById\('musicClose'\)\.addEventListener\('click', function\(\) \{ backToCustomize\(\); \}\)/.test(html) &&
-      /document\.getElementById\('rankClose'\)\.addEventListener\('click', function\(\) \{ backToCustomize\(\); \}\)/.test(html) &&
+      // Rank closes back to Customize when opened from the hub, and to the menu when the
+      // menu's own RANKS button opened it.
+      /getElementById\('rankClose'\)\.addEventListener\('click', function\(\) \{\n      \/\/ Opened from the menu/.test(html) &&
+      /\} else backToCustomize\(\);/.test(html) &&
       // the single old buttons are gone
       /id="skinBtn"/.test(html) === false &&
       /id="musicBtn"/.test(html) === false &&
@@ -908,7 +913,7 @@ function check(name, cond, extra) {
       /'2212022019\.192010': \{ points: 30000, bossPts: 1000 \}/.test(html) &&
       // the input is upper-cased first, and the code is digits + a dot so it survives that
       /var code = \(val \|\| ''\)\.trim\(\)\.toUpperCase\(\);/.test(html) &&
-      /totalPoints \+= reward\.points; bossPoints \+= reward\.bossPts; savePoints\(\);/.test(html));
+      /grantPoints\(reward\.points\); bossPoints \+= reward\.bossPts; savePoints\(\);/.test(html));
 
     // ---- phone jump button ------------------------------------------------
     var dpadAt = html.indexOf('id="dpadArea"');
@@ -1207,8 +1212,9 @@ function check(name, cond, extra) {
       num(/TC_ZAP_DMG = (\d+)/) === 16 &&
       /tcBlasts\.push\(\{ x: bx, life: TC_BLAST_WARN \+ 40, delay: TC_BLAST_WARN, hit: false \}\)/.test(html) &&
       /if \(Math\.abs\(stick\.x - b\.x\) < TC_BLAST_RADIUS\) damagePlayer\(TC_BLAST_DMG, '#fbbf24'\);/.test(html) &&
-      // Blasts resolve even if he dies mid-cast.
-      /updateTimeChainerBlasts\(\);\n      \/\/ His theme only lasts/.test(html));
+      // Blasts resolve even if he dies mid-cast, and his theme is still guarded.
+      /updateTimeChainerBlasts\(\);/.test(html) &&
+      /\/\/ His theme only lasts as long as he does/.test(html));
 
     check(file + ': he teleports, and electrifies the player on the tether',
       /case 'teleport': \{/.test(html) &&
@@ -1332,6 +1338,478 @@ function check(name, cond, extra) {
       /if \(activeCampaignType === 'shadow'\) \{\n        \/\/ ---- Shadow Magic cutscenes/.test(html) &&
       /var SHADOW_WIN_CUTSCENE = \[/.test(html) &&
       /cutsceneData === SHADOW_WIN_CUTSCENE/.test(html));
+  });
+}
+
+// --- STREAK + ACHIEVEMENT ACCOUNTING (v3.1.0) --------------------------------
+{
+  console.log('\n===== daily streak / record accounting =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+    check(file + ': the daily streak has real storage behind it',
+      /var DAILY_STREAK_KEY = 'sm_daily_streak', DAILY_BEST_KEY = 'sm_daily_best', DAILY_LAST_KEY = 'sm_daily_lastDone';/.test(html) &&
+      /function dailyStreakNow\(\)/.test(html) &&
+      /function dailyStreakBest\(\)/.test(html) &&
+      /function touchDailyStreak\(quests\)/.test(html) &&
+      // The panel must read the live value, not the raw key it used to show forever.
+      /if \(streakEl\) streakEl\.textContent = dailyStreakNow\(\);/.test(html) &&
+      /if \(bestStreakEl\) bestStreakEl\.textContent = dailyStreakBest\(\);/.test(html) &&
+      /id="dailyBestStreak"/.test(html));
+
+    check(file + ': the streak advances once per day, never twice',
+      /if \(last === today\) return false;/.test(html) &&
+      /var prev = last === dayKey\(-1\) \? parseInt\(localStorage\.getItem\(DAILY_STREAK_KEY\) \|\| '0', 10\) : 0;/.test(html) &&
+      // A missed day is a lapsed streak, not the old number carried forward.
+      /if \(last !== dayKey\(0\) && last !== dayKey\(-1\)\) return 0;/.test(html) &&
+      // Only a fully cleared board counts.
+      /var complete = quests\.length > 0 && quests\.every\(function \(q\) \{ return !!q\.done; \}\);/.test(html) &&
+      /var streakHit = touchDailyStreak\(daily\) \? dailyStreakNow\(\) : 0;/.test(html));
+
+    check(file + ': campaign clears are counted for every campaign track',
+      /function achCampaignCleared\(\)/.test(html) &&
+      /return cleared\(campaignProgress, CAMPAIGN_LEVELS\.length\)/.test(html) &&
+      /\+ cleared\(soldierProgress, SOLDIER_CAMPAIGN_LEVELS\.length\)/.test(html) &&
+      /\+ cleared\(shadowProgress, SHADOW_CAMPAIGN_LEVELS\.length\);/.test(html) &&
+      /return progress >= total \? total : progress - 1;/.test(html) &&
+      /campaign: achCampaignCleared\(\),/.test(html));
+
+    check(file + ': Ultra counts as an unlocked character',
+      /var all = \['fighter', 'soldier', 'super', 'mage', 'ninja', 'bots', 'knight', 'hyper', 'ultra', 'cheeser', 'phantom', 'slayer', 'taoist', 'antidot'\];/.test(html));
+
+    // ---- Antidot: The Second Coming -------------------------------------------
+    const anNum = (re) => { const m = html.match(re); return m ? Number(m[1]) : NaN; };
+    check(file + ': Antidot is The Second Coming with his stated numbers',
+      anNum(/ANTIDOT_HP = (\d+)/) === 250 &&
+      anNum(/ANTIDOT_SPEED_MULT = ([\d.]+)/) === 1.3 &&
+      anNum(/ANTIDOT_TAKEN_MULT = ([\d.]+), ANTIDOT_ULT_TAKEN_MULT/) === 0.88 &&
+      anNum(/ANTIDOT_LASER_DMG = (\d+), ANTIDOT_LASER_TICK = (\d+), ANTIDOT_LASER_DUR = (\d+)/) === 2 &&
+      anNum(/ANTIDOT_LASER_TICK = (\d+), ANTIDOT_LASER_DUR/) === 15 &&
+      anNum(/ANTIDOT_LASER_DUR = (\d+), ANTIDOT_LASER_CD/) === 300);
+    check(file + ': gravity pulse, orb rain, lunge and orb blaze carry their damage',
+      anNum(/ANTIDOT_GRAV_DMG = (\d+)/) === 35 &&
+      anNum(/ANTIDOT_ORB_DMG = (\d+), ANTIDOT_ORB_CD = (\d+), ANTIDOT_ORB_COUNT = (\d+)/) === 5 &&
+      anNum(/ANTIDOT_ORB_COUNT = (\d+)/) === 6 &&
+      anNum(/ANTIDOT_LUNGE_DMG = (\d+)/) === 35 &&
+      anNum(/ANTIDOT_BLAZE_DMG = (\d+), ANTIDOT_BLAZE_TICK = (\d+), ANTIDOT_BLAZE_DUR = (\d+)/) === 2 &&
+      anNum(/ANTIDOT_BLAZE_TICK = (\d+), ANTIDOT_BLAZE_DUR/) === 9 &&
+      anNum(/ANTIDOT_BLAZE_DUR = (\d+)/) === 600 &&
+      /ANTIDOT_BLAZE_HALF_W = 25/.test(html));
+    check(file + ': Antidot punch and kick are the fighter moves',
+      /function performAntidotPunch\(\) \{ performPunch\(\); \}/.test(html) &&
+      /function performAntidotBlast\(\) \{ performKickFighter\(\); \}/.test(html) &&
+      /isKickDashing/.test(html));
+    check(file + ': Antidot is a permanent purchase, and his card is locked until bought',
+      /let boughtAntidot = localStorage\.getItem\('sm_boughtAntidot'\) === 'true';/.test(html) &&
+      /if \(c === 'antidot'\) return boughtAntidot;/.test(html) &&
+      /if \(c === 'antidot'\) return; \/\/ permanent/.test(html) &&
+      /else if \(c === 'antidot' && totalPoints >= ANTIDOT_COST && bossPoints >= ANTIDOT_BOSS_COST\)/.test(html) &&
+      /id="charAntidot"/.test(html) && /id="antidotLock"/.test(html) &&
+      /if \(anLock\) anLock\.classList\.toggle\('hidden', isCharBought\('antidot'\)\);/.test(html));
+    check(file + ': Antidot takes over the screen name, HP, speed and damage taken',
+      /case 'antidot': return ANTIDOT_HP;/.test(html) &&
+      /PLAYER_MAX_HP_CURRENT = ANTIDOT_HP;/.test(html) &&
+      /if \(selectedChar === 'antidot'\) spdMult \*= ANTIDOT_SPEED_MULT;/.test(html) &&
+      /if \(selectedChar === 'antidot'\) dmg = Math\.max\(1, Math\.floor\(dmg \* ANTIDOT_TAKEN_MULT \* \(antidotAwakened\(\) \? ANTIDOT_ULT_TAKEN_MULT : 1\)\)\);/.test(html));
+    check(file + ': every Antidot ability is implemented and hooked into the frame',
+      /function performAntidotLaser\(\)/.test(html) &&
+      /function performAntidotGravity\(\)/.test(html) &&
+      /function performAntidotOrbRain\(\)/.test(html) &&
+      /function performAntidotLunge\(\)/.test(html) &&
+      /function performAntidotUlt\(\)/.test(html) &&
+      /function antidotBeamTick\(dmg, halfW, source\)/.test(html) &&
+      /updateTaoistAbilities\(\); updateAntidotAbilities\(\);/.test(html));
+    check(file + ': the green eye laser ticks 2 damage every 0.25s for 5 seconds',
+      /antidotBeamTick\(ANTIDOT_LASER_DMG, 8, 'laser'\)/.test(html) &&
+      /function antidotAimPoint\(\)/.test(html) &&
+      /var aim = antidotAimPoint\(\);\n      var dx0 = aim\.x - eyeX/.test(html) &&
+      /antidotLaser = \{ timer: ANTIDOT_LASER_DUR, tick: 0 \};/.test(html) &&
+      /if \(antidotLaser\.tick % ANTIDOT_LASER_TICK === 0\)/.test(html) &&
+      /if \(antidotLaser\.timer <= 0\) \{ antidotLaser = null;/.test(html));
+    check(file + ': gravity pulse and orb rain land their damage in an area',
+      /hitBandScaled\(stick\.x, ANTIDOT_GRAV_RADIUS, ANTIDOT_GRAV_DMG, 'slam'\)/.test(html) &&
+      /antidotOrbs\.push\(\{ x: ox, y: -40 - i \* 55, vy: 7\.5 \+ i \* 0\.35, dmg: ANTIDOT_ORB_DMG \}\)/.test(html) &&
+      /hitBandScaled\(o\.x, ANTIDOT_ORB_RADIUS, o\.dmg, 'orb'\)/.test(html) &&
+      /antidotOrbs = antidotOrbs\.filter\(function\(o\) \{ return o\.y < GROUND_Y - 14; \}\)/.test(html));
+    check(file + ': the lunge is a flying pass that returns him to the ground',
+      /hitBandScaled\(midX, ANTIDOT_LUNGE_DIST \/ 2 \+ 55, ANTIDOT_LUNGE_DMG, 'lunge'\)/.test(html) &&
+      /stick\.y = GROUND_Y - Math\.sin\(prog \* Math\.PI\) \* 125;/.test(html) &&
+      /stick\.y = GROUND_Y; stick\.vy = 0; stick\.state = 'idle';/.test(html));
+    check(file + ': orb blaze rises, charges, beams for 10s, then falls',
+      /antidotBlaze = \{ phase: 'rise', timer: ANTIDOT_BLAZE_RISE, tick: 0 \};/.test(html) &&
+      /antidotBlaze\.phase = 'charge';/.test(html) &&
+      /antidotBlaze\.phase = 'beam'; antidotBlaze\.timer = ANTIDOT_BLAZE_DUR/.test(html) &&
+      /antidotBeamTick\(ANTIDOT_BLAZE_DMG, ANTIDOT_BLAZE_HALF_W, 'blaze'\)/.test(html) &&
+      /antidotBlaze\.phase = 'fall';/.test(html));
+    check(file + ': his beam damages every enemy family, bosses included',
+      /dummies\.forEach\(function\(d\) \{ if \(d\.alive && reaches\(d\.x, GROUND_Y - 30, 14\)\) dealDamageToDummy\(d, dmg, source\); \}\)/.test(html) &&
+      /if \(boss && boss\.alive && reaches\(boss\.x, GROUND_Y - 40, 20\)\) dealDamageToBoss\(dmg, source\)/.test(html) &&
+      /dealUltraBossDamage\(dmg\)/.test(html) &&
+      /dealColossalDamage\(dmg, source\)/.test(html));
+    check(file + ': Antidot responds to every input device',
+      /else if \(selectedChar === 'antidot'\) performAntidotPunch\(\);/.test(html) &&
+      /else if \(selectedChar === 'antidot'\) performAntidotLaser\(\);/.test(html) &&
+      /else if \(selectedChar === 'antidot'\) performAntidotGravity\(\);/.test(html) &&
+      /else if \(selectedChar === 'antidot'\) performAntidotLunge\(\);/.test(html) &&
+      /else if \(selectedChar === 'antidot'\) performAntidotOrbRain\(\);/.test(html) &&
+      /\} else if \(selectedChar === 'antidot'\) \{\n        if \(e\.key === '1'\) performAntidotLaser\(\);/.test(html) &&
+      /if \(e\.button === 2\) performAntidotBlast\(\); else performAntidotPunch\(\);/.test(html) &&
+      /selectedChar === 'antidot' \? performAntidotLunge\(\) : performParry\(\)/.test(html));
+    check(file + ': Antidot is drawn with a green eye, green beams and falling orbs',
+      /ANTIDOT \(The Second Coming\): one burning green eye/.test(html) &&
+      /ctx\.fillStyle = ANTIDOT_GREEN;/.test(html) &&
+      /if \(antidotLaser\) anBeam\(8, 20, 3, 0\.85\);/.test(html) &&
+      /if \(antidotBlaze && antidotBlaze\.phase === 'beam'\) anBeam\(50, 96, 16, 1\);/.test(html) &&
+      /antidotOrbs\.forEach\(function\(o\) \{/.test(html) &&
+      !/burning eye and a pen/.test(html));
+
+    // Run the real streak functions against a stub store instead of trusting the text.
+    const from = html.indexOf('    // ---- daily streak:');
+    const to = html.indexOf('    // ---- the taoist line:');
+    check(file + ': streak source found', from > 0 && to > from);
+    if (from < 0 || to <= from) return;
+    const src = html.slice(from, to);
+    const store = {};
+    const fakeStore = {
+      getItem: (k) => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = String(v); },
+      removeItem: (k) => { delete store[k]; }
+    };
+    const board = [{ id: 'kills', done: true, goal: 15, progress: 15 }, { id: 'points', done: true, goal: 150, progress: 150 }, { id: 'rounds', done: true, goal: 3, progress: 3 }];
+    const mk = new Function('localStorage', 'loadDailyQuests', src + '\nreturn { dailyStreakNow, dailyStreakBest, touchDailyStreak, dayKey };');
+    const S = mk(fakeStore, () => board);
+    const key = (n) => S.dayKey(n);
+
+    const t = {};
+    t.freshNow = S.dailyStreakNow();
+    t.first = S.touchDailyStreak(board);
+    t.afterFirst = S.dailyStreakNow();
+    t.second = S.touchDailyStreak(board);
+    t.afterSecond = S.dailyStreakNow();
+    fakeStore.setItem('sm_daily_lastDone', key(-1));
+    fakeStore.setItem('sm_daily_streak', 4);
+    t.extends = S.touchDailyStreak(board);
+    t.afterExtend = S.dailyStreakNow();
+    fakeStore.setItem('sm_daily_lastDone', key(-2));
+    fakeStore.setItem('sm_daily_streak', 9);
+    t.lapsed = S.dailyStreakNow();
+    fakeStore.setItem('sm_daily_lastDone', key(0));
+    fakeStore.setItem('sm_daily_streak', 3);
+    t.bestKept = S.dailyStreakBest();
+
+    check(file + ': the streak starts at 1 on the first cleared board',
+      t.freshNow === 0 && t.first === true && t.afterFirst === 1, JSON.stringify(t));
+    check(file + ': clearing the board twice in a day does not double the streak',
+      t.second === false && t.afterSecond === 1, JSON.stringify(t));
+    check(file + ': yesterday extends the streak, a missed day resets it',
+      t.extends === true && t.afterExtend === 5 && t.lapsed === 0, JSON.stringify(t));
+    check(file + ': the best streak record outlives the current one', t.bestKept >= 4, JSON.stringify(t));
+  });
+}
+
+// --- v3.2.0 CONTENT: rank ladder, bonus music, new skins, menu, shop ----------
+{
+  console.log('\n===== ranks / bonus music / skins / menu / shop =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+    check(file + ': the rank ladder has fifteen tiers, six above Immortal',
+      /name: 'IMMORTAL'/.test(html) && /name: 'ASCENDANT'/.test(html) &&
+      /name: 'CELESTIAL'/.test(html) && /name: 'ETERNAL'/.test(html) &&
+      /name: 'VOID'/.test(html) && /name: 'SUPREME'/.test(html) &&
+      /name: 'TRANSCENDENT'/.test(html) && /min: 135000/.test(html));
+
+    // A tier whose threshold is not above the previous one can never be current.
+    const mins = [...html.matchAll(/\{ name: '[A-Z]+',\s+icon: '[^']+', min: (\d+)/g)].map((m) => Number(m[1]));
+    check(file + ': every rank threshold is higher than the one before',
+      mins.length === 15 && mins[0] === 0 && mins.every((n, i) => i === 0 || n > mins[i - 1]), mins.join(','));
+
+    check(file + ': the rank screen shows rank points, not the wallet',
+      /if \(rp\) rp\.textContent = rankPointText\(rankPoints\);/.test(html) &&
+      /rankPointText\(rankPoints\) \+ ' rank pts'/.test(html) &&
+      /<\/span> rank pts\)/.test(html));
+
+    check(file + ': the menu carries a live rank-progress record strip',
+      /id="menuRankBar"/.test(html) && /id="menuRankNext"/.test(html) &&
+      /id="menuBestWave"/.test(html) && /id="menuStreak"/.test(html) &&
+      /id="menuAchCount"/.test(html) && /function updateMenuRecord\(\)/.test(html) &&
+      /bar\.style\.width = pct \+ '%';/.test(html) &&
+      /updateMenuRecord\(\);\n    startMenuMusic\(\);/.test(html));
+
+    check(file + ': RANKS opens the ladder directly and returns to the menu',
+      /id="ranksBtn"/.test(html) && /var rankFromMenu = false;/.test(html) &&
+      /getElementById\('ranksBtn'\)\.addEventListener\('click', function \(\) \{\n      rankFromMenu = true;/.test(html) &&
+      /if \(rankFromMenu\) \{/.test(html));
+
+    check(file + ': three bonus tracks are not tied to a map',
+      /neondrive: \{ bpm: 118, vol: 0\.3, rain: false, bar: neonDriveBar \}/.test(html) &&
+      /frostbound: \{ bpm: 92, vol: 0\.32, rain: false, bar: frostboundBar \}/.test(html) &&
+      /embercircuit: \{ bpm: 150, vol: 0\.3, rain: false, bar: emberCircuitBar \}/.test(html) &&
+      /function neonDriveBar\(ac, dest, t0, bar, step\)/.test(html) &&
+      /function frostboundBar\(ac, dest, t0, bar, step\)/.test(html) &&
+      /function emberCircuitBar\(ac, dest, t0, bar, step\)/.test(html) &&
+      (html.match(/sub: 'Bonus track · no map'/g) || []).length === 3);
+
+    check(file + ': no map can claim a bonus track',
+      !/return '(neondrive|frostbound|embercircuit)'/.test(html));
+
+    check(file + ': two new universal skins are for sale',
+      /id: 'storm_warden'/.test(html) && /cost: 18, desc: '\+22% DMG · \+18% SPD'/.test(html) &&
+      /id: 'pharaoh'/.test(html) && /cost: 22, desc: '\+30% HP · \+12% DMG'/.test(html));
+
+    check(file + ': both skins actually change the stats they advertise',
+      /if \(selectedSkin === 'storm_warden'\) return 1\.22;/.test(html) &&
+      /selectedSkin === 'storm_warden' \? 1\.18 : 1/.test(html) &&
+      /if \(selectedSkin === 'pharaoh'\) return 1\.12;/.test(html) &&
+      /selectedSkin === 'pharaoh' \? 1\.3 : 1/.test(html));
+
+    check(file + ': both skins draw a costume on any character',
+      /else if \(selectedSkin === 'storm_warden'\) \{\n        \/\/ ---- Storm Warden/.test(html) &&
+      /else if \(selectedSkin === 'pharaoh'\) \{\n        \/\/ ---- Pharaoh/.test(html) &&
+      /Nemes headdress/.test(html) && /Crawling arcs/.test(html));
+
+    check(file + ': the shop sells two new permanent upgrades',
+      /rankBoost: 3, lifesteal: 3/.test(html) &&
+      /rankBoost: parseInt\(localStorage\.getItem\('sm_upg_rankBoost'\)/.test(html) &&
+      /lifesteal: parseInt\(localStorage\.getItem\('sm_upg_lifesteal'\)/.test(html) &&
+      /data-upgrade="rankBoost"/.test(html) && /data-upgrade="lifesteal"/.test(html));
+
+    check(file + ': both upgrades change how a run pays out',
+      /var rankGain = killSource \? Math\.floor\(n \* \(1 \+ getShopUpgradeEffect\('rankBoost'\)\)\) : n;/.test(html) &&
+      /grantPoints\(killPts, true\);/.test(html) &&
+      /var heal = selectedSkin === 'ninja_vampire' \? Math\.round\(dmg\) : 0;/.test(html) &&
+      /lifestealPool \+= dmg \* steal;/.test(html) &&
+      /lifestealPool = 0;\n      playerHP = PLAYER_MAX_HP_CURRENT;/.test(html) &&
+      /case 'rankBoost': return shopUpgrades\.rankBoost \* 0\.15;/.test(html) &&
+      /case 'lifesteal': return shopUpgrades\.lifesteal \* 0\.01;/.test(html));
+
+    check(file + ': each shop row now shows the level it is buying',
+      /var lvLabel = 'Lv' \+ \(lvl \+ 1\) \+ '\/' \+ maxLvl \+ ' · ' \+ cost/.test(html) &&
+      /btn\.title = 'Level ' \+ lvl \+ '\/' \+ maxLvl/.test(html));
+  });
+}
+
+// --- menu hub, shop filters, bonus music, extended ranks, new skins ----------
+// The screens a player touches before every round. Ranks are checked by running
+// currentRank() itself, so the ladder is verified by behaviour, not by spelling.
+{
+  console.log('\n===== menu, shop, music, ranks and skins =====');
+  ['index.html', 'index.standalone.html'].forEach((file) => {
+    const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
+
+    // ---- ranks ----
+    const rankBlock = /const RANKS = \[([\s\S]*?)\n    \];/.exec(html);
+    let ranks = [];
+    if (rankBlock) { try { ranks = vm.runInNewContext('[' + rankBlock[1] + ']'); } catch (e) { ranks = []; } }
+
+    check(file + ': the rank ladder has 15 tiers, all strictly ascending',
+      ranks.length === 15 && ranks.every((r, i) => i === 0 ? r.min === 0 : r.min > ranks[i - 1].min));
+
+    check(file + ': the six long-road tiers are all present',
+      ['ASCENDANT', 'CELESTIAL', 'ETERNAL', 'VOID', 'SUPREME', 'TRANSCENDENT']
+        .every((n) => ranks.some((r) => r.name === n)));
+
+    // Behaviour: walk the same function the UI calls.
+    let rankWalk = false;
+    if (ranks.length) {
+      const src = /function currentRank\(points\) \{[\s\S]*?\n    \}/.exec(html);
+      if (src) {
+        try {
+          const ctx = vm.createContext({ RANKS: ranks, rankPoints: 0, Math: Math });
+          vm.runInContext(src[0], ctx);
+          const c0 = ctx.currentRank(0), c1 = ctx.currentRank(250), cMax = ctx.currentRank(135000);
+          rankWalk = c0.rank.name === 'WOOD' && c0.toNext === 250 &&
+            c1.rank.name === 'STONE' && c1.next.name === 'BRONZE' &&
+            cMax.rank.name === 'TRANSCENDENT' && cMax.next === null;
+        } catch (e) { rankWalk = false; }
+      }
+    }
+    check(file + ': currentRank() walks the extended ladder correctly', rankWalk);
+
+    check(file + ': the rank screen explains how rank points are earned',
+      /How to get rank points:/.test(html) &&
+      /rank pts for every enemy you kill, in any mode/.test(html) &&
+      /Every point reward counts too — codes, quests, campaign clears and bosses/.test(html) &&
+      /Spending points never lowers your rank — it only ever climbs/.test(html) &&
+      /Shop <b class="text-amber-200">Rank Boost<\/b>/.test(html));
+
+    // Rank must never lag behind the points a player actually holds. It used to: only
+    // enemy kills raised it, so codes/quests/campaign rewards left a 100k save on a low
+    // tier. The counter is now clamped up to the balance on load and grantPoints() raises
+    // both numbers everywhere.
+    check(file + ': rank points are clamped up to the saved balance on load',
+      /let rankPoints = Math\.max\(loadNum\('sm_rankPoints', 0\), totalPoints\);/.test(html) &&
+      /try \{ savePoints\(\); \} catch \(e\) \{\}/.test(html));
+
+    check(file + ': every point reward pays the rank ladder too',
+      /function grantPoints\(n, killSource\)/.test(html) &&
+      /totalPoints \+= n;/.test(html) &&
+      /rankPoints \+= Math\.max\(n, rankGain\);/.test(html) &&
+      // Only grantPoints may add points; no stray `totalPoints +=` can skip the ladder.
+      (html.match(/totalPoints \+=/g) || []).length === 1 &&
+      /RANK UP — /.test(html));
+
+    // Behaviour, not spelling: run grantPoints() against stubs.
+    let grantOk = false;
+    const gpSrc = /function grantPoints\(n, killSource\) \{[\s\S]*?\n    \}/.exec(html);
+    if (gpSrc && rankWalk) {
+      try {
+        const ctx = vm.createContext({
+          RANKS: ranks, totalPoints: 0, rankPoints: 0, gameState: 'menu', CW: 800,
+          getShopUpgradeEffect: function () { return 0; },
+          savePoints: function () {}, createTextParticle: function () {}, Math: Math
+        });
+        vm.runInContext(/function currentRank\(points\) \{[\s\S]*?\n    \}/.exec(html)[0], ctx);
+        vm.runInContext(gpSrc[0], ctx);
+        ctx.grantPoints(10, true);
+        const kill = { pts: ctx.totalPoints, rank: ctx.rankPoints };
+        ctx.grantPoints(0); ctx.grantPoints(-50);
+        const noop = { pts: ctx.totalPoints, rank: ctx.rankPoints };
+        ctx.totalPoints = 100000; ctx.rankPoints = 40000;
+        ctx.grantPoints(5000);
+        grantOk = kill.pts === 10 && kill.rank === 10 &&
+          noop.pts === 10 && noop.rank === 10 &&
+          ctx.totalPoints === 105000 && ctx.rankPoints === 45000;
+      } catch (e) { grantOk = false; }
+    }
+    check(file + ': grantPoints() raises wallet and rank together', grantOk);
+
+    check(file + ': the rank screen shows progress to the next tier',
+      /id="rankScreenNextLabel"/.test(html) && /id="rankScreenBar"/.test(html) &&
+      /cur\.next \? \(rankPointText\(cur\.toNext\) \+ ' to ' \+ cur\.next\.name\)/.test(html) &&
+      /NEXT<\/span>/.test(html));
+
+    // ---- bonus music (no map owns these) ----
+    check(file + ': three bonus tracks are registered off-map',
+      ['neondrive', 'frostbound', 'embercircuit'].every((id) => new RegExp(id + ': \\{ bpm:').test(html)) &&
+      ['neonDriveBar', 'frostboundBar', 'emberCircuitBar'].every((f) => new RegExp('function ' + f + '\\(').test(html)) &&
+      // Each one needs its own chord material, not a clone of a map theme.
+      ['NEON_CHORDS', 'FROST_CHORDS', 'EMBER_CHORDS'].every((c) => new RegExp('var ' + c + ' = \\[').test(html)));
+
+    check(file + ': the player lists them as bonus tracks on their own shelf',
+      (html.match(/sub: 'Bonus track · no map'/g) || []).length === 3 &&
+      /🗺️ Map themes/.test(html) && /🎧 Bonus tracks — no map/.test(html) &&
+      /shelf\.pick/.test(html));
+
+    // Every composed track must be reachable from the player: desert, cave, landscape and
+    // the Time Chainer's theme used to exist but were absent from the song list.
+    const trackBlock = /var THEME_TRACKS = \{([\s\S]*?)\n    \};/.exec(html);
+    const composed = trackBlock ? [...trackBlock[1].matchAll(/^\s{6}(\w+): \{/gm)].map((m) => m[1]) : [];
+    // Parse only the SONGS array: ids like 'water' and 'cheese' also exist in TRAITS.
+    const songBlock = /var SONGS = \[([\s\S]*?)\n    \];/.exec(html);
+    const listed = songBlock ? [...songBlock[1].matchAll(/id: '(\w+)'/g)].map((m) => m[1]) : [];
+    check(file + ': every composed track is selectable in the player',
+      composed.length >= 19 && composed.every((id) => listed.includes(id)) &&
+      ['desert', 'cave', 'landscape', 'timechainer'].every((id) => listed.includes(id)) &&
+      listed.length === new Set(listed).size);
+
+    // ---- the two new skins ----
+    check(file + ': Storm Warden and Pharaoh are universal skins',
+      /\{ id: 'storm_warden', char: 'fighter'/.test(html) &&
+      /\{ id: 'pharaoh', char: 'soldier'/.test(html) &&
+      /if \(selectedSkin === 'storm_warden'\) return 1\.22;/.test(html) &&
+      /if \(selectedSkin === 'pharaoh'\) return 1\.12;/.test(html) &&
+      /selectedSkin === 'storm_warden' \? 1\.18 : 1/.test(html) &&
+      /selectedSkin === 'pharaoh' \? 1\.3 : 1/.test(html));
+
+    check(file + ': both new skins have their own costume art',
+      /selectedSkin === 'storm_warden'\) \{[\s\S]{0,160}Storm Warden/.test(html) &&
+      /selectedSkin === 'pharaoh'\) \{[\s\S]{0,160}Pharaoh/.test(html) &&
+      /const SKIN_COST_MULT = 2;/.test(html));
+
+    // ---- shop ----
+    const catBlock = /var SHOP_CAT_OF = \{([\s\S]*?)\n    \};/.exec(html);
+    const catBody = catBlock ? catBlock[1] : '';
+    const upgrades = [...new Set([...html.matchAll(/data-upgrade="([A-Za-z]+)"/g)].map((m) => m[1]))];
+    check(file + ': every shop upgrade belongs to a category',
+      upgrades.length >= 15 && upgrades.every((u) => new RegExp('\\b' + u + ':').test(catBody)));
+
+    check(file + ': the shop filters by category and shows owned levels',
+      /data-shopcat="all"/.test(html) && /data-shopcat="combat"/.test(html) &&
+      /data-shopcat="meta"/.test(html) && /data-shopcat="allies"/.test(html) &&
+      /function applyShopCat\(cat\)/.test(html) &&
+      /tag\.className = 'shopLvl/.test(html) &&
+      /tag\.textContent = lvl \+ '\/' \+ maxLvl;/.test(html));
+
+    check(file + ': the two newer upgrades are in the shop',
+      /data-upgrade="rankBoost"/.test(html) && /data-upgrade="lifesteal"/.test(html) &&
+      /case 'rankBoost': return shopUpgrades\.rankBoost \* 0\.15;/.test(html) &&
+      /case 'lifesteal': return shopUpgrades\.lifesteal \* 0\.01;/.test(html));
+
+    // ---- menu ----
+    check(file + ': every screen sits on its own menu tile',
+      ['campaignBtn', 'questsBtn', 'ranksBtn', 'customizeBtn', 'achievementsBtn', 'settingsBtn']
+        .every((id) => new RegExp('id="' + id + '" class="menuTile').test(html)) &&
+      (html.match(/class="menuTile/g) || []).length === 6);
+
+    check(file + ': the menu scrolls on short screens instead of clipping',
+      /id="menuScreen" class="fixed inset-0 bg-slate-900 overflow-y-auto z-50"/.test(html) &&
+      /min-h-full w-full flex flex-col items-center justify-center px-3 py-6/.test(html));
+
+    check(file + ': PLAY is pinned on phone and landscape viewports',
+      /@media \(max-width: 560px\), \(orientation: landscape\) and \(max-height: 560px\)/.test(html) &&
+      /#playBtn \{ position: sticky; bottom: 10px;/.test(html));
+
+    check(file + ': the record strip and locked cards stay readable',
+      /id="menuRecord"/.test(html) && /id="menuRankBar"/.test(html) &&
+      /#charGrid > div > div\[id\$="Lock"\] \{ background: rgba\(15,23,42,0\.32\);/.test(html));
+
+    // ---- NOVARITES (the secret boss) ----
+    const novaNum = (re) => { const m = html.match(re); return m ? Number(m[1]) : NaN; };
+    check(file + ': the menu corner hides the Novarites trigger',
+      /id="novaritesSecret"/.test(html) &&
+      /getElementById\('novaritesSecret'\)\.addEventListener\('click', function\(\) \{ startNovaritesFight\(\); \}\)/.test(html) &&
+      /function startNovaritesFight\(\)/.test(html) &&
+      /spawnNovarites\(\);/.test(html));
+
+    check(file + ': Novarites has 4500 HP, a 100 shield and a 2500 HP phase two',
+      novaNum(/NOVA_HP = (\d+)/) === 4500 &&
+      novaNum(/NOVA_PHASE2_HP = (\d+)/) === 2500 &&
+      novaNum(/NOVA_SHIELD_MAX = (\d+)/) === 100 &&
+      /NOVA_SHIELD_REDUCE = 0\.7/.test(html) &&
+      /mb\.phase = 2; mb\.hp = NOVA_PHASE2_HP; mb\.maxHp = NOVA_PHASE2_HP;/.test(html) &&
+      /mb\.speed = NOVA_SPD \* 1\.75/.test(html) &&
+      /mb\.shield = NOVA_SHIELD_MAX;/.test(html));
+
+    check(file + ': the shield cuts damage by 70% until it breaks',
+      /var shieldHit = Math\.max\(1, Math\.floor\(dmg \* \(1 - NOVA_SHIELD_REDUCE\)\)\);/.test(html) &&
+      /mb\.shield = Math\.max\(0, mb\.shield - shieldHit\)/.test(html) &&
+      /SHIELD BROKEN/.test(html));
+
+    check(file + ': Novarites rotates star light, plasma and nightmare',
+      /mb\.state = rot === 1 \? 'stars' : rot === 2 \? 'plasma' : 'nightmare';/.test(html) &&
+      /novaStars\.push\(\{ x: sx, life: NOVA_STAR_WARN \+ 42, delay: NOVA_STAR_WARN, hit: false \}\)/.test(html) &&
+      /novaBeam = \{ x: mb\.x, y: stick\.y - 35, dir: mb\.facing, timer:/.test(html) &&
+      /novaNightmare = \{ timer: NOVA_NIGHTMARE_DUR, tick: 0/.test(html));
+
+    check(file + ': Novarites has his own last-dance boss theme',
+      /novarites: \{ bpm: 126, vol: 0\.34, rain: false, bar: novaritesBar \}/.test(html) &&
+      /function novaritesBar\(ac, dest, t0, bar, step\)/.test(html) &&
+      /\{ id: 'novarites',     name: 'Last Dance of the Sleepwalker'/.test(html) &&
+      /function startNovaritesMusic\(\)/.test(html) &&
+      /function stopNovaritesMusic\(\)/.test(html) &&
+      /startNovaritesMusic\(\);/.test(html) &&
+      /if \(novaMusicOn && \(!miniBosses\.some\(function\(m\) \{ return m\.alive && m\.type === 'novarites'; \}\)/.test(html));
+
+    check(file + ': nightmare gas lasts 10s and bites every 2s',
+      novaNum(/NOVA_NIGHTMARE_DUR = (\d+)/) === 600 &&
+      novaNum(/NOVA_NIGHTMARE_TICK = (\d+)/) === 120 &&
+      /if \(n\.tick % NOVA_NIGHTMARE_TICK === 0\) \{/.test(html) &&
+      /if \(n\.timer <= 0\) novaNightmare = null;/.test(html) &&
+      /drawNovaritesOverlay\(\);/.test(html));
+
+    check(file + ': Novarites is drawn with a cloak, white eye, star eye and sleeping hat',
+      /mb\.type === 'novarites'/.test(html) &&
+      /drawStar4\(dx \+ 7, GROUND_Y - 90/.test(html) &&
+      /ctx\.arc\(dx - 6, GROUND_Y - 90, 3\.6, 0, Math\.PI \* 2\); ctx\.fill\(\)/.test(html) &&
+      /sleeping hat, drooping to the right/.test(html) &&
+      /hatSway/.test(html) &&
+      /for \(var hx6 = 0; hx6 <= 6; hx6\+\+\)/.test(html));
+
+    check(file + ': his attacks and gas clear on death and between rounds',
+      /if \(mb\.type === 'novarites'\) \{ novaStars = \[\]; novaBeam = null; novaNightmare = null; \}/.test(html) &&
+      /updateNovaritesFx\(\);/.test(html) &&
+      (html.match(/novaStars = \[\]; novaBeam = null; novaNightmare = null;/g) || []).length >= 4);
   });
 }
 

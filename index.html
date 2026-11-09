@@ -150,6 +150,31 @@
       #instructions { width: 150px; padding: 6px; font-size: 8px; top: 4px; right: 4px; max-height: 46%; overflow-y: auto; }
       #instructions #controlsList { font-size: 8px; }
     }
+    /* Locked character cards: the full-card scrim hid the name and stats of every locked
+       character, so the roster read as a wall of padlocks. A lighter scrim with the price
+       pinned to the top keeps the cast readable while it is still locked. */
+    #charGrid > div > div[id$="Lock"] { background: rgba(15,23,42,0.32); justify-content: flex-start; align-items: flex-end; padding: 2px; }
+    #charGrid > div > div[id$="Lock"] span { background: #0f172a; border-radius: 3px; padding: 0 2px; line-height: 1.25; }
+    /* Shop: keep the level+price on one line. The 10px labels wrapped every buy button
+       into two lines and made the list read as blocks of text instead of prices. */
+    #shopItems .shopBuyBtn { font-size: 9px; padding-left: 5px; padding-right: 5px; white-space: nowrap; }
+    /* Menu on a phone: the character grid is tall, so PLAY sticks to the bottom of the
+       screen and the header compacts. The player can always start a round without
+       hunting for the button at the end of the list. */
+    @media (max-width: 560px), (orientation: landscape) and (max-height: 560px) {
+      #menuScreen > div { padding-top: 10px; padding-bottom: 10px; }
+      #menuLogo { width: 48px; height: 48px; margin-bottom: 8px; border-radius: 12px; }
+      #menuLogo span { font-size: 24px; }
+      #menuTitle { font-size: 22px; margin-bottom: 2px; }
+      #menuSub { font-size: 11px; margin-bottom: 6px; }
+      #menuPoints { font-size: 10px; gap: 8px; margin-bottom: 8px; }
+      #menuRecord { padding: 6px 8px; margin-bottom: 10px; }
+      #charGrid { gap: 4px; }
+      #charGrid .char-card { padding: 4px; }
+      #charGrid .char-card > div:first-child { font-size: 18px; }
+      #playBtn { position: sticky; bottom: 10px; z-index: 6; width: calc(100% - 32px); max-width: 360px; margin-bottom: 10px; box-shadow: 0 6px 24px rgba(249,115,22,0.45); }
+      #deathBestLine { margin-bottom: 6px; }
+    }
     @media (max-width: 400px) {
       #dpadArea { width: 104px; }
       .mob-dir { width: 46px; height: 46px; }
@@ -176,19 +201,46 @@
         top: 50% !important; bottom: auto !important; transform: translateY(-50%);
       }
     }
+    /* Hidden Novarites trigger in the menu corner. */
+    #novaritesSecret {
+      position: fixed; right: 8px; bottom: 8px; z-index: 60;
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(30,27,75,0.5); border: 1px solid rgba(129,140,248,0.45);
+      color: #a5b4fc; font-size: 15px; line-height: 1; cursor: pointer;
+      opacity: 0.22; transition: opacity .2s ease, box-shadow .2s ease;
+    }
+    #novaritesSecret:hover, #novaritesSecret:active { opacity: 1; box-shadow: 0 0 14px rgba(129,140,248,0.85); }
   </style>
 </head>
 <body class="min-h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
 
   <!-- Main Menu with Character Select -->
-  <div id="menuScreen" class="fixed inset-0 bg-slate-900 flex flex-col items-center justify-center z-50">
-    <div class="text-center fade-in">
-      <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-2xl shadow-orange-500/40">
+  <div id="menuScreen" class="fixed inset-0 bg-slate-900 overflow-y-auto z-50">
+    <!-- Secret boss trigger. Deliberately easy to miss: a dim star in the corner. -->
+    <button id="novaritesSecret" title="???" aria-label="Secret">✦</button>
+    <div class="min-h-full w-full flex flex-col items-center justify-center px-3 py-6 text-center fade-in">
+      <div id="menuLogo" class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-2xl shadow-orange-500/40">
         <span class="font-mono text-4xl font-bold text-slate-900">S</span>
       </div>
-      <h1 class="text-4xl font-bold tracking-tight mb-2">Stick Fighter Universe</h1>
-      <p class="text-slate-400 text-sm mb-2">Choose your character</p>
+      <h1 id="menuTitle" class="text-4xl font-bold tracking-tight mb-2">Stick Fighter Universe</h1>
+      <p id="menuSub" class="text-slate-400 text-sm mb-2">Choose your character</p>
       <div id="menuPoints" class="text-xs text-slate-500 mb-4 flex gap-4 justify-center flex-wrap"><span>🪙 <span id="menuTotalPoints" class="text-amber-400 font-bold">0</span> pts</span><span>🏆 <span id="menuBossPoints" class="text-purple-400 font-bold">0</span> boss pts</span><span id="menuCandyWrap" title="Energy points — earned by killing enemies">⚡ <span id="menuEnergy" class="text-sky-400 font-bold">0</span> energy</span><span id="menuRankWrap" title="Rank">🎖 <span id="menuRank" class="font-bold">WOOD</span></span></div>
+
+      <!-- Record strip: answers "what am I working toward" on the menu itself — rank
+           progress, best wave, streak and badge count, read straight from the save. -->
+      <div id="menuRecord" class="w-full max-w-[520px] mx-auto mb-5 rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-left">
+        <div class="flex items-center justify-between text-[10px] mb-1">
+          <span class="font-bold"><span id="menuRankIcon">🪵</span> <span id="menuRankName" class="text-amber-300">WOOD</span></span>
+          <span id="menuRankNext" class="text-slate-400">250 to STONE</span>
+        </div>
+        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden"><div id="menuRankBar" class="h-1.5 rounded-full transition-all" style="width:0%; background:#a16207"></div></div>
+        <div class="grid grid-cols-3 gap-1 mt-2 text-center text-[9px] text-slate-400">
+          <div>🌊 Best wave <b id="menuBestWave" class="text-sky-300">0</b></div>
+          <div>🔥 Streak <b id="menuStreak" class="text-amber-300">0</b></div>
+          <div>🏆 Badges <b id="menuAchCount" class="text-yellow-300">0</b></div>
+        </div>
+      </div>
 
       <!-- Character Select Grid -->
       <div class="mb-6">
@@ -284,6 +336,13 @@
             <div class="text-[9px] text-emerald-400">Sword 14</div>
             <div id="taoistCardInfo" class="text-[9px] text-lime-500/60">HP:120 ☯ REVIVE</div>
           </div>
+          <div id="charAntidot" class="char-card bg-slate-800 border border-slate-600 rounded-lg p-2 cursor-pointer hover:border-orange-400 transition-all text-center relative" onclick="buyChar('antidot')">
+            <div id="antidotLock" class="absolute inset-0 bg-slate-900/80 rounded-lg flex flex-col items-center justify-center z-10 cursor-pointer"><span class="text-lg">🔒</span><span class="text-orange-400 text-[9px] font-bold">4000🪙+8🏆</span></div>
+            <div class="text-2xl">🖋️</div>
+            <div class="font-bold text-orange-400 text-[11px]">ANTIDOT</div>
+            <div class="text-[9px] text-emerald-400">THE SECOND COMING</div>
+            <div class="text-[9px] text-orange-400/70">HP:250 GREEN EYE</div>
+          </div>
         </div>
       </div>
 
@@ -296,30 +355,38 @@
         <button id="modeDeath" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-800 border-2 border-slate-600 text-rose-400 font-bold text-sm transition-all">☠️ DEATH</button>
         <button id="modeSandbox" class="mode-btn px-5 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-fuchsia-400 font-bold text-sm transition-all">🧪 SANDBOX</button>
       </div>
-      <div id="deathBestLine" class="text-[10px] text-rose-400/80 -mt-2 mb-3">☠️ DEATH — 100 waves · best wave 0</div>
-      <div class="flex gap-2 justify-center mb-3 flex-wrap">
-        <button id="settingsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-slate-600 text-slate-300 font-bold text-sm transition-all hover:border-slate-400 hover:text-white">⚙️ Settings</button>
-        <button id="customizeBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-400 text-purple-300 font-bold text-sm transition-all hover:border-purple-300 hover:text-purple-100">🎛️ Customize</button>
-        <button id="achievementsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-yellow-400 text-yellow-300 font-bold text-sm transition-all hover:border-yellow-300 hover:text-yellow-100">🏆 Achievements</button>
-        <button id="campaignBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-purple-500 text-purple-400 font-bold text-sm transition-all hover:border-purple-400 hover:text-purple-300">📖 Campaign</button>
-        <button id="questsBtn" class="px-4 py-1.5 rounded-lg bg-slate-700 border-2 border-emerald-400 text-emerald-300 font-bold text-sm transition-all hover:border-emerald-300 hover:text-emerald-100">📜 Quests</button>
-      </div>
-      <button id="playBtn" class="px-10 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-orange-500/30 mb-4">
+      <div id="deathBestLine" class="text-[10px] text-rose-400/80 mb-3">☠️ DEATH — 100 waves · best wave 0</div>
+      <!-- PLAY sits directly under the mode row: the primary action should never need a
+           scroll. The hub tiles are secondary, so they follow it. -->
+      <button id="playBtn" class="px-12 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-orange-500/30 mb-4">
         ▶ PLAY
       </button>
-      <div class="text-slate-500 text-xs space-y-1 mt-4">
-        <p>A/D move &bull; Space jump &bull; L-Click shoot &bull; R-Click kick</p>
-        <p>1 Dash &bull; 2 Grenade &bull; F Ally &bull; ESC pause &bull; TAB shop</p>
+
+      <!-- Action hub: every screen behind one tile, so the menu reads as a hub instead
+           of a row of pills that wraps differently on every screen width. -->
+      <div class="grid grid-cols-3 gap-2 w-full max-w-[520px] mx-auto mb-3">
+        <button id="campaignBtn" class="menuTile py-2 rounded-xl bg-slate-800 border-2 border-purple-500 text-purple-300 font-bold transition-all hover:border-purple-300 hover:text-purple-100 active:scale-95">📖<div class="text-[10px] mt-0.5">Campaign</div><div class="text-[8px] font-normal text-slate-500">story levels</div></button>
+        <button id="questsBtn" class="menuTile py-2 rounded-xl bg-slate-800 border-2 border-emerald-400 text-emerald-300 font-bold transition-all hover:border-emerald-300 hover:text-emerald-100 active:scale-95">📜<div class="text-[10px] mt-0.5">Quests</div><div class="text-[8px] font-normal text-slate-500">daily + taoist</div></button>
+        <button id="ranksBtn" class="menuTile py-2 rounded-xl bg-slate-800 border-2 border-amber-400 text-amber-300 font-bold transition-all hover:border-amber-300 hover:text-amber-100 active:scale-95">🏅<div class="text-[10px] mt-0.5">Ranks</div><div class="text-[8px] font-normal text-slate-500">15 tiers</div></button>
+        <button id="customizeBtn" class="menuTile py-2 rounded-xl bg-slate-800 border-2 border-fuchsia-400 text-fuchsia-300 font-bold transition-all hover:border-fuchsia-300 hover:text-fuchsia-100 active:scale-95">🎛️<div class="text-[10px] mt-0.5">Customize</div><div class="text-[8px] font-normal text-slate-500">skin · music · map</div></button>
+        <button id="achievementsBtn" class="menuTile py-2 rounded-xl bg-slate-800 border-2 border-yellow-400 text-yellow-300 font-bold transition-all hover:border-yellow-300 hover:text-yellow-100 active:scale-95">🏆<div class="text-[10px] mt-0.5">Badges</div><div class="text-[8px] font-normal text-slate-500">150 records</div></button>
+        <button id="settingsBtn" class="menuTile py-2 rounded-xl bg-slate-800 border-2 border-slate-500 text-slate-300 font-bold transition-all hover:border-slate-300 hover:text-white active:scale-95">⚙️<div class="text-[10px] mt-0.5">Settings</div><div class="text-[8px] font-normal text-slate-500">audio · save</div></button>
       </div>
-      <div class="mt-6 text-[10px] text-slate-600 max-w-sm mx-auto space-y-0.5">
-        <p>🟢 Normal &bull; 🔴 Gunner (ranged) &bull; 🔵 Summoner (spawns minions)</p>
-        <p>⛏ Titan every 78s &bull; 🟣 Main Boss @15 kills &bull; 🛡 Tank + ⚡ Speed every 25s</p>
-        <p>💣 Kamikaze every 50s &bull; 🦅 Flying Crossbow! &bull; 💀 Necromancer every 30s</p>
-        <p>☠️ Death: 100 waves of 10s — enemies grow every wave, a boss lands every 10th, clear wave 100 to win.</p>
-      </div>
+      <!-- Controls + enemy guide fold away: useful once, in the way forever. -->
+      <details class="mt-3 w-full max-w-[520px] mx-auto text-left">
+        <summary class="cursor-pointer list-none text-[10px] text-slate-500 hover:text-slate-300 transition-colors text-center">🎮 Controls &amp; enemy guide ▾</summary>
+        <div class="mt-2 text-slate-500 text-[10px] space-y-1 border border-slate-700 rounded-lg p-2 bg-slate-900/60">
+          <p>A/D move &bull; Space jump &bull; L-Click shoot &bull; R-Click kick</p>
+          <p>1 Dash &bull; 2 Grenade &bull; F Ally &bull; ESC pause &bull; TAB shop</p>
+          <p class="pt-1 text-slate-600">🟢 Normal &bull; 🔴 Gunner (ranged) &bull; 🔵 Summoner (spawns minions)</p>
+          <p class="text-slate-600">⛏ Titan every 78s &bull; 🟣 Main Boss @15 kills &bull; 🛡 Tank + ⚡ Speed every 25s</p>
+          <p class="text-slate-600">💣 Kamikaze every 50s &bull; 🦅 Flying Crossbow &bull; 💀 Necromancer every 30s</p>
+          <p class="text-slate-600">☠️ Death: 100 waves of 10s — a boss every 10th wave, clear wave 100 to win.</p>
+        </div>
+      </details>
       <!-- Build stamp: lets a player confirm that a second device/account is running the
            same update (and the save format it is reading). -->
-      <div id="buildStamp" class="mt-3 text-[9px] text-slate-500 tracking-wide">v3.0.0</div>
+      <div id="buildStamp" class="mt-3 text-[9px] text-slate-500 tracking-wide">v3.3.0</div>
     </div>
   </div>
 
@@ -563,15 +630,19 @@
   <div id="rankScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.85);">
     <div class="bg-slate-800 border-2 border-amber-500 rounded-2xl p-6 w-[420px] max-w-[95vw] shadow-2xl max-h-[92vh] overflow-y-auto">
       <h2 class="text-white font-bold text-xl mb-1 text-center">🎖️ RANK LIST</h2>
-      <p class="text-[10px] text-slate-400 text-center mb-2">Earn rank points by playing and defeating enemies. Higher rank = better prestige.</p>
-      <div class="text-center mb-3 text-sm"><span class="text-amber-400 font-bold">🎖️ Your Rank:</span> <span id="rankScreenCurrent" class="text-white font-bold ml-1">🪵 WOOD</span> <span class="text-slate-400 text-xs ml-2">(<span id="rankScreenPoints" class="text-amber-300">0</span> pts)</span></div>
+      <p class="text-[10px] text-slate-400 text-center mb-2">15 tiers — WOOD up to TRANSCENDENT. Rank points only go up.</p>
+      <div class="text-center mb-2 text-sm"><span class="text-amber-400 font-bold">🎖️ Your Rank:</span> <span id="rankScreenCurrent" class="text-white font-bold ml-1">🪵 WOOD</span> <span class="text-slate-400 text-xs ml-2">(<span id="rankScreenPoints" class="text-amber-300">0</span> rank pts)</span></div>
+      <div class="mb-3">
+        <div class="flex justify-between text-[9px] mb-0.5"><span id="rankScreenNextLabel" class="text-slate-400">250 to STONE</span><span id="rankScreenPct" class="text-slate-500">0%</span></div>
+        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden"><div id="rankScreenBar" class="h-1.5 rounded-full transition-all" style="width:0%; background:#a16207"></div></div>
+      </div>
       <div class="mb-3 text-xs text-slate-300 bg-slate-900/60 rounded-lg p-2 border border-slate-600">
         <div class="font-bold text-amber-300 mb-1">💡 How to get rank points:</div>
         <div class="space-y-0.5 text-[10px]">
-          <div>• Kill enemies in any mode (awarded as points)</div>
-          <div>• Complete rounds and defeat bosses</div>
-          <div>• Earn coins/points throughout gameplay</div>
-          <div>• Rank is calculated from total points earned</div>
+          <div>• <b class="text-amber-200">10</b> rank pts for every enemy you kill, in any mode</div>
+          <div>• Every point reward counts too — codes, quests, campaign clears and bosses</div>
+          <div>• EASY pays half on kills · Shop <b class="text-amber-200">Rank Boost</b>: +15% kill pts per level</div>
+          <div>• Spending points never lowers your rank — it only ever climbs</div>
         </div>
       </div>
       <div class="space-y-1.5 mb-4" id="rankListItems"></div>
@@ -584,7 +655,7 @@
     <div class="bg-slate-800 border-2 border-emerald-500 rounded-2xl p-6 w-[380px] max-w-[95vw] shadow-2xl max-h-[92vh] overflow-y-auto">
       <h2 class="text-white font-bold text-xl mb-1 text-center">📅 DAILY QUEST</h2>
       <p class="text-[10px] text-slate-400 text-center mb-3">Complete daily tasks for rewards!</p>
-      <div class="text-center mb-3 text-xs"><span class="text-emerald-400 font-bold">Streak:</span> <span id="dailyStreak" class="text-white font-bold">0</span> days</div>
+      <div class="text-center mb-3 text-xs"><span class="text-emerald-400 font-bold">🔥 Streak:</span> <span id="dailyStreak" class="text-white font-bold">0</span> <span id="dailyStreakUnit">days</span> · <span class="text-slate-400">best</span> <span id="dailyBestStreak" class="text-amber-300 font-bold">0</span><div class="text-[9px] text-slate-500 mt-0.5">Clear all 3 dailies in a day to keep the streak alive.</div></div>
       <div id="dailyQuestList" class="space-y-2 mb-4"></div>
       <div id="dailySummary" class="text-[9px] text-slate-400 text-center mb-3"></div>
       <button id="dailyQuestClose" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors">✅ Done</button>
@@ -609,13 +680,21 @@
 
   <!-- Shop Overlay (left side) -->
   <div id="shopScreen" class="fixed inset-0 flex items-start justify-start z-45 hidden" style="z-index:45; background: rgba(0,0,0,0.5);">
-    <div class="bg-slate-800/95 border border-slate-600 rounded-r-2xl p-4 w-64 ml-0 mt-0 fade-in max-h-[100dvh] overflow-y-auto" style="border-left:none; border-top-left-radius:0; border-bottom-left-radius:0;">
+    <div class="bg-slate-800/95 border border-slate-600 rounded-r-2xl p-4 w-72 ml-0 mt-0 fade-in max-h-[100dvh] overflow-y-auto" style="border-left:none; border-top-left-radius:0; border-bottom-left-radius:0;">
       <div class="mb-3">
         <h2 class="text-lg font-bold text-amber-400">🛒 SHOP</h2>
         <p class="text-[10px] text-slate-400">Permanent upgrades (persist)</p>
         <div class="flex gap-3 mt-1"><span class="text-amber-400 font-bold text-xs">🪙 <span id="shopPoints">0</span></span><span class="text-purple-400 font-bold text-xs">🏆 <span id="shopBossPts">0</span></span></div>
       </div>
+      <!-- Category chips: 17 permanent upgrades is too long a list to read flat. -->
+      <div class="flex gap-1 mb-2" id="shopTabs">
+        <button type="button" class="shopTab flex-1 py-1 rounded-md text-[9px] font-bold transition-colors" data-shopcat="all">ALL</button>
+        <button type="button" class="shopTab flex-1 py-1 rounded-md text-[9px] font-bold transition-colors" data-shopcat="combat">⚔ COMBAT</button>
+        <button type="button" class="shopTab flex-1 py-1 rounded-md text-[9px] font-bold transition-colors" data-shopcat="meta">🎖 META</button>
+        <button type="button" class="shopTab flex-1 py-1 rounded-md text-[9px] font-bold transition-colors" data-shopcat="allies">🤝 ALLIES</button>
+      </div>
       <div id="shopItems" class="space-y-2">
+        <div class="shop-group border-b border-slate-600 pb-1 mb-1"><div class="text-[9px] text-emerald-400 font-bold">COMBAT</div></div>
         <div class="shop-item flex items-center justify-between bg-slate-700/50 rounded-lg p-2 border border-slate-600 hover:border-amber-500/50 transition-colors">
           <div class="flex items-center gap-2">
             <span class="text-lg">❤️</span>
@@ -665,7 +744,22 @@
           </div>
           <button class="shopBuyBtn px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors" data-upgrade="shield" data-cost="300">300🪙</button>
         </div>
-        <div class="border-t border-slate-600 pt-1 mt-1"><div class="text-[9px] text-amber-400 font-bold mb-1">SUMMON ALLIES (respawn when killed)</div></div>
+        <div class="shop-group border-t border-slate-600 pt-1 mt-1"><div class="text-[9px] text-cyan-400 font-bold mb-1">PROGRESSION</div></div>
+        <div class="shop-item flex items-center justify-between bg-slate-700/50 rounded-lg p-2 border border-slate-600 hover:border-amber-500/50 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🎖️</span>
+            <div><div class="text-xs font-bold text-white">Rank Boost</div><div class="text-[9px] text-slate-400">+15% rank pts/kill (3)</div></div>
+          </div>
+          <button class="shopBuyBtn px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors" data-upgrade="rankBoost" data-cost="200">200🪙</button>
+        </div>
+        <div class="shop-item flex items-center justify-between bg-slate-700/50 rounded-lg p-2 border border-slate-600 hover:border-amber-500/50 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🩸</span>
+            <div><div class="text-xs font-bold text-white">Lifesteal</div><div class="text-[9px] text-slate-400">Heal 1% of dmg/lv (3)</div></div>
+          </div>
+          <button class="shopBuyBtn px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors" data-upgrade="lifesteal" data-cost="250">250🪙</button>
+        </div>
+        <div class="shop-group border-t border-slate-600 pt-1 mt-1"><div class="text-[9px] text-amber-400 font-bold mb-1">SUMMON ALLIES (respawn when killed)</div></div>
         <div class="shop-item flex items-center justify-between bg-slate-700/50 rounded-lg p-2 border border-slate-600 hover:border-amber-500/50 transition-colors">
           <div class="flex items-center gap-2">
             <span class="text-lg">💚</span>
@@ -923,7 +1017,7 @@
     // values loaded as NaN, which then poisoned every stat it touched. This store never
     // throws, falls back to an in-memory map, and the version stamp below lets an older
     // save migrate instead of half-loading.
-    const SAVE_VERSION = 3, BUILD = '3.0.0';
+    const SAVE_VERSION = 3, BUILD = '3.2.0';
     var localStorage = (function () {
       var mem = {}, real = null, ok = false;
       try { real = window.localStorage; var probe = '__sm_probe__'; real.setItem(probe, '1'); real.removeItem(probe); ok = true; }
@@ -990,6 +1084,7 @@
     let boughtPhantom = localStorage.getItem('sm_boughtPhantom') === 'true';
     let boughtSlayer = localStorage.getItem('sm_boughtSlayer') === 'true';
     let boughtTaoist = localStorage.getItem('sm_boughtTaoist') === 'true';
+    let boughtAntidot = localStorage.getItem('sm_boughtAntidot') === 'true';
     function isCharBought(c) {
       if (c === 'fighter') return true;
       if (c === 'soldier') return boughtSoldier;
@@ -1004,6 +1099,7 @@
       if (c === 'phantom') return boughtPhantom;
       if (c === 'slayer') return boughtSlayer;
       if (c === 'taoist') return boughtTaoist;
+      if (c === 'antidot') return boughtAntidot;
       return false;
     }
     // Ultra is a one-off purchase: 5000 points and 10 boss points, kept for good.
@@ -1027,6 +1123,7 @@
       if (c === 'fighter') return;
       if (c === 'slayer') return; // permanent like ninja
       if (c === 'taoist') return; // permanent
+      if (c === 'antidot') return; // permanent
       if (c === 'ultra') return; // bought outright, never burns out
       charUses[c] = (charUses[c] || 0) + 1;
       localStorage.setItem('sm_' + c + 'Uses', charUses[c]);
@@ -1091,6 +1188,9 @@
         charUses.phantom = 0; localStorage.setItem('sm_phantomUses', 0);
       } else if (c === 'slayer' && totalPoints >= 3500 && bossPoints >= 10) {
         totalPoints -= 3500; bossPoints -= 10; savePoints(); boughtSlayer = true; localStorage.setItem('sm_boughtSlayer', 'true');
+      } else if (c === 'antidot' && totalPoints >= ANTIDOT_COST && bossPoints >= ANTIDOT_BOSS_COST) {
+        totalPoints -= ANTIDOT_COST; bossPoints -= ANTIDOT_BOSS_COST; savePoints();
+        boughtAntidot = true; localStorage.setItem('sm_boughtAntidot', 'true');
       } else {
         if (c === 'phantom' && !phantomUnlocked) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🌑</span><span class="text-purple-300 text-[8px] font-bold text-center px-1">A dark secret hides Phantom...</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2500); }
         if (c === 'phantom' && phantomUnlocked && totalPoints < 100) { document.getElementById('phantomLock').innerHTML = '<span class="text-lg">🪙</span><span class="text-red-400 text-[8px] font-bold">Need 100 points!</span>'; setTimeout(function() { if (!isCharBought('phantom')) updateCharLockUI(); }, 2000); }
@@ -1170,6 +1270,8 @@
       // this function is first called before the quest table exists.
       var taLock = document.getElementById('taoistLock');
       if (taLock) taLock.classList.toggle('hidden', isCharBought('taoist'));
+      var anLock = document.getElementById('antidotLock');
+      if (anLock) anLock.classList.toggle('hidden', isCharBought('antidot'));
       s.style.opacity = isCharBought('soldier') ? '1' : '1';
       sup.style.opacity = isCharBought('super') ? '1' : '1';
       mg.style.opacity = isCharBought('mage') ? '1' : '1';
@@ -1193,6 +1295,8 @@
       document.getElementById('charSlayer').classList.toggle('selected', c === 'slayer');
       var taEl = document.getElementById('charTaoist');
       if (taEl) taEl.classList.toggle('selected', c === 'taoist');
+      var anEl = document.getElementById('charAntidot');
+      if (anEl) anEl.classList.toggle('selected', c === 'antidot');
     };
 
     // Soldier abilities
@@ -1276,6 +1380,26 @@
     // Every 3rd ultimate: time stops for 7s, then a second, bigger nova (60% max HP).
     const ULTRA_ULT_CASTS_FOR_STOP = 3, ULTRA_TIME_STOP_DUR = 420, ULTRA_TIME_STOP_NOVA_PCT = 0.60;
     const ULTRA_HEAL_EVERY = 900, ULTRA_HEAL_PCT = 0.10;                    // 10% max HP every 15s
+
+    // Antidot — THE SECOND COMING: a plain orange stickman whose one green eye does the
+    // fighting. Punch and kick are the fighter's own moves; everything else is green energy.
+    const ANTIDOT_HP = 250, ANTIDOT_SPEED_MULT = 1.3, ANTIDOT_TAKEN_MULT = 0.88, ANTIDOT_ULT_TAKEN_MULT = 0.7;
+    // 1 — green laser eye: 2 damage every 0.25s for 5s.
+    const ANTIDOT_LASER_DMG = 2, ANTIDOT_LASER_TICK = 15, ANTIDOT_LASER_DUR = 300, ANTIDOT_LASER_CD = 420;
+    // 2 — gravity pulse: a ground slam worth 35 in a wide ring.
+    const ANTIDOT_GRAV_DMG = 35, ANTIDOT_GRAV_CD = 240, ANTIDOT_GRAV_RADIUS = 185;
+    // E — orb rain: six orbs, 5 damage each where they land.
+    const ANTIDOT_ORB_DMG = 5, ANTIDOT_ORB_CD = 300, ANTIDOT_ORB_COUNT = 6, ANTIDOT_ORB_RADIUS = 60;
+    // F — lunge fly: a flying 35-damage pass.
+    const ANTIDOT_LUNGE_DMG = 35, ANTIDOT_LUNGE_CD = 330, ANTIDOT_LUNGE_DUR = 30, ANTIDOT_LUNGE_DIST = 320;
+    // 3 — orb blaze: rise, charge the eye, then a beam 5x the hyper eye's width.
+    // 2 damage every 0.15s for 10 seconds.
+    const ANTIDOT_BLAZE_DMG = 2, ANTIDOT_BLAZE_TICK = 9, ANTIDOT_BLAZE_DUR = 600;
+    const ANTIDOT_BLAZE_RISE = 24, ANTIDOT_BLAZE_CHARGE = 42, ANTIDOT_BLAZE_FALL = 40;
+    const ANTIDOT_BLAZE_HALF_W = 25;   // half of the 50px beam: 5x the 10px hyper eye beam
+    const ANTIDOT_INK_EVERY = 360;     // passive: an orb drops on the nearest enemy every 6s
+    const ANTIDOT_COST = 4000, ANTIDOT_BOSS_COST = 8;
+    const ANTIDOT_ORANGE = '#f59e0b', ANTIDOT_INK = '#ea580c', ANTIDOT_GLOW = '#fdba74', ANTIDOT_GREEN = '#22c55e';
 
     // Cheeser constants
     const CHEESER_HP = 5000, CHEESER_HP_LV10 = 12000;
@@ -1386,6 +1510,16 @@
     const TC_CONTACT_DMG = 12, TC_CHAIN_FRAMES = 150, TC_CHAIN2_FRAMES = 200;
     const TC_BLAST_DMG = 30, TC_BLAST_RADIUS = 72, TC_BLAST_WARN = 45, TC_BLAST_FALL = 26;
     const TC_ZAP_DMG = 16, TC_ZAP_EVERY = 26, TC_ZAP2_EVERY = 18;
+    // NOVARITES — the secret boss hidden in the menu corner. A cloaked sleepwalker
+    // with one white eye, one four-point star eye, and a nightcap. 100 shield that
+    // cuts everything by 70% until it breaks, 4500 HP, then a faster 2500 HP second
+    // phase. Attacks: star light from the sky, a plasma beam, and nightmare gas.
+    const NOVA_HP = 4500, NOVA_PHASE2_HP = 2500, NOVA_SPD = 1.6;
+    const NOVA_SHIELD_MAX = 100, NOVA_SHIELD_REDUCE = 0.7;
+    const NOVA_CONTACT_DMG = 20;
+    const NOVA_STAR_DMG = 22, NOVA_STAR_WARN = 45, NOVA_STAR_RADIUS = 58;
+    const NOVA_PLASMA_DMG = 14, NOVA_PLASMA_TICK = 20;
+    const NOVA_NIGHTMARE_DMG = 12, NOVA_NIGHTMARE_DUR = 600, NOVA_NIGHTMARE_TICK = 120;
     // ===== SHADOW MAGIC CAMPAIGN (the Mage's origin) =====
     // The apprentice is a real mage, and a real mage has 70 HP — two touches from the
     // Master and the story ends on level 5. The rite itself is what keeps him upright,
@@ -1473,11 +1607,36 @@
     }
     let totalPoints = loadNum('sm_totalPoints');
     let bossPoints = loadNum('sm_bossPoints');
-    // Rank points are a SEPARATE currency: they only ever rank you up, so spending
-    // coins in the shop can never drop your rank. Existing saves seed it from the
-    // coins they already have so nobody starts back at Recruit.
-    let rankPoints = loadNum('sm_rankPoints', totalPoints);
+    // Rank points are a SEPARATE counter: they only ever rank you up, so spending coins
+    // in the shop can never drop your rank. They used to come from enemy kills alone,
+    // which left a player holding 100k+ points stuck on a low tier because codes, quests
+    // and campaign rewards topped up the wallet only. The counter is now a high-water
+    // mark of everything you have EARNED: it is clamped up to your balance on load, and
+    // grantPoints() raises both numbers together.
+    let rankPoints = Math.max(loadNum('sm_rankPoints', 0), totalPoints);
     function savePoints() { localStorage.setItem('sm_totalPoints', totalPoints); localStorage.setItem('sm_bossPoints', bossPoints); localStorage.setItem('sm_rankPoints', rankPoints); var gp = document.getElementById('gamePoints'); if (gp) { var gc = document.getElementById('gameCoins'), gb = document.getElementById('gameBossPoints'); if (gc && gb) { gc.textContent = totalPoints; gb.textContent = bossPoints + '🏆'; } else gp.textContent = totalPoints + '🪙 ' + bossPoints + '🏆'; } }
+    // Every point reward goes through here so the wallet and the rank ladder can never
+    // disagree again. `killSource` is the only path Rank Boost multiplies, because that
+    // upgrade says "rank pts/kill". A rank-up is announced on the spot.
+    function grantPoints(n, killSource) {
+      n = Math.floor(n) || 0;
+      if (n <= 0) return 0;
+      var before = currentRank(rankPoints).index;
+      totalPoints += n;
+      var rankGain = killSource ? Math.floor(n * (1 + getShopUpgradeEffect('rankBoost'))) : n;
+      rankPoints += Math.max(n, rankGain);
+      savePoints();
+      try {
+        if (gameState === 'playing' && typeof createTextParticle === 'function' && currentRank(rankPoints).index > before) {
+          var r = currentRank(rankPoints).rank;
+          createTextParticle(CW / 2, 160, '🎖️ RANK UP — ' + r.name, r.color, 22);
+        }
+      } catch (e) {}
+      return n;
+    }
+    // Write the clamp once at load, so a save that was behind on rank is repaired even if
+    // the player only opens the menu and closes the game.
+    try { savePoints(); } catch (e) {}
 
     // ==================== ENERGY POINTS ====================
     // The currency every skin is bought with. Earned by playing, never by the calendar:
@@ -1530,7 +1689,10 @@
       { id: 'mage_witch', char: 'mage', name: 'Witch', emoji: '🧙', cost: 13, desc: '+20% DMG' },
       { id: 'ninja_vampire', char: 'ninja', name: 'Vampire', emoji: '🧛', cost: 14, desc: 'Heal by damage dealt' },
       { id: 'hyper_spirit', char: 'hyper', name: 'Spirit', emoji: '👻', cost: 20, desc: '×2 DMG' },
-      { id: 'phantom_reaper', char: 'phantom', name: 'Reaper', emoji: '☠️', cost: 20, desc: '×1.5 DMG & SPD' }
+      { id: 'phantom_reaper', char: 'phantom', name: 'Reaper', emoji: '☠️', cost: 20, desc: '×1.5 DMG & SPD' },
+      // The two newest: a fast storm bruiser and a gold-plated tank.
+      { id: 'storm_warden', char: 'fighter', name: 'Storm Warden', emoji: '⚡', cost: 18, desc: '+22% DMG · +18% SPD' },
+      { id: 'pharaoh', char: 'soldier', name: 'Pharaoh', emoji: '👑', cost: 22, desc: '+30% HP · +12% DMG' }
     ];
     let ownedSkins = {};
     try { ownedSkins = JSON.parse(localStorage.getItem('sm_ownedSkins') || '{}'); } catch (e) { ownedSkins = {}; }
@@ -1546,13 +1708,32 @@
       if (hollowOn()) return 1.3;
       if (selectedSkin === 'hyper_spirit') return 2;
       if (selectedSkin === 'phantom_reaper') return 1.5;
+      if (selectedSkin === 'storm_warden') return 1.22;
+      if (selectedSkin === 'pharaoh') return 1.12;
       return 1;
     }
-    function skinSpeedMult() { return (selectedSkin === 'phantom_reaper' ? 1.5 : 1) * (selectedSkin === 'fighter_zombie' ? 0.88 : 1) * (hollowOn() ? 3 : 1) * taoistSpdMult(); }
+    function skinSpeedMult() { return (selectedSkin === 'phantom_reaper' ? 1.5 : 1) * (selectedSkin === 'fighter_zombie' ? 0.88 : 1) * (selectedSkin === 'storm_warden' ? 1.18 : 1) * (hollowOn() ? 3 : 1) * taoistSpdMult(); }
     // One HP hook for every skin on every character (was split between the fighter's
     // 100 and the soldier's 90 before skins went universal).
-    function skinHpMult() { return selectedSkin === 'fighter_zombie' ? 1.25 : selectedSkin === 'soldier_skeleton' ? 1.2 : 1; }
-    function vampireHeal(dmg) { if (selectedSkin === 'ninja_vampire') { playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + dmg); updateHPBar(); } }
+    function skinHpMult() { return selectedSkin === 'fighter_zombie' ? 1.25 : selectedSkin === 'soldier_skeleton' ? 1.2 : selectedSkin === 'pharaoh' ? 1.3 : 1; }
+    // Called from every damage path. The Vampire skin heals for the full hit; the shop's
+    // Lifesteal upgrade adds 1% of the damage per level on top, for any skin or character.
+    // The shop share is pooled, because 1% of a 7-damage hit is 0.07 HP — rounding each
+    // hit down would make the upgrade heal nothing at all.
+    let lifestealPool = 0;
+    function vampireHeal(dmg) {
+      var heal = selectedSkin === 'ninja_vampire' ? Math.round(dmg) : 0;
+      var steal = getShopUpgradeEffect('lifesteal');
+      if (steal > 0) {
+        lifestealPool += dmg * steal;
+        var whole = Math.floor(lifestealPool);
+        lifestealPool -= whole;
+        heal += whole;
+      }
+      if (heal <= 0) return;
+      playerHP = Math.min(PLAYER_MAX_HP_CURRENT, playerHP + heal);
+      updateHPBar();
+    }
 
     // ==================== THE HOLLOW (universal skin) ====================
     // +200% damage and speed (a ×3 on both), plus S: a mini laser that drops from the sky
@@ -1642,8 +1823,20 @@
       { name: 'PLATINUM', icon: '💠', min: 6000,  color: '#67e8f9' },
       { name: 'DIAMOND',  icon: '💎', min: 10000, color: '#38bdf8' },
       { name: 'MASTER',   icon: '👑', min: 16000, color: '#f472b6' },
-      { name: 'IMMORTAL', icon: '🔥', min: 25000, color: '#ef4444' }
+      { name: 'IMMORTAL', icon: '🔥', min: 25000,  color: '#ef4444' },
+      // ---- The long road: six tiers above Immortal. Rank points come from kills, so
+      // these are deliberately far apart; nothing else in the game is gated on them.
+      { name: 'ASCENDANT',   icon: '🌟', min: 35000,  color: '#fde68a' },
+      { name: 'CELESTIAL',   icon: '🌠', min: 45000,  color: '#a5b4fc' },
+      { name: 'ETERNAL',     icon: '♾️', min: 60000,  color: '#67e8f9' },
+      { name: 'VOID',        icon: '🌑', min: 80000,  color: '#a78bfa' },
+      { name: 'SUPREME',     icon: '💫', min: 105000, color: '#f0abfc' },
+      { name: 'TRANSCENDENT', icon: '🔱', min: 135000, color: '#f87171' }
     ];
+    // Rank points are the ladder; spendable points are a wallet. They used to be shown
+    // interchangeably (the rank screen printed the wallet), which made a code reward look
+    // like rank progress it had not earned.
+    function rankPointText(n) { return Number(n || 0).toLocaleString('en-US'); }
     function currentRank(points) {
       var p = (typeof points === 'number') ? points : rankPoints;
       var idx = 0;
@@ -1727,7 +1920,7 @@
       var comp = '';
       if (!isNew) {
         if (picked.rarity === 'legendary' || picked.rarity === 'mythic') { bossPoints += 1; savePoints(); comp = ' <span style="color:#fbbf24">→ +1 🏆 boss point</span>'; }
-        else { totalPoints += 100; savePoints(); comp = ' <span style="color:#fbbf24">→ +100 🪙 points</span>'; }
+        else { grantPoints(100); comp = ' <span style="color:#fbbf24">→ +100 🪙 points</span>'; }
       }
       if (status) { status.innerHTML = (isNew ? '🌟 NEW! ' : '🔁 Duplicate ') + '<b style="color:' + rar.color + '">' + picked.emoji + ' ' + picked.name + '</b> <span style="color:' + rar.color + '">(' + rar.label + ')</span> — DMG ×' + picked.mult + ' • owned ' + ownedTraitCount() + '/' + TRAITS.length + comp; status.style.color = '#e2e8f0'; }
       updateTraitUI(); updateMenuPoints();
@@ -1766,7 +1959,7 @@
     }
 
     // ==================== SHOP UPGRADES (permanent across runs) ====================
-    const SHOP_MAX_LEVELS = { maxHp: 5, damage: 5, speed: 3, atkSpeed: 5, regen: 1, coinBoost: 3, shield: 3, summonHealer: 3, summonAttacker: 3, summonCrossbow: 2, summonGunner: 2, summonTank: 2, summonTitan: 1, summonBombHealer: 2, summonCheesePet: 2 };
+    const SHOP_MAX_LEVELS = { maxHp: 5, damage: 5, speed: 3, atkSpeed: 5, regen: 1, coinBoost: 3, shield: 3, rankBoost: 3, lifesteal: 3, summonHealer: 3, summonAttacker: 3, summonCrossbow: 2, summonGunner: 2, summonTank: 2, summonTitan: 1, summonBombHealer: 2, summonCheesePet: 2 };
     let shopUpgrades = {
       maxHp: parseInt(localStorage.getItem('sm_upg_maxHp') || '0'),
       damage: parseInt(localStorage.getItem('sm_upg_damage') || '0'),
@@ -1775,6 +1968,8 @@
       regen: parseInt(localStorage.getItem('sm_upg_regen') || '0'),
       coinBoost: parseInt(localStorage.getItem('sm_upg_coinBoost') || '0'),
       shield: parseInt(localStorage.getItem('sm_upg_shield') || '0'),
+      rankBoost: parseInt(localStorage.getItem('sm_upg_rankBoost') || '0'),
+      lifesteal: parseInt(localStorage.getItem('sm_upg_lifesteal') || '0'),
       summonHealer: parseInt(localStorage.getItem('sm_upg_summonHealer') || '0'),
       summonAttacker: parseInt(localStorage.getItem('sm_upg_summonAttacker') || '0'),
       summonCrossbow: parseInt(localStorage.getItem('sm_upg_summonCrossbow') || '0'),
@@ -1796,6 +1991,8 @@
         case 'regen': return shopUpgrades.regen > 0;
         case 'coinBoost': return shopUpgrades.coinBoost * 5;
         case 'shield': return shopUpgrades.shield;
+        case 'rankBoost': return shopUpgrades.rankBoost * 0.15;
+        case 'lifesteal': return shopUpgrades.lifesteal * 0.01;
       }
       return 0;
     }
@@ -1848,6 +2045,8 @@
     let amethystBolts = [];
     // The Time Chainer: sky blasts, the chains that pin the player, and his own theme.
     let tcBlasts = [], timeChainTimer = 0, tcMusicOn = false;
+    // Novarites: falling starlight, his plasma beam, and the nightmare gas cloud.
+    let novaStars = [], novaBeam = null, novaNightmare = null, novaMusicOn = false;
     // Ninja state
     let ninjaSlashCD = 0, ninjaKunaiCD = 0, ninjaDashCD = 0, ninjaInvisCD = 0, ninjaInvisTimer = 0, ninjaIsInvis = false;
     let ninjaCloneCD = 0, ninjaClones = [], ninjaCloneTimer = 0;
@@ -1914,6 +2113,13 @@
     let taoistPulseFx = { active: false, timer: 0, x: 0 };
     let taoistUltAmulet = { active: false, timer: 0, tick: 0, x: 0 };
     let taoistSealFx = [];
+    // ---- Antidot (The Second Coming) state ----
+    let antidotLaserCD = 0, antidotGravCD = 0, antidotOrbCD = 0, antidotLungeCD = 0;
+    let antidotLaser = null;          // {timer, tick}
+    let antidotLunge = null;          // {timer, dir}
+    let antidotBlaze = null;          // {phase, timer, tick}
+    let antidotOrbs = [];             // falling orbs {x, y, vy, dmg}
+    let antidotInkTimer = 0;
     // EXP bar state
     let expKills = 0, expNextLevel = 5;
     // Pickup buff timers
@@ -2567,8 +2773,121 @@
       // Time-stop stab at the top of every phrase
       if (bar % 4 === 0) { _mDist(ac, dest, root * 4, 0.07, t0, step * 2); _mNoise(ac, dest, t0, 0.4, 2600, 0.085); }
     }
+    // ===== NOVARITES — "Last Dance" (126 BPM, A minor). A slow waltz under a music box:
+    // three soft beats a bar, a swaying root-fifth-octave bass, a detuned string hall, and
+    // a bell melody that keeps returning to the same note like a dancer who will not leave.
+    // Every second bar a swell rolls across the floor; every fourth, the figure falls.
+    var NOVA_CHORDS = [
+      [220.00, 261.63, 329.63], // Am
+      [174.61, 220.00, 261.63], // F
+      [196.00, 246.94, 293.66], // G
+      [164.81, 207.65, 246.94]  // E
+    ];
+    var NOVA_BELL = [880.00, 1046.50, 987.77, 783.99, 659.25, 783.99, 880.00, 1046.50];
+    function novaritesBar(ac, dest, t0, bar, step) {
+      var chord = NOVA_CHORDS[bar % NOVA_CHORDS.length];
+      // The ballroom: a wide string bed, one voice a hair flat for unease.
+      _mViolin(ac, dest, chord[0] / 2, 0.05, t0, step * 16);
+      _mViolin(ac, dest, chord[1], 0.032, t0, step * 16);
+      _mViolin(ac, dest, chord[2] * 0.997, 0.026, t0, step * 16);
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        // The waltz: 1 · 2 · 3 with the third beaten a little harder.
+        if (s === 0) _mKick(ac, dest, t, 0.34);
+        if (s === 4) _mKick(ac, dest, t, 0.2);
+        if (s === 8) { _mKick(ac, dest, t, 0.27); _mSnare(ac, dest, t, 0.14); }
+        if (s === 12) { _mSnare(ac, dest, t, 0.1); _mHat(ac, dest, t, 0.05); }
+        _mHat(ac, dest, t, s % 2 ? 0.028 : 0.018);
+        // Root, fifth, octave — the waltz step itself.
+        if (s === 0) _mNote(ac, dest, chord[0] / 2, 'square', 0.1, t, step * 2.4);
+        if (s === 4) _mNote(ac, dest, chord[0] * 0.75, 'square', 0.075, t, step * 1.9);
+        if (s === 8) _mNote(ac, dest, chord[0] / 2, 'square', 0.06, t, step * 1.7);
+        // Music-box lead, with a shimmering octave above it.
+        _mNote(ac, dest, NOVA_BELL[s % NOVA_BELL.length], 'triangle', 0.05, t, step * 1.4);
+        _mNote(ac, dest, NOVA_BELL[s % NOVA_BELL.length] * 2, 'sine', 0.018, t, step * 1.1);
+      }
+      // A swell across the dance floor, then the falling phrase that ends each turn.
+      if (bar % 2 === 0) _mNoise(ac, dest, t0, 0.3, 2400, 0.05);
+      if (bar % 4 === 3) {
+        _mNote(ac, dest, chord[1] * 2, 'triangle', 0.06, t0 + step * 12, step * 1.6);
+        _mNote(ac, dest, chord[0] * 2, 'triangle', 0.055, t0 + step * 14, step * 1.8);
+      }
+    }
+    // ---- Bonus tracks: music with no map attached ------------------------------------
+    // Every other track is scenery (the map picks it). These three only play when chosen
+    // in Customize → Music, so each one needs its own identity instead of matching a view.
+    var NEON_CHORDS = [
+      [220.00, 261.63, 329.63],  // Am
+      [174.61, 220.00, 261.63],  // F
+      [261.63, 329.63, 392.00],  // C
+      [196.00, 246.94, 293.66]   // G
+    ];
+    function neonDriveBar(ac, dest, t0, bar, step) {
+      var chord = NEON_CHORDS[bar % NEON_CHORDS.length];
+      // Wide synthwave pad under the whole bar
+      chord.forEach(function (f) { _mNote(ac, dest, f, 'sawtooth', 0.02, t0, step * 16); });
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        if (s % 4 === 0) _mKick(ac, dest, t, 0.5);
+        if (s % 4 === 2) _mSnare(ac, dest, t, 0.24);
+        if (s % 2 === 1) _mHat(ac, dest, t, 0.055);
+        // Pulsing octave bass on the eighths, arpeggio on the sixteenths
+        if (s % 2 === 0) _mNote(ac, dest, chord[0] / 2, 'square', 0.11, t, step * 0.85);
+        _mNote(ac, dest, [chord[0], chord[1], chord[2], chord[1]][s % 4] * 2, 'square', 0.038, t, step * 0.6);
+      }
+      // Two-note lead call, every other bar
+      if (bar % 2 === 0) {
+        _mNote(ac, dest, chord[2] * 2, 'sawtooth', 0.06, t0 + step * 4, step * 2.2);
+        _mNote(ac, dest, chord[1] * 2, 'sawtooth', 0.055, t0 + step * 10, step * 2.2);
+      }
+    }
+    var FROST_CHORDS = [
+      [146.83, 174.61, 220.00],  // Dm
+      [116.54, 146.83, 174.61],  // Bb
+      [174.61, 220.00, 261.63],  // F
+      [130.81, 164.81, 196.00]   // C
+    ];
+    function frostboundBar(ac, dest, t0, bar, step) {
+      var chord = FROST_CHORDS[bar % FROST_CHORDS.length];
+      chord.forEach(function (f) { _mNote(ac, dest, f, 'sine', 0.028, t0, step * 16); });
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        if (s === 0) _mKick(ac, dest, t, 0.3);
+        if (s === 8) _mKick(ac, dest, t, 0.2);
+        if (s % 4 === 2) _mHat(ac, dest, t, 0.035);
+        // Glass-bell arpeggio: chord tones, then the fifth two octaves up
+        var arp = [chord[0] * 2, chord[1] * 2, chord[2] * 2, chord[1] * 3];
+        _mNote(ac, dest, arp[s % arp.length], 'triangle', 0.042, t, step * 1.3);
+        if (s % 8 === 0) _mNote(ac, dest, chord[0] / 2, 'sine', 0.1, t, step * 4);
+      }
+      // A breath of cold wind on the last bar of each phrase
+      if (bar % 4 === 3) _mNoise(ac, dest, t0 + step * 12, 0.16, 5200, 0.04);
+    }
+    var EMBER_CHORDS = [
+      [164.81, 196.00, 246.94],  // Em
+      [130.81, 164.81, 196.00],  // C
+      [196.00, 246.94, 293.66],  // G
+      [146.83, 185.00, 220.00]   // D
+    ];
+    function emberCircuitBar(ac, dest, t0, bar, step) {
+      var chord = EMBER_CHORDS[bar % EMBER_CHORDS.length];
+      for (var s = 0; s < 16; s++) {
+        var t = t0 + s * step;
+        if (s % 4 === 0) _mKick(ac, dest, t, 0.5);
+        if (s % 8 === 4) _mSnare(ac, dest, t, 0.26);
+        _mHat(ac, dest, t, s % 2 ? 0.05 : 0.03);
+        // Piston bass, an offbeat distorted stab, and a doubled lead line
+        _mNote(ac, dest, chord[0] / 2, 'sawtooth', 0.1, t, step * 0.5);
+        if (s % 4 === 2) _mDist(ac, dest, chord[1], 0.05, t, step * 0.9);
+        if (s % 2 === 0) _mNote(ac, dest, [chord[2], chord[1], chord[2] * 1.5, chord[2]][s % 4], 'square', 0.04, t, step * 0.7);
+      }
+      if (bar % 4 === 3) _mNoise(ac, dest, t0 + step * 14, 0.2, 3000, 0.05);
+    }
     var THEME_TRACKS = {
       chill: { bpm: 84, vol: 0.3, rain: false, bar: chillBar },
+      neondrive: { bpm: 118, vol: 0.3, rain: false, bar: neonDriveBar },
+      frostbound: { bpm: 92, vol: 0.32, rain: false, bar: frostboundBar },
+      embercircuit: { bpm: 150, vol: 0.3, rain: false, bar: emberCircuitBar },
       desert: { bpm: 108, vol: 0.3, rain: false, bar: desertBar },
       cave: { bpm: 64, vol: 0.34, rain: false, bar: caveBar },
       landscape: { bpm: 96, vol: 0.28, rain: false, bar: landscapeBar },
@@ -2583,7 +2902,8 @@
       menu: { bpm: 70, vol: 0.26, rain: false, bar: menuBar },
       bossrush: { bpm: 196, vol: 0.36, rain: false, bar: bossrushBar },
       multiverse: { bpm: 140, vol: 0.34, rain: false, bar: multiverseBar },
-      timechainer: { bpm: 132, vol: 0.34, rain: false, bar: timeChainerBar }
+      timechainer: { bpm: 132, vol: 0.34, rain: false, bar: timeChainerBar },
+      novarites: { bpm: 126, vol: 0.34, rain: false, bar: novaritesBar }
     };
     function startThemeMusic(theme) {
       if (!theme) return;
@@ -2658,6 +2978,17 @@
     function stopTimeChainerMusic() {
       if (!tcMusicOn) return;
       tcMusicOn = false;
+      try { stopThemeMusic(); applyThemeMusic(); } catch(e) {}
+    }
+    // Novarites brings his own last dance to the arena, and takes it with him when he falls.
+    function startNovaritesMusic() {
+      if (novaMusicOn) return;
+      novaMusicOn = true;
+      try { stopBossMusic(); startThemeMusic('novarites'); } catch(e) {}
+    }
+    function stopNovaritesMusic() {
+      if (!novaMusicOn) return;
+      novaMusicOn = false;
       try { stopThemeMusic(); applyThemeMusic(); } catch(e) {}
     }
     // Resume a suspended context on the first user gesture (autoplay policy)
@@ -3233,6 +3564,7 @@
       else if (selectedChar === 'phantom') performPhantomPunch();
       else if (selectedChar === 'slayer') performSlayerSlash();
       else if (selectedChar === 'taoist') performTaoistSword();
+      else if (selectedChar === 'antidot') performAntidotPunch();
       else performPunch();
     }
     function mobKick() {
@@ -3249,6 +3581,7 @@
       else if (selectedChar === 'phantom') performPhantomTeleport();
       else if (selectedChar === 'slayer') performSlayerLunge();
       else if (selectedChar === 'taoist') performTaoistPulse();
+      else if (selectedChar === 'antidot') performAntidotBlast();
     }
     function mobAbility1() {
       if (selectedChar === 'soldier') performDash();
@@ -3262,6 +3595,7 @@
       else if (selectedChar === 'phantom') performPhantomPossess();
       else if (selectedChar === 'slayer') performSlayerBladeSlam();
       else if (selectedChar === 'taoist') performTaoistZombies();
+      else if (selectedChar === 'antidot') performAntidotLaser();
     }
     function mobAbility2() {
       if (selectedChar === 'soldier') performGrenade();
@@ -3275,6 +3609,7 @@
       else if (selectedChar === 'phantom') performPhantomExplode();
       else if (selectedChar === 'slayer') performSlayerSuperSlash();
       else if (selectedChar === 'taoist') performTaoistSeal();
+      else if (selectedChar === 'antidot') performAntidotGravity();
     }
     function mobAbility3() {
       if (selectedChar === 'soldier') performUltimate();
@@ -3288,6 +3623,7 @@
       else if (selectedChar === 'phantom') performPhantomDarkRealm();
       else if (selectedChar === 'slayer') performSlayerUlt();
       else if (selectedChar === 'taoist') performTaoistUlt();
+      else if (selectedChar === 'antidot') performAntidotUlt();
     }
     function mobAbilityF() {
       if (selectedChar === 'soldier') spawnAllyGunner();
@@ -3301,6 +3637,7 @@
       else if (selectedChar === 'phantom') performPhantomShadowDash();
       else if (selectedChar === 'slayer') performSlayerMultiSlash();
       else if (selectedChar === 'taoist') performTaoistBigZombie();
+      else if (selectedChar === 'antidot') performAntidotLunge();
     }
     function mobAbilityE() {
       // Fighter's E slot is free, and on a phone it is the Hollow's sky-laser switch.
@@ -3313,6 +3650,7 @@
       else if (selectedChar === 'phantom') performPhantomShadowRain();
       else if (selectedChar === 'slayer') performSlayerTornado();
       else if (selectedChar === 'taoist') performTaoistAmulet();
+      else if (selectedChar === 'antidot') performAntidotOrbRain();
     }
     mobTap('mobBtn1', function() { if (gameState === 'playing') mobAbility1(); });
     mobTap('mobBtn2', function() { if (gameState === 'playing') mobAbility2(); });
@@ -5214,7 +5552,7 @@
           localStorage.setItem('sm_campaignSoldier', soldierProgress);
         }
         var reward = campaignLevel * 200;
-        totalPoints += reward; savePoints();
+        grantPoints(reward);
         if (soldierFinal) {
           // Ending cutscene: the Amethyst dies — and so does the starving soldier
           gameState = 'cutscene'; campaignMode = false;
@@ -5248,7 +5586,7 @@
           localStorage.setItem('sm_campaignShadow', shadowProgress);
         }
         var sreward = campaignLevel * 250;
-        totalPoints += sreward; savePoints();
+        grantPoints(sreward);
         if (shadowFinal) {
           gameState = 'cutscene'; campaignMode = false;
           scoreEl.textContent = '\uD83C\uDFC6 SHADOW MAGIC COMPLETE!'; killsEl.textContent = '';
@@ -5286,7 +5624,7 @@
         try { localStorage.setItem('sm_fighterLv11Down', '1'); } catch (e) {}
       }
       var reward = campaignLevel * 200;
-      totalPoints += reward; savePoints();
+      grantPoints(reward);
       // After level 5: transition cutscene (acid → Super), then continue to Lv 6
       if (isLevel5 && typeof POST_LEVEL5_CUTSCENE !== 'undefined') {
         gameState = 'cutscene';
@@ -5650,7 +5988,7 @@
       var reward = CODE_REWARDS[code];
       if (!reward) { status.textContent = '❌ Invalid code!'; status.style.color = '#f87171'; return; }
       usedCodes.push(code); localStorage.setItem('sm_usedCodes', JSON.stringify(usedCodes));
-      totalPoints += reward.points; bossPoints += reward.bossPts; savePoints();
+      grantPoints(reward.points); bossPoints += reward.bossPts; savePoints();
       // Special rewards
       var msg = '';
       if (reward.ally === 'healer') {
@@ -5751,6 +6089,10 @@
         PLAYER_MAX_HP_CURRENT = taoistMaxHp();
         document.getElementById('charIcon').textContent = '☯️';
         document.getElementById('charName').textContent = 'Taoist' + modeLabel;
+      } else if (selectedChar === 'antidot') {
+        PLAYER_MAX_HP_CURRENT = ANTIDOT_HP;
+        document.getElementById('charIcon').textContent = '🖋️';
+        document.getElementById('charName').textContent = 'Antidot' + modeLabel;
       } else {
         PLAYER_MAX_HP_CURRENT = MAGE_HP;
         document.getElementById('charIcon').textContent = '🧙';
@@ -5764,6 +6106,7 @@
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = []; masterRunes = [];
       // The Time Chainer's projectiles, chains and theme are per-round.
       tcBlasts = []; timeChainTimer = 0; tcMusicOn = false;
+      novaStars = []; novaBeam = null; novaNightmare = null; novaMusicOn = false;
       fullReset();
       resumeGameLoop();
     });
@@ -5794,6 +6137,40 @@
       document.getElementById('shopBossPts').textContent = bossPoints;
       updateShopButtons();
     }
+
+    // ---- shop categories: 17 upgrades is too long a list to read flat, so the chips
+    //      narrow it to combat / meta / allies and the headings only show in ALL. ----
+    var SHOP_CAT_OF = {
+      maxHp: 'combat', damage: 'combat', speed: 'combat', atkSpeed: 'combat',
+      regen: 'combat', coinBoost: 'combat', shield: 'combat',
+      rankBoost: 'meta', lifesteal: 'meta',
+      summonHealer: 'allies', summonAttacker: 'allies', summonCrossbow: 'allies',
+      summonGunner: 'allies', summonTank: 'allies', summonTitan: 'allies',
+      summonBombHealer: 'allies', summonCheesePet: 'allies'
+    };
+    var shopCat = 'all';
+    function applyShopCat(cat) {
+      shopCat = SHOP_CAT_OF[cat] || cat || 'all';
+      document.querySelectorAll('#shopItems .shop-item').forEach(function (el) {
+        var btn = el.querySelector('.shopBuyBtn');
+        var c = btn ? (SHOP_CAT_OF[btn.getAttribute('data-upgrade')] || 'combat') : 'combat';
+        el.style.display = (shopCat === 'all' || c === shopCat) ? '' : 'none';
+      });
+      document.querySelectorAll('#shopItems .shop-group').forEach(function (el) {
+        el.style.display = shopCat === 'all' ? '' : 'none';
+      });
+      document.querySelectorAll('.shopTab').forEach(function (b) {
+        var on = b.getAttribute('data-shopcat') === shopCat;
+        b.classList.toggle('bg-amber-600', on);
+        b.classList.toggle('text-slate-900', on);
+        b.classList.toggle('bg-slate-700', !on);
+        b.classList.toggle('text-slate-300', !on);
+      });
+    }
+    document.querySelectorAll('.shopTab').forEach(function (b) {
+      b.addEventListener('click', function () { applyShopCat(b.getAttribute('data-shopcat')); });
+    });
+    applyShopCat('all');
     function closeShop() {
       shopScreen.classList.add('hidden'); shopOpen = false;
       gameState = 'playing'; resumeGameLoop();
@@ -5805,12 +6182,33 @@
         var cost = parseInt(btn.getAttribute('data-cost'));
         var lvl = shopUpgrades[type];
         var maxLvl = SHOP_MAX_LEVELS[type];
+        // Show the level this purchase would reach, so a permanent upgrade reads as a
+        // ladder instead of a flat price that never changes.
+        var lvLabel = 'Lv' + (lvl + 1) + '/' + maxLvl + ' · ' + cost + '🪙';
+        // Owned-level tag next to the item name (green once maxed).
+        var item = btn.closest('.shop-item');
+        if (item) {
+          var tag = item.querySelector('.shopLvl');
+          if (!tag) {
+            tag = document.createElement('span');
+            // On the description line, not the name: a pip after a name like "Atk Speed"
+            // forced the 256px column to wrap every label onto two lines.
+            tag.className = 'shopLvl text-[8px] px-1 mr-1 rounded bg-slate-900/70 text-slate-400 font-bold';
+            var descRow = item.querySelector('.text-slate-400');
+            if (descRow) descRow.insertBefore(tag, descRow.firstChild); else tag = null;
+          }
+          if (tag) {
+            tag.textContent = lvl + '/' + maxLvl;
+            tag.style.color = lvl >= maxLvl ? '#4ade80' : '#94a3b8';
+          }
+        }
+        btn.title = 'Level ' + lvl + '/' + maxLvl + ' owned';
         if (lvl >= maxLvl) {
-          btn.textContent = 'MAXED'; btn.className = 'px-3 py-1 rounded-lg bg-slate-600 text-xs font-bold cursor-not-allowed opacity-50';
+          btn.textContent = 'MAXED'; btn.className = 'px-2 py-1 rounded-lg bg-slate-600 text-[10px] font-bold cursor-not-allowed opacity-50';
         } else if (totalPoints >= cost) {
-          btn.textContent = cost + ' 🪙'; btn.className = 'shopBuyBtn px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold transition-colors cursor-pointer';
+          btn.textContent = lvLabel; btn.className = 'shopBuyBtn px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold transition-colors cursor-pointer';
         } else {
-          btn.textContent = cost + ' 🪙'; btn.className = 'shopBuyBtn px-3 py-1 rounded-lg bg-red-800 text-xs font-bold cursor-not-allowed opacity-60';
+          btn.textContent = lvLabel; btn.className = 'shopBuyBtn px-2 py-1 rounded-lg bg-red-800 text-[10px] font-bold cursor-not-allowed opacity-60';
         }
       });
     }
@@ -5995,7 +6393,7 @@
         deathCleared = true;
         try { localStorage.setItem('sm_deathCleared', 'true'); } catch (e) {}
         updateDeathBestLine();
-        totalPoints += 5000; bossPoints += 25; savePoints();
+        grantPoints(5000); bossPoints += 25; savePoints();
         createTextParticle(CW / 2, CH / 2 - 60, '🏆 DEATH MODE CLEARED!', '#fde047', 32);
         createTextParticle(CW / 2, CH / 2 - 25, '100 waves survived · +5000 pts · +25 🏆', '#fde047', 18);
         createTextParticle(CW / 2, CH / 2 + 5, 'endless continues — good luck', '#fda4af', 14);
@@ -6174,6 +6572,17 @@
           ctx.moveTo(b.x - (b.vx / bLen) * 6, b.y - (b.vy / bLen) * 6);
           ctx.lineTo(b.x + (b.vx / bLen) * 6, b.y + (b.vy / bLen) * 6);
           ctx.stroke();
+        } else if (b.type === 'ink') {
+          // Orange droplet with a wet trailing smear behind it.
+          ctx.save();
+          ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 12;
+          ctx.fillStyle = '#ea580c';
+          ctx.beginPath(); ctx.ellipse(b.x - b.vx * 0.9, b.y, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff7ed';
+          ctx.beginPath(); ctx.arc(b.x + 1, b.y - 1, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
         } else {
           ctx.fillStyle = '#4ade80';
           ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill();
@@ -6924,6 +7333,30 @@
         }
         ctx.restore();
       }
+      // ANTIDOT: a faint green halo, which blazes into a field of energy while the eye
+      // is lit up for the orb-blaze ultimate.
+      if (selectedChar === 'antidot') {
+        ctx.save();
+        if (antidotAwakened()) {
+          ctx.globalAlpha = 0.22 + Math.sin(time * 0.16) * 0.08;
+          var anGrad = ctx.createRadialGradient(x, y - 40, 6, x, y - 40, 78);
+          anGrad.addColorStop(0, '#bbf7d0'); anGrad.addColorStop(0.55, '#22c55e'); anGrad.addColorStop(1, 'rgba(22,101,52,0)');
+          ctx.fillStyle = anGrad;
+          ctx.beginPath(); ctx.arc(x, y - 40, 78, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 0.75;
+          ctx.strokeStyle = 'rgba(134,239,172,0.75)'; ctx.lineWidth = 2;
+          for (var anR = 0; anR < 3; anR++) {
+            var anRr = 30 + anR * 14 + Math.sin(time * 0.09 + anR) * 5;
+            ctx.beginPath(); ctx.arc(x, y - 40, anRr, 0.4 + anR, 2.1 + anR); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y - 40, anRr, Math.PI + 0.4 + anR, Math.PI + 2.1 + anR); ctx.stroke();
+          }
+        } else {
+          ctx.globalAlpha = 0.10 + Math.sin(time * 0.08) * 0.04;
+          ctx.fillStyle = '#22c55e';
+          ctx.beginPath(); ctx.arc(x, y - 36, 30, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+      }
       if (selectedChar !== 'knight') { ctx.beginPath(); ctx.arc(x, headY, 14, 0, Math.PI * 2); ctx.stroke(); }
       // (The fighter used to have a drawn face here. It is gone: he is a plain
       //  stickman with a blank head again, like every other stick figure.)
@@ -7318,6 +7751,31 @@
         ctx.fillStyle = '#d97706'; ctx.fillRect(-6, -3, 12, 4);
         ctx.fillStyle = '#7c2d12'; ctx.fillRect(-2, 1, 4, 10);
         ctx.restore();
+      } else if (selectedChar === 'antidot') {
+        // ---- ANTIDOT (The Second Coming): one burning green eye ----
+        var anPulse = 0.6 + Math.sin(time * 0.14) * 0.35;
+        ctx.save();
+        ctx.globalAlpha = anPulse;
+        ctx.fillStyle = ANTIDOT_GREEN;
+        ctx.beginPath(); ctx.arc(x + 6 * facing, headY - 1, 4.2, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = anPulse * 0.32;
+        ctx.beginPath(); ctx.arc(x + 6 * facing, headY - 1, 11, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        // Awakened crest — green energy thrown upward off the crown while blazing
+        if (antidotAwakened()) {
+          ctx.save();
+          ctx.strokeStyle = ANTIDOT_GREEN; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+          ctx.globalAlpha = 0.85;
+          for (var anS = 0; anS < 5; anS++) {
+            var anA = -Math.PI / 2 + (anS - 2) * 0.34 + Math.sin(time * 0.12 + anS) * 0.09;
+            var anL = 14 + Math.sin(time * 0.18 + anS * 1.7) * 5;
+            ctx.beginPath();
+            ctx.moveTo(x + Math.cos(anA) * 15, headY + Math.sin(anA) * 15);
+            ctx.lineTo(x + Math.cos(anA) * (15 + anL), headY + Math.sin(anA) * (15 + anL));
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
       }
       // Slayer: energy slash projectiles (ability 2 + F)
       if (selectedChar === 'slayer') {
@@ -7746,6 +8204,82 @@
         ctx.fillStyle = '#111827';
         ctx.beginPath(); ctx.arc(x + Math.cos(flyA) * 20, headY - 12 + Math.sin(flyA * 2) * 6, 1.6, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
+      } else if (selectedSkin === 'storm_warden') {
+        // ---- Storm Warden: a teal storm cloak, arcs crawling over the body, and a hood
+        //      with two lit eyes. The arcs are time-driven so the skin always moves.
+        ctx.save();
+        var gust = Math.sin(t * 0.14) * 5;
+        ctx.globalAlpha = 0.5; ctx.fillStyle = '#0e7490';
+        ctx.beginPath();
+        ctx.moveTo(x - 13, btY + 2);
+        ctx.quadraticCurveTo(x - 27, bbY - 8, x - 20 + gust, bbY + 26);
+        ctx.lineTo(x + 20 + gust, bbY + 26);
+        ctx.quadraticCurveTo(x + 27, bbY - 8, x + 13, btY + 2);
+        ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 0.9; ctx.fillStyle = '#155e75';
+        ctx.beginPath(); ctx.moveTo(x - 16, btY + 4); ctx.lineTo(x + 16, btY + 4); ctx.lineTo(x + 12, btY + 18); ctx.lineTo(x - 12, btY + 18); ctx.closePath(); ctx.fill();
+        // Charged veins down the arms
+        ctx.strokeStyle = '#a5f3fc'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x - 10, btY + 12); ctx.lineTo(x - 16, btY + 30); ctx.lineTo(x - 12, btY + 44); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + 10, btY + 12); ctx.lineTo(x + 16, btY + 30); ctx.lineTo(x + 12, btY + 44); ctx.stroke();
+        // Crawling arcs around the shoulders
+        for (var ai = 0; ai < 3; ai++) {
+          var a0 = t * 0.19 + ai * 2.1;
+          var ax = x + Math.cos(a0) * 25, ay = headY + Math.sin(a0) * 28;
+          ctx.strokeStyle = 'rgba(165,243,252,' + (0.3 + 0.3 * Math.sin(t * 0.45 + ai)).toFixed(3) + ')';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(ax, ay); ctx.lineTo(ax + 5, ay - 7); ctx.lineTo(ax + 1, ay - 6); ctx.lineTo(ax + 7, ay - 15);
+          ctx.stroke();
+        }
+        // Hood and two lit eyes
+        ctx.fillStyle = '#083344';
+        ctx.beginPath(); ctx.arc(x, headY, 16, Math.PI * 1.02, Math.PI * 1.98); ctx.fill();
+        ctx.fillStyle = '#a5f3fc';
+        ctx.beginPath(); ctx.arc(x - 5, headY - 1, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 5, headY - 1, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.18 + 0.05 * Math.sin(t * 0.2); ctx.fillStyle = '#22d3ee';
+        ctx.beginPath(); ctx.arc(x, headY + 14, 24, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (selectedSkin === 'pharaoh') {
+        // ---- Pharaoh: gold usekh collar, blue nemes headdress with gold bands,
+        //      kohl-lined eyes and gold bracers.
+        ctx.save();
+        // Broad collar over the chest
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.moveTo(x - 18, headY + 11); ctx.lineTo(x + 18, headY + 11);
+        ctx.lineTo(x + 12, btY + 10); ctx.lineTo(x - 12, btY + 10);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#0ea5e9';
+        for (var pi = -2; pi <= 2; pi++) ctx.fillRect(x + pi * 6 - 1.5, headY + 13, 3, 9);
+        // Nemes headdress: the two side lappets and the crown band
+        ctx.fillStyle = '#1d4ed8';
+        ctx.beginPath();
+        ctx.moveTo(x - 15, headY - 12); ctx.lineTo(x + 15, headY - 12);
+        ctx.lineTo(x + 19, headY + 12); ctx.lineTo(x + 9, headY + 12);
+        ctx.lineTo(x + 9, headY - 4); ctx.lineTo(x - 9, headY - 4);
+        ctx.lineTo(x - 9, headY + 12); ctx.lineTo(x - 19, headY + 12);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(x - 15, headY - 12, 30, 3);
+        ctx.fillRect(x - 19, headY + 7, 6, 3);
+        ctx.fillRect(x + 13, headY + 7, 6, 3);
+        // Kohl eyes
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath(); ctx.ellipse(x - 5, headY - 1, 4, 1.7, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x + 5, headY - 1, 4, 1.7, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath(); ctx.arc(x - 5, headY - 1, 1.1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 5, headY - 1, 1.1, 0, Math.PI * 2); ctx.fill();
+        // Gold bracers on both wrists
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(x - 24, btY + 12, 5, 9);
+        ctx.fillRect(x + 19, btY + 12, 5, 9);
+        // Uraeus (cobra) on the brow
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x, headY - 14); ctx.quadraticCurveTo(x + 7, headY - 20, x + 2, headY - 27); ctx.stroke();
+        ctx.restore();
       }
     }
 
@@ -8059,9 +8593,161 @@
       ctx.fillText((isTitan ? '⛏ TITAN ' : isDU ? '🌑 DARK UNIVERSE ' : '🟣 BOSS ') + boss.hp + '/' + boss.maxHp, dx, by - 4); ctx.textAlign = 'start';
     }
 
+    // A four-point star — Novarites' right eye, and the sparkle in his aura.
+    function drawStar4(cx, cy, r, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r * 0.28, cy - r * 0.28);
+      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx + r * 0.28, cy + r * 0.28);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r * 0.28, cy + r * 0.28);
+      ctx.lineTo(cx - r, cy);
+      ctx.lineTo(cx - r * 0.28, cy - r * 0.28);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     function drawMiniBoss(mb) {
       if (!mb.alive) return;
       const dx = mb.x + (mb.hitFlash > 0 ? Math.sin(time * 3.2) * 4 * Math.min(1, mb.hitFlash / 6) * (mb.x > stick.x ? 1 : -1) : 0);
+      if (mb.type === 'novarites') {
+        // ----- star light: a warning column, then a four-point star drops through it -----
+        novaStars.forEach(function(s) {
+          if (s.hit) return;
+          var charge = 1 - Math.max(0, s.delay) / NOVA_STAR_WARN;
+          ctx.globalAlpha = 0.08 + 0.24 * charge; ctx.fillStyle = '#c7d2fe';
+          ctx.fillRect(s.x - 15, 0, 30, GROUND_Y);
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = '#e0e7ff'; ctx.lineWidth = 2; ctx.setLineDash([6, 8]);
+          ctx.beginPath(); ctx.moveTo(s.x, 0); ctx.lineTo(s.x, GROUND_Y); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 0.3 + 0.4 * charge; ctx.strokeStyle = '#a5b4fc';
+          ctx.beginPath(); ctx.ellipse(s.x, GROUND_Y, NOVA_STAR_RADIUS, 19, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 1;
+          var fallP = s.delay < 28 ? 1 - s.delay / 28 : 0;
+          if (fallP > 0) {
+            var sy = -70 + fallP * (GROUND_Y + 30);
+            drawStar4(s.x, sy, 15, '#eef2ff');
+            ctx.globalAlpha = 0.4; drawStar4(s.x, sy, 26, '#a5b4fc'); ctx.globalAlpha = 1;
+          }
+        });
+        // ----- plasma beam: dotted aim line while charging, then a thick beam -----
+        if (novaBeam) {
+          var nb = novaBeam;
+          var bSpan = Math.abs(nb.dir * CW);
+          if (nb.charge <= 36) {
+            ctx.globalAlpha = 0.25 + 0.4 * (nb.charge / 36);
+            ctx.strokeStyle = '#c7d2fe'; ctx.lineWidth = 2; ctx.setLineDash([10, 8]);
+            ctx.beginPath(); ctx.moveTo(nb.x, nb.y); ctx.lineTo(nb.x + nb.dir * CW, nb.y); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#e0e7ff';
+            ctx.beginPath(); ctx.arc(nb.x, nb.y, 5 + nb.charge * 0.24, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+          } else {
+            var bFlick = 0.7 + Math.abs(Math.sin(time * 0.4)) * 0.3;
+            var bLeft = Math.min(nb.x, nb.x + nb.dir * CW);
+            ctx.globalAlpha = bFlick * 0.5; ctx.fillStyle = '#818cf8';
+            ctx.fillRect(bLeft, nb.y - 18, bSpan, 36);
+            ctx.globalAlpha = bFlick; ctx.fillStyle = '#eef2ff';
+            ctx.fillRect(bLeft, nb.y - 5, bSpan, 10);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = 'rgba(199,210,254,0.85)';
+            ctx.beginPath(); ctx.arc(nb.x, nb.y, 19, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        // ----- star aura -----
+        for (var na = 0; na < 7; na++) {
+          var naAng = time * 0.02 + na / 7 * Math.PI * 2;
+          var nRad = 62 + Math.sin(time * 0.05 + na) * 10;
+          var naX = dx + Math.cos(naAng) * nRad;
+          var naY = GROUND_Y - 76 + Math.sin(naAng) * nRad * 0.55;
+          drawStar4(naX, naY, 4 + Math.abs(Math.sin(time * 0.08 + na)) * 2, 'rgba(224,231,255,' + (0.45 + Math.sin(time * 0.1 + na) * 0.25).toFixed(2) + ')');
+        }
+        // ----- the cloak -----
+        ctx.globalAlpha = 0.14 + Math.sin(time * 0.05) * 0.05; ctx.fillStyle = '#4c1d95';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 34, 52, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        var nvGlow = mb.hitFlash > 0 ? '#ffffff' : '#6366f1';
+        ctx.fillStyle = mb.hitFlash > 0 ? '#ffffff' : '#1e1b4b';
+        ctx.beginPath();
+        ctx.moveTo(dx - 14, GROUND_Y - 98);
+        ctx.quadraticCurveTo(dx - 42, GROUND_Y - 44, dx - 35, GROUND_Y + 3);
+        for (var hh = 0; hh <= 6; hh++) {
+          ctx.lineTo(dx - 35 + (hh / 6) * 70, GROUND_Y + 3 + Math.sin(time * 0.08 + hh) * 4);
+        }
+        ctx.quadraticCurveTo(dx + 42, GROUND_Y - 44, dx + 14, GROUND_Y - 98);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = nvGlow; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = 'rgba(129,140,248,0.45)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 92); ctx.lineTo(dx - 7, GROUND_Y - 8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(dx, GROUND_Y - 92); ctx.lineTo(dx + 11, GROUND_Y - 2); ctx.stroke();
+        // shoulders
+        ctx.strokeStyle = nvGlow; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(dx - 30, GROUND_Y - 66); ctx.lineTo(dx, GROUND_Y - 84); ctx.lineTo(dx + 30, GROUND_Y - 66); ctx.stroke();
+        // ----- hood and face -----
+        ctx.fillStyle = '#252252';
+        ctx.beginPath(); ctx.moveTo(dx - 19, GROUND_Y - 88); ctx.quadraticCurveTo(dx, GROUND_Y - 124, dx + 19, GROUND_Y - 88); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = nvGlow; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 90, 19, Math.PI, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#050510';
+        ctx.beginPath(); ctx.arc(dx, GROUND_Y - 90, 15, 0, Math.PI * 2); ctx.fill();
+        // ----- sleeping hat, drooping to the right with a pompom -----
+        var hatSway = Math.sin(time * 0.06) * 4;
+        ctx.fillStyle = '#4338ca';
+        ctx.beginPath();
+        ctx.moveTo(dx - 16, GROUND_Y - 102);
+        ctx.quadraticCurveTo(dx + 2, GROUND_Y - 134, dx + 30, GROUND_Y - 112 + hatSway);
+        ctx.quadraticCurveTo(dx + 17, GROUND_Y - 118, dx + 12, GROUND_Y - 101);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#a5b4fc'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#e0e7ff';
+        ctx.beginPath(); ctx.arc(dx + 30, GROUND_Y - 112 + hatSway, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#c7d2fe'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(dx - 16, GROUND_Y - 102); ctx.quadraticCurveTo(dx, GROUND_Y - 108, dx + 12, GROUND_Y - 101); ctx.stroke();
+        drawStar4(dx - 2, GROUND_Y - 114, 3, '#e0e7ff');
+        drawStar4(dx + 8, GROUND_Y - 120, 2, '#c7d2fe');
+        // ----- eyes: one white, one four-point star -----
+        ctx.globalAlpha = 0.22; ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(dx - 6, GROUND_Y - 90, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(dx - 6, GROUND_Y - 90, 3.6, 0, Math.PI * 2); ctx.fill();
+        drawStar4(dx + 7, GROUND_Y - 90, 7 + Math.sin(time * 0.14) * 1.2, '#fde68a');
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(dx + 7, GROUND_Y - 90, 2, 0, Math.PI * 2); ctx.fill();
+        // ----- shield bubble -----
+        if (mb.shield > 0) {
+          var shPct = mb.shield / mb.shieldMax;
+          ctx.strokeStyle = 'rgba(165,180,252,' + (0.3 + shPct * 0.45 + Math.sin(time * 0.09) * 0.1).toFixed(2) + ')';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          for (var hx6 = 0; hx6 <= 6; hx6++) {
+            var ha6 = -Math.PI / 2 + hx6 / 6 * Math.PI * 2;
+            var hxp = dx + Math.cos(ha6) * 50, hyp = GROUND_Y - 62 + Math.sin(ha6) * 64;
+            if (hx6 === 0) ctx.moveTo(hxp, hyp); else ctx.lineTo(hxp, hyp);
+          }
+          ctx.closePath(); ctx.stroke();
+        }
+        // ----- bar + shield bar -----
+        var nvw = 154, nvp = mb.hp / mb.maxHp, nvy = GROUND_Y - 214;
+        var nlx = Math.max(nvw / 2 + 8, Math.min(CW - nvw / 2 - 8, dx));
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(nlx - nvw / 2 - 1, nvy, nvw + 2, 12);
+        ctx.fillStyle = mb.phase === 2 ? '#c7d2fe' : (nvp > 0.4 ? '#818cf8' : '#f87171');
+        ctx.fillRect(nlx - nvw / 2, nvy + 1, nvw * Math.max(0, nvp), 10);
+        ctx.fillStyle = '#e0e7ff'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('🌠 NOVARITES ' + Math.ceil(Math.max(0, mb.hp)) + '/' + mb.maxHp, nlx, nvy - 6);
+        ctx.fillStyle = mb.phase === 2 ? '#c7d2fe' : '#a5b4fc'; ctx.font = 'bold 9px monospace';
+        ctx.fillText(mb.phase === 2 ? '✦ PHASE 2 · FASTER' : '🛡 ' + Math.ceil(mb.shield) + ' SHIELD · 70% RESIST', nlx, nvy - 19);
+        if (mb.shield > 0) {
+          var sbw = 84, sbp = mb.shield / mb.shieldMax;
+          ctx.fillStyle = '#0f172a'; ctx.fillRect(nlx - sbw / 2 - 1, nvy + 14, sbw + 2, 6);
+          ctx.fillStyle = '#a5b4fc'; ctx.fillRect(nlx - sbw / 2, nvy + 15, sbw * sbp, 4);
+        }
+        ctx.textAlign = 'start';
+        return;
+      }
       if (mb.type === 'necro') {
         // Necromancer: hooded figure with staff
         const bc = mb.hitFlash > 0 ? '#fff' : '#7c3aed';
@@ -8828,6 +9514,8 @@
       if (selectedChar === 'taoist') dmg = Math.max(1, Math.floor(dmg * taoistTakenMult()));
       // Ultra's plating eats a fifth of every hit.
       if (selectedChar === 'ultra') dmg = Math.max(1, Math.floor(dmg * ULTRA_TAKEN_MULT));
+      // Antidot's ink skin, which hardens further while he is awakened.
+      if (selectedChar === 'antidot') dmg = Math.max(1, Math.floor(dmg * ANTIDOT_TAKEN_MULT * (antidotAwakened() ? ANTIDOT_ULT_TAKEN_MULT : 1)));
       if (ninjaIsInvis) { createTextParticle(stick.x, stick.y - 55, '👻 PHASE!', '#94a3b8', 12); return; }
       if (isShielded && !bypassShield) {
         createTextParticle(stick.x, stick.y - 55, '🛡 BLOCKED!', '#38bdf8', 14);
@@ -8879,7 +9567,8 @@
         createParticles(d.x, GROUND_Y - 30, 20, d.isZombie ? '#22c55e' : '#4ade80');
         if (gameMode !== 'sandbox') {
           score += d.isKamikaze ? 15 : d.isGunner ? 15 : d.isSummoner ? 20 : d.isSummon ? 5 : d.isCrossbow ? 15 : d.isZombie ? 10 : 10;
-          totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); rankPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints();
+          var killPts = Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult());
+          grantPoints(killPts, true);
           createTextParticle(d.x, GROUND_Y - 75, (d.isNecroZombie ? '🧟 NECRO ZOMBIE' : d.isZombie ? '🧟 ZOMBIE' : '') + ' +10 🪙', '#fbbf24', 11);
           if (!d.isKamikaze && !d.isSummon && !d.isZombie && Math.random() < 0.15) pickups.push(createPickup(d.x, GROUND_Y));
         } else {
@@ -8963,6 +9652,20 @@
       dmg = Math.floor(dmg * getShopUpgradeEffect('damage') * getTraitMult() * pickupDmgMult() * lvDmgMult());
       // The Ancient Colossal shrugs off half of everything thrown at it.
       if (mb.dmgReduction) dmg = Math.max(1, Math.floor(dmg * (1 - mb.dmgReduction)));
+      // Novarites' 100-point shield soaks every hit at 70% reduction until it breaks.
+      if (mb.type === 'novarites' && mb.shield > 0) {
+        var shieldHit = Math.max(1, Math.floor(dmg * (1 - NOVA_SHIELD_REDUCE)));
+        mb.shield = Math.max(0, mb.shield - shieldHit);
+        mb.hitFlash = 6;
+        createTextParticle(mb.x, GROUND_Y - 62, '🛡 -' + shieldHit, '#a5b4fc', 15);
+        createParticles(mb.x, GROUND_Y - 34, 6, '#818cf8');
+        if (mb.shield === 0) {
+          createTextParticle(mb.x, GROUND_Y - 92, '🛡 SHIELD BROKEN', '#fde68a', 18);
+          createExplosion(mb.x, GROUND_Y - 60, 70, '#a5b4fc');
+          canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 300);
+        }
+        return;
+      }
       mb.hp -= dmg; mb.hitFlash = 6; vampireHeal(dmg);
       const c = source === 'dash' ? '#22d3ee' : source === 'grenade' ? '#f97316' : source === 'shoot' ? '#4ade80' : source === 'kick' ? '#fb7185' : '#facc15';
       createTextParticle(mb.x, GROUND_Y - 55, '-' + dmg, c, 14);
@@ -8980,23 +9683,39 @@
           canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 600);
           return;
         }
+        if (mb.type === 'novarites' && mb.phase === 1) {
+          // PHASE TWO: Novarites wakes up. Shorter rotations, faster feet, and a fresh
+          // shield over a 2500 HP pool.
+          mb.phase = 2; mb.hp = NOVA_PHASE2_HP; mb.maxHp = NOVA_PHASE2_HP;
+          mb.speed = NOVA_SPD * 1.75; mb.shield = NOVA_SHIELD_MAX;
+          mb.state = 'chase'; mb.cast = 0; mb.atkCount = 0; mb.attackCD = 45;
+          novaStars = []; novaBeam = null; novaNightmare = null;
+          createExplosion(mb.x, GROUND_Y - 60, 115, '#818cf8');
+          createParticles(mb.x, GROUND_Y - 40, 45, '#c7d2fe');
+          createTextParticle(CW / 2, 118, '🌠 PHASE 2 — ' + NOVA_PHASE2_HP + ' HP', '#e0e7ff', 26);
+          createTextParticle(CW / 2, 150, '🌠 HE STOPS SLEEPING', '#a5b4fc', 14);
+          canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 600);
+          return;
+        }
         mb.alive = false;
         // Breaking him for good frees anyone still chained.
         if (mb.type === 'time_chainer') { timeChainTimer = 0; }
+        // And ends Novarites' stars, beam and nightmare gas with him.
+        if (mb.type === 'novarites') { novaStars = []; novaBeam = null; novaNightmare = null; }
         if (mb.type === 'necro') {
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
-          if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += 50; }
+          if (gameMode !== 'sandbox') { grantPoints(Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()), true); score += 50; }
           createParticles(mb.x, GROUND_Y - 30, 30, '#7c3aed');
           createTextParticle(mb.x, GROUND_Y - 80, gameMode === 'sandbox' ? '💀 NECRO DOWN!' : '💀 NECRO DOWN! +50', '#7c3aed', 18);
           if (gameMode !== 'sandbox') { spawnZombie(mb.x, true); createTextParticle(mb.x, GROUND_Y - 100, '🧟 RISES!', '#22c55e', 14); }
           checkUltimateUnlock(); checkBossSpawn(); checkCampaignWin();
         } else {
-          const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : mb.type === 'colossal' ? 300 : mb.type === 'giant' ? 150 : mb.type === 'time_chainer' ? 1500 : mb.type === 'amethyst' ? 800 : mb.type === 'titan_gunner' ? 400 : 20;
+          const pts = mb.type === 'tank' ? 40 : mb.type === 'boss' ? 100 : mb.type === 'colossal' ? 300 : mb.type === 'giant' ? 150 : mb.type === 'time_chainer' ? 1500 : mb.type === 'novarites' ? 3000 : mb.type === 'amethyst' ? 800 : mb.type === 'titan_gunner' ? 400 : 20;
           kills++; totalKills++; scoreEl.textContent = score; killsEl.textContent = kills;
           // A mini-boss is a boss for energy purposes: half a point.
           if (gameMode !== 'sandbox') addEnergyForBoss();
-          if (gameMode !== 'sandbox') { totalPoints += Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()); savePoints(); score += pts; }
-          var killName = mb.type === 'time_chainer' ? '⏳ TIME CHAINER BROKEN' : mb.type === 'amethyst' ? '💠 AMETHYST SHATTERED' : mb.type === 'titan_gunner' ? '🔫 TITAN GUNNER' : mb.type === 'giant' ? '💀 GIANT' : mb.type === 'colossal' ? '🌋 COLOSSAL' : mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
+          if (gameMode !== 'sandbox') { grantPoints(Math.floor((10 + getShopUpgradeEffect('coinBoost')) * easyPointMult()), true); score += pts; }
+          var killName = mb.type === 'time_chainer' ? '⏳ TIME CHAINER BROKEN' : mb.type === 'novarites' ? '🌠 NOVARITES VANQUISHED' : mb.type === 'amethyst' ? '💠 AMETHYST SHATTERED' : mb.type === 'titan_gunner' ? '🔫 TITAN GUNNER' : mb.type === 'giant' ? '💀 GIANT' : mb.type === 'colossal' ? '🌋 COLOSSAL' : mb.type === 'tank' ? '🛡 TANK' : mb.type === 'boss' ? '💀 BOSS' : mb.type === 'titan' ? '⛏ TITAN' : mb.type === 'big_gunner' ? '🔫 BIG GUN' : mb.type === 'sniper' ? '🎯 SNIPER' : mb.type === 'medic' ? '➕ MEDIC' : mb.type === 'giant_gunner' ? '🔫 GIANT GUNNER' : mb.type === 'milkson' ? '🥛 MILKSON' : '⚡ SPEED';
           createParticles(mb.x, GROUND_Y - 30, 25, mb.type === 'time_chainer' ? '#fbbf24' : mb.type === 'tank' ? '#c084fc' : mb.type === 'boss' ? '#a855f7' : mb.type === 'titan' ? '#b45309' : mb.type === 'big_gunner' ? '#dc2626' : mb.type === 'sniper' ? '#eab308' : mb.type === 'medic' ? '#f8fafc' : mb.type === 'giant_gunner' ? '#dc2626' : mb.type === 'milkson' ? '#ef4444' : '#fb923c');
           createTextParticle(mb.x, GROUND_Y - 80, killName + (gameMode === 'sandbox' ? ' DOWN!' : ' DOWN! +' + pts), '#facc15', 16);
           if (gameMode !== 'sandbox' && Math.random() < 0.4) pickups.push(createPickup(mb.x, GROUND_Y));
@@ -9553,6 +10272,9 @@
         } else if (mb.type === 'time_chainer') {
           // THE TIME CHAINER (Fighter Lv 11): chains, sky blasts, teleport and shock.
           updateTimeChainer(mb, dist);
+        } else if (mb.type === 'novarites') {
+          // NOVARITES (secret boss): star light, plasma beam and nightmare gas.
+          updateNovarites(mb, dist);
         } else if (mb.type === 'magicer') {
           // MAGICER (Shadow Magic): a real caster. Keeps its distance and throws bolts.
           if (dist > 330) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
@@ -9657,8 +10379,12 @@
       }
       // Sky blasts resolve independently of the boss that called them.
       updateTimeChainerBlasts();
+      // So do Novarites' stars, plasma beam and nightmare gas.
+      updateNovaritesFx();
       // His theme only lasts as long as he does — or until the round ends.
       if (tcMusicOn && (!miniBosses.some(function(m) { return m.alive && m.type === 'time_chainer'; }) || gameState !== 'playing')) stopTimeChainerMusic();
+      // Novarites' last dance ends the moment he does.
+      if (novaMusicOn && (!miniBosses.some(function(m) { return m.alive && m.type === 'novarites'; }) || gameState !== 'playing')) stopNovaritesMusic();
     }
 
     // ==================== THE MASTER MAGE ====================
@@ -9973,6 +10699,201 @@
       }
     }
 
+    // ==================== NOVARITES (the secret boss) ====================
+    // A fixed three-move rotation — star light, plasma beam, nightmare — so every
+    // fight shows all of it. The 100-point shield soaks hits at 70% reduction until
+    // it shatters; then his 4500 HP is exposed, and dying drops him into a faster
+    // 2500 HP second phase.
+    function spawnNovarites() {
+      var nv = {
+        x: stick.x > CW / 2 ? 170 : CW - 170, y: GROUND_Y, hp: NOVA_HP, maxHp: NOVA_HP,
+        shield: NOVA_SHIELD_MAX, shieldMax: NOVA_SHIELD_MAX,
+        speed: NOVA_SPD, attackCD: 95, hitFlash: 0, alive: true,
+        facing: stick.x < CW / 2 ? 1 : -1, type: 'novarites', animTime: 0, vy: 0,
+        state: 'chase', phase: 1, cast: 0, atkCount: 0, contactCD: 0
+      };
+      miniBosses.push(nv);
+      novaStars = []; novaBeam = null; novaNightmare = null; novaMusicOn = false;
+      createTextParticle(CW / 2, 60, '🌠 NOVARITES — ' + NOVA_HP + ' HP', '#e0e7ff', 26);
+      createTextParticle(CW / 2, 92, '🛡 100 SHIELD · ✦ STAR LIGHT · ⚡ PLASMA · 😴 NIGHTMARE', '#a5b4fc', 12);
+      createTextParticle(CW / 2, 118, 'PHASE 2: ' + NOVA_PHASE2_HP + ' HP', '#818cf8', 12);
+      createParticles(CW / 2, GROUND_Y, 45, '#818cf8');
+      createExplosion(CW / 2, GROUND_Y - 60, 85, '#6366f1');
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 700);
+      startNovaritesMusic();
+    }
+
+    function updateNovarites(mb, dist) {
+      if (!mb.state) mb.state = 'chase';
+      if (mb.cast === undefined) mb.cast = 0;
+      if (mb.contactCD === undefined) mb.contactCD = 0;
+      if (mb.atkCount === undefined) mb.atkCount = 0;
+      if (mb.contactCD > 0) mb.contactCD--;
+      var p2 = mb.phase === 2;
+      var gap = p2 ? 62 : 100;
+      mb.animTime++;
+      switch (mb.state) {
+        case 'chase': {
+          mb.facing = stick.x < mb.x ? -1 : 1;
+          if (dist > 230) mb.x += Math.sign(stick.x - mb.x) * mb.speed;
+          else if (dist < 145) mb.x -= Math.sign(stick.x - mb.x) * mb.speed * 0.7;
+          if (dist < 78 && mb.contactCD <= 0) {
+            damagePlayer(NOVA_CONTACT_DMG, '#818cf8');
+            mb.contactCD = 75;
+            createParticles(mb.x, GROUND_Y - 40, 8, '#818cf8');
+          }
+          mb.attackCD--;
+          if (mb.attackCD <= 0) {
+            mb.cast = 0;
+            mb.atkCount++;
+            var rot = mb.atkCount % 3;
+            mb.state = rot === 1 ? 'stars' : rot === 2 ? 'plasma' : 'nightmare';
+            if (mb.state === 'stars') createTextParticle(mb.x, GROUND_Y - 196, '✦ STAR LIGHT', '#e0e7ff', 16);
+            else if (mb.state === 'plasma') createTextParticle(mb.x, GROUND_Y - 196, '⚡ PLASMA BEAM', '#c7d2fe', 16);
+            else createTextParticle(mb.x, GROUND_Y - 196, '😴 NIGHTMARE', '#a78bfa', 16);
+          }
+          break;
+        }
+        case 'stars': {
+          mb.cast++;
+          mb.facing = stick.x < mb.x ? -1 : 1;
+          var volleys = p2 ? [16, 34, 52, 70] : [18, 44, 68];
+          for (var vi = 0; vi < volleys.length; vi++) {
+            if (mb.cast !== volleys[vi]) continue;
+            var shots = p2 ? 2 : 1;
+            for (var si = 0; si < shots; si++) {
+              var sx = stick.x + (shots > 1 ? (si === 0 ? -90 : 90) : 0) + (Math.random() - 0.5) * 55;
+              sx = Math.max(55, Math.min(CW - 55, sx));
+              novaStars.push({ x: sx, life: NOVA_STAR_WARN + 42, delay: NOVA_STAR_WARN, hit: false });
+            }
+          }
+          if (mb.cast > (p2 ? 88 : 80)) { mb.state = 'chase'; mb.attackCD = gap; }
+          break;
+        }
+        case 'plasma': {
+          mb.cast++;
+          mb.facing = stick.x < mb.x ? -1 : 1;
+          if (mb.cast === 1) createTextParticle(mb.x, GROUND_Y - 178, '⚡ CHARGING', '#a5b4fc', 14);
+          if (mb.cast === 36) {
+            novaBeam = { x: mb.x, y: stick.y - 35, dir: mb.facing, timer: p2 ? 140 : 108, charge: 0, tick: 0 };
+            createTextParticle(mb.x, GROUND_Y - 128, '⚡ PLASMA!', '#c7d2fe', 18);
+            createParticles(mb.x, GROUND_Y - 70, 16, '#a5b4fc');
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 260);
+          }
+          if (mb.cast > (p2 ? 152 : 118)) { novaBeam = null; mb.state = 'chase'; mb.attackCD = gap; }
+          break;
+        }
+        case 'nightmare': {
+          mb.cast++;
+          mb.facing = stick.x < mb.x ? -1 : 1;
+          if (mb.cast === 24) {
+            novaNightmare = { timer: NOVA_NIGHTMARE_DUR, tick: 0, x: stick.x, y: stick.y - 30 };
+            createTextParticle(stick.x, stick.y - 132, '😴 NIGHTMARE GAS', '#a78bfa', 20);
+            createParticles(stick.x, GROUND_Y - 20, 28, '#a78bfa');
+          }
+          if (mb.cast > 52) { mb.state = 'chase'; mb.attackCD = gap; }
+          break;
+        }
+      }
+      mb.x = Math.max(70, Math.min(CW - 70, mb.x));
+    }
+
+    // His attacks resolve outside the boss, so a death mid-cast cannot strand a beam,
+    // a falling star or the gas cloud on the field.
+    function updateNovaritesFx() {
+      for (var i = novaStars.length - 1; i >= 0; i--) {
+        var s = novaStars[i];
+        s.life--;
+        if (s.delay > 0) {
+          s.delay--;
+          if (s.delay === 0) {
+            s.hit = true;
+            createExplosion(s.x, GROUND_Y - 40, 74, '#c7d2fe');
+            createParticles(s.x, GROUND_Y - 5, 24, '#e0e7ff');
+            createTextParticle(s.x, GROUND_Y - 140, '✦ STAR LIGHT ' + NOVA_STAR_DMG, '#e0e7ff', 17);
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 240);
+            if (Math.abs(stick.x - s.x) < NOVA_STAR_RADIUS) damagePlayer(NOVA_STAR_DMG, '#e0e7ff');
+          }
+        }
+        if (s.life <= 0) novaStars.splice(i, 1);
+      }
+      if (novaBeam) {
+        var b = novaBeam;
+        b.timer--; b.charge++;
+        if (b.charge > 36) {
+          b.tick++;
+          if (b.tick % NOVA_PLASMA_TICK === 0) {
+            var onBeam = Math.abs((stick.y - 35) - b.y) < 58 && Math.sign(stick.x - b.x) === b.dir;
+            if (onBeam) {
+              damagePlayer(NOVA_PLASMA_DMG, '#c7d2fe');
+              createTextParticle(stick.x, stick.y - 92, '⚡ ' + NOVA_PLASMA_DMG, '#c7d2fe', 13);
+              createParticles(stick.x, stick.y - 40, 6, '#a5b4fc');
+            }
+          }
+        }
+        if (b.timer <= 0) novaBeam = null;
+      }
+      if (novaNightmare) {
+        var n = novaNightmare;
+        n.timer--; n.tick++;
+        // The gas follows the player, so it cannot simply be walked out of.
+        n.x += (stick.x - n.x) * 0.05;
+        n.y += ((stick.y - 30) - n.y) * 0.05;
+        if (n.tick % NOVA_NIGHTMARE_TICK === 0) {
+          damagePlayer(NOVA_NIGHTMARE_DMG, '#a78bfa');
+          createTextParticle(stick.x, stick.y - 100, '😵 HALLUCINATION ' + NOVA_NIGHTMARE_DMG, '#c4b5fd', 16);
+          createParticles(stick.x, stick.y - 30, 10, '#a78bfa');
+        }
+        if (n.timer <= 0) novaNightmare = null;
+      }
+    }
+
+    // The hallucination layer: a purple film, wobbling ghost figures and glitch bars,
+    // drawn over the arena after everyone else.
+    function drawNovaritesOverlay() {
+      if (!novaNightmare) return;
+      var n = novaNightmare;
+      var pct = n.timer / NOVA_NIGHTMARE_DUR;
+      ctx.globalAlpha = 0.06 + Math.abs(Math.sin(time * 0.08)) * 0.05;
+      ctx.fillStyle = '#6d28d9'; ctx.fillRect(0, 0, CW, CH);
+      for (var r = 0; r < 3; r++) {
+        var rr = 40 + ((time * 1.6 + r * 60) % 180);
+        ctx.strokeStyle = 'rgba(196,181,253,' + Math.max(0, 0.4 * (1 - rr / 220)).toFixed(2) + ')';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(n.x, n.y, rr, 0, Math.PI * 2); ctx.stroke();
+      }
+      for (var h = 0; h < 4; h++) {
+        var hx = n.x + Math.sin(time * 0.03 + h * 2.1) * (58 + h * 20);
+        var hy = GROUND_Y - 16 + Math.cos(time * 0.05 + h) * 12;
+        ctx.globalAlpha = 0.16 + Math.abs(Math.sin(time * 0.06 + h * 1.7)) * 0.14;
+        ctx.strokeStyle = h % 2 ? '#c4b5fd' : '#818cf8'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(hx, hy - 46, 8, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx, hy - 38); ctx.lineTo(hx, hy - 4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx, hy - 30); ctx.lineTo(hx - 12, hy - 18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx, hy - 30); ctx.lineTo(hx + 12, hy - 18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx, hy - 4); ctx.lineTo(hx - 9, hy + 12); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx, hy - 4); ctx.lineTo(hx + 9, hy + 12); ctx.stroke();
+      }
+      ctx.globalAlpha = 0.13 + Math.abs(Math.sin(time * 0.05)) * 0.05;
+      ctx.fillStyle = '#7c3aed';
+      for (var g = 0; g < 5; g++) {
+        var ga = time * 0.02 + g * 1.3;
+        ctx.beginPath();
+        ctx.arc(n.x + Math.cos(ga) * 46, n.y + Math.sin(ga * 1.3) * 26, 34 + Math.sin(ga) * 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 0.10;
+      for (var gb = 0; gb < 3; gb++) {
+        var gy = (time * 3 + gb * 137) % CH;
+        ctx.fillStyle = gb % 2 ? '#c4b5fd' : '#4c1d95';
+        ctx.fillRect(0, gy, CW, 3 + (gb % 2) * 4);
+      }
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#ddd6fe'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('😴 NIGHTMARE ' + Math.ceil(n.timer / 60) + 's · ' + Math.ceil(pct * 100) + '%', CW / 2, 22);
+      ctx.textAlign = 'start'; ctx.globalAlpha = 1;
+    }
+
     function spawnMiniBosses() {
       if (boss && boss.alive) return;
       var aliveMB = miniBosses.filter(function(m) { return m.alive; }).length;
@@ -10088,7 +11009,7 @@
       if (pickupDmgTimer > 0) pickupDmgTimer--;
       if (pickupJumpTimer > 0) pickupJumpTimer--;
       let targetVx = 0;
-      var spdMult = (getShopUpgradeEffect('speed') + MOVE_SPEED_BONUS / MOVE_SPEED) * skinSpeedMult(); if (pickupSpeedTimer > 0) spdMult *= PICKUP_SPEED_MULT; if (selectedChar === 'ultra') spdMult *= ULTRA_SPEED_MULT; spdMult *= lvSpeedMult();
+      var spdMult = (getShopUpgradeEffect('speed') + MOVE_SPEED_BONUS / MOVE_SPEED) * skinSpeedMult(); if (pickupSpeedTimer > 0) spdMult *= PICKUP_SPEED_MULT; if (selectedChar === 'ultra') spdMult *= ULTRA_SPEED_MULT; if (selectedChar === 'antidot') spdMult *= ANTIDOT_SPEED_MULT; spdMult *= lvSpeedMult();
       // ---- Sprint ------------------------------------------------------------
       // Deliberately works with NO extra button: holding a direction for ~half a second
       // breaks into a sprint, and SHIFT breaks into it instantly on a keyboard. That way
@@ -10836,6 +11757,7 @@
         case 'phantom': return PHANTOM_HP;
         case 'slayer': return SLAYER_HP;
         case 'taoist': return taoistMaxHp();
+        case 'antidot': return ANTIDOT_HP;
         default: return MAGE_HP;
       }
     }
@@ -11649,7 +12571,7 @@
       // Ultra's 3rd-ult time stop freezes every enemy (they do not walk, shoot or summon),
       // while the player, his abilities and his own projectiles keep running.
       var frozen = ultraTimeFrozen();
-      updateStickman(); if (!frozen) { updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); } updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); if (!frozen) updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateUltraAbilities(); updateCheeserAbilities(); updatePhantomAbilities(); updateSlayerAbilities(); updateTaoistAbilities(); if (!frozen) updateDarkUniverseBoss(); updateCampaignSpawns(); checkCampaignWin();
+      updateStickman(); if (!frozen) { updateNormalDummies(); updateCrossbows(); updateKamikazes(); updateBoss(); updateMiniBosses(); updateSentinel(); } updateAllyGunners(); updateAllies(); updateBullets(); updatePlayerBullets(); updateGrenades(); if (!frozen) updateEnemyGrenades(); updateSpikes(); updateSuperBlastOrbs(); updateMageFireballs(); updateMageFrostOrbs(); updateNinjaKunais(); updateNinjaClones(); updateNinjaSharins(); updateNinjaUlt();      updateBotsState(); updateBotStriders();      updateKnightAbilities(); updateHyperAbilities(); updateUltraAbilities(); updateCheeserAbilities(); updatePhantomAbilities(); updateSlayerAbilities(); updateTaoistAbilities(); updateAntidotAbilities(); if (!frozen) updateDarkUniverseBoss(); updateCampaignSpawns(); checkCampaignWin();
       // A taoist with his revival intact never stays dead: this catches every damage path
       // that sets 'gameover' directly (boss auras, airstrikes, bone hands, campaign deaths).
       if (gameState === 'gameover' && selectedChar === 'taoist' && !taoistReviveUsed) { gameState = 'playing'; reviveTaoist(); }
@@ -12733,6 +13655,7 @@
       drawSpikes();
       dummies.forEach(d => drawDummy(d));
       miniBosses.forEach(mb => drawMiniBoss(mb));
+      drawNovaritesOverlay();
       drawAllyGunners(); drawAllies(); drawBotStriders();
       // Cheeser cheese bullets
       if (selectedChar === 'cheeser') {
@@ -12777,6 +13700,71 @@
           ctx.beginPath(); ctx.arc(stick.x - 20 * phantomDashDir, stick.y - 30, 22, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
         }
+      }
+      // Antidot (The Second Coming) effects: falling orbs, the thin green eye beam and the
+      // huge orb-blaze beam (5x the eye's width), the charge orb, and the lunge trail.
+      if (selectedChar === 'antidot') {
+        antidotOrbs.forEach(function(o) {
+          ctx.save();
+          ctx.shadowColor = ANTIDOT_GREEN; ctx.shadowBlur = 16;
+          ctx.globalAlpha = 0.9;
+          ctx.fillStyle = ANTIDOT_GREEN;
+          ctx.beginPath(); ctx.arc(o.x, o.y, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#bbf7d0';
+          ctx.beginPath(); ctx.arc(o.x, o.y, 3.4, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 0.28;
+          ctx.fillStyle = '#86efac';
+          ctx.fillRect(o.x - 1.2, o.y - 58, 2.4, 50);
+          ctx.restore();
+        });
+        function anBeam(midW, glowW, coreW, alpha) {
+          var aex = antidotEyeX(), aey = antidotEyeY();
+          var aimP = antidotAimPoint();
+          var adx = aimP.x - aex, ady = aimP.y - aey;
+          var alen = Math.sqrt(adx * adx + ady * ady) || 1;
+          var anx = adx / alen, any = ady / alen;
+          var aendX = aex + anx * 900, aendY = aey + any * 900;
+          ctx.save();
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = 'rgba(34,197,94,0.22)'; ctx.lineWidth = glowW;
+          ctx.globalAlpha = alpha * (0.55 + Math.sin(time * 0.5) * 0.2);
+          ctx.beginPath(); ctx.moveTo(aex, aey); ctx.lineTo(aendX, aendY); ctx.stroke();
+          ctx.strokeStyle = ANTIDOT_GREEN; ctx.lineWidth = midW;
+          ctx.globalAlpha = alpha * 0.75;
+          ctx.beginPath(); ctx.moveTo(aex, aey); ctx.lineTo(aendX, aendY); ctx.stroke();
+          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = coreW;
+          ctx.globalAlpha = alpha * 0.9;
+          ctx.beginPath(); ctx.moveTo(aex, aey); ctx.lineTo(aendX, aendY); ctx.stroke();
+          // Eye flare
+          ctx.fillStyle = '#ffffff'; ctx.globalAlpha = alpha * 0.85;
+          ctx.beginPath(); ctx.arc(aex, aey, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = ANTIDOT_GREEN; ctx.globalAlpha = alpha * 0.35;
+          ctx.beginPath(); ctx.arc(aex, aey, 13, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+        if (antidotLaser) anBeam(8, 20, 3, 0.85);
+        if (antidotBlaze && antidotBlaze.phase === 'beam') anBeam(50, 96, 16, 1);
+        if (antidotBlaze && antidotBlaze.phase === 'charge') {
+          var anCharge = 1 - antidotBlaze.timer / ANTIDOT_BLAZE_CHARGE;
+          ctx.save();
+          ctx.globalAlpha = 0.35 + anCharge * 0.45;
+          var anCg = ctx.createRadialGradient(antidotEyeX(), antidotEyeY(), 2, antidotEyeX(), antidotEyeY(), 14 + anCharge * 34);
+          anCg.addColorStop(0, '#ffffff'); anCg.addColorStop(0.35, '#bbf7d0'); anCg.addColorStop(1, 'rgba(34,197,94,0)');
+          ctx.fillStyle = anCg;
+          ctx.beginPath(); ctx.arc(antidotEyeX(), antidotEyeY(), 14 + anCharge * 34, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+        if (antidotLunge) {
+          ctx.save();
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = ANTIDOT_GREEN; ctx.lineWidth = 3;
+          for (var lq = 1; lq <= 3; lq++) {
+            var lqx = stick.x - antidotLunge.dir * lq * 22;
+            ctx.beginPath(); ctx.arc(lqx, stick.y - 34, 12 + lq * 3, 0, Math.PI * 2); ctx.stroke();
+          }
+          ctx.restore();
+        }
+        ctx.lineWidth = 5.5;
       }
       // Hyper effects drawing
       if (selectedChar === 'hyper') {
@@ -13404,6 +14392,10 @@
         if (ultDashUnlocked) { ultBtn1.style.opacity = mageLightningCD > 0 ? '0.4' : '1'; ultBtn1.querySelector('span').textContent = mageLightningCD > 0 ? Math.ceil(mageLightningCD / 60) : '1'; }
         if (ultGrenadeUnlocked) { ultBtn2.style.opacity = mageFrostCD > 0 ? '0.4' : '1'; ultBtn2.querySelector('span').textContent = mageFrostCD > 0 ? Math.ceil(mageFrostCD / 60) : '2'; }
         if (ultAllyUnlocked) { ultBtn3.style.opacity = mageTeleportCD > 0 ? '0.4' : '1'; ultBtn3.querySelector('span').textContent = mageTeleportCD > 0 ? Math.ceil(mageTeleportCD / 60) : 'F'; }
+      } else if (selectedChar === 'antidot') {
+        if (ultDashUnlocked) { ultBtn1.style.opacity = antidotLaserCD > 0 ? '0.4' : '1'; ultBtn1.querySelector('span').textContent = antidotLaserCD > 0 ? Math.ceil(antidotLaserCD / 60) : '1'; }
+        if (ultGrenadeUnlocked) { ultBtn2.style.opacity = antidotGravCD > 0 ? '0.4' : '1'; ultBtn2.querySelector('span').textContent = antidotGravCD > 0 ? Math.ceil(antidotGravCD / 60) : '2'; }
+        if (ultAllyUnlocked) { ultBtn3.style.opacity = antidotLungeCD > 0 ? '0.4' : '1'; ultBtn3.querySelector('span').textContent = antidotLungeCD > 0 ? Math.ceil(antidotLungeCD / 60) : 'F'; }
       } else if (selectedChar === 'ultra') {
         if (ultDashUnlocked) { ultBtn1.style.opacity = ultraLaserCD > 0 ? '0.4' : '1'; ultBtn1.querySelector('span').textContent = ultraLaserCD > 0 ? Math.ceil(ultraLaserCD / 60) : '1'; }
         if (ultGrenadeUnlocked) { ultBtn2.style.opacity = ultraPulseCD > 0 ? '0.4' : '1'; ultBtn2.querySelector('span').textContent = ultraPulseCD > 0 ? Math.ceil(ultraPulseCD / 60) : '2'; }
@@ -13898,8 +14890,8 @@
     function ultraScaled(dmg) { return Math.max(1, Math.round(dmg * ultraDmgMult())); }
 
     // Flat damage in a horizontal band centred on cx (the whole arena when radius is CW).
-    function ultraHitRadius(cx, radius, dmg, source) {
-      var d = ultraScaled(dmg);
+    // Shared by every "blast" character; each one passes in its own already-scaled damage.
+    function hitBandScaled(cx, radius, d, source) {
       dummies.forEach(function(t) { if (t.alive && Math.abs(t.x - cx) < radius) dealDamageToDummy(t, d, source); });
       miniBosses.forEach(function(t) { if (t.alive && Math.abs(t.x - cx) < radius) dealDamageToMiniBoss(t, d, source); });
       if (boss && boss.alive && Math.abs(boss.x - cx) < radius) dealDamageToBoss(d, source);
@@ -13911,6 +14903,7 @@
       if (bossRushSentinel2 && bossRushSentinel2.alive && Math.abs(bossRushSentinel2.x - cx) < radius) dealColossalSentinelDamage(bossRushSentinel2, d, source);
       if (bossRushColossal && bossRushColossal.hp > 0 && Math.abs(bossRushColossal.x - cx) < radius) dealColossalDamage(d, source);
     }
+    function ultraHitRadius(cx, radius, dmg, source) { hitBandScaled(cx, radius, ultraScaled(dmg), source); }
     function ultraHitAll(dmg, source) { ultraHitRadius(CW / 2, CW, dmg, source); }
 
     // The supernova is percentage-based: 65% of EACH enemy's own max HP, bosses included.
@@ -14090,6 +15083,219 @@
     // Frozen enemies: everything that walks, shoots or casts stops, the player does not.
     function ultraTimeFrozen() { return ultraTimeStop > 0; }
 
+    // ==================== ANTIDOT — THE SECOND COMING ====================
+    // A plain orange stickman with one green eye. Punch and kick are the fighter's moves;
+    // the rest of the kit is green energy: an eye laser, a gravity slam, falling orbs, a
+    // flying lunge, and an ultimate that lifts him off the ground to fire a huge green beam.
+    function antidotAwakened() { return !!antidotBlaze; }
+    function antidotEyeX() { return stick.x + 6 * stick.facing; }
+    function antidotEyeY() { return stick.y - 55; }
+    // The beam locks onto the closest enemy's chest; with nothing to lock onto it follows
+    // the cursor / drag point, which is what a phone player aims with.
+    function antidotAimPoint() {
+      var nearX = ultraNearestEnemyX(stick.x);
+      if (nearX !== null) return { x: nearX, y: GROUND_Y - 32 };
+      return { x: mouseX, y: mouseY };
+    }
+
+    // Fires a damage tick down a ray from the eye. halfW is half the beam's thickness, so
+    // the thick orb-blaze beam catches more of the arena than the thin eye laser.
+    function antidotBeamTick(dmg, halfW, source) {
+      var eyeX = antidotEyeX(), eyeY = antidotEyeY();
+      var aim = antidotAimPoint();
+      var dx0 = aim.x - eyeX, dy0 = aim.y - eyeY;
+      var len = Math.sqrt(dx0 * dx0 + dy0 * dy0) || 1;
+      var nx = dx0 / len, ny = dy0 / len;
+      function reaches(tx, ty, r) {
+        var ex = tx - eyeX, ey = ty - eyeY;
+        var proj = ex * nx + ey * ny;
+        if (proj < 0 || proj > 900) return false;
+        var px = eyeX + nx * proj, py = eyeY + ny * proj;
+        return Math.abs(tx - px) < halfW + r && Math.abs(ty - py) < halfW + r;
+      }
+      dummies.forEach(function(d) { if (d.alive && reaches(d.x, GROUND_Y - 30, 14)) dealDamageToDummy(d, dmg, source); });
+      miniBosses.forEach(function(mb) { if (mb.alive && reaches(mb.x, GROUND_Y - 30, 18)) dealDamageToMiniBoss(mb, dmg, source); });
+      if (boss && boss.alive && reaches(boss.x, GROUND_Y - 40, 20)) dealDamageToBoss(dmg, source);
+      if (sentinel && sentinel.alive && reaches(sentinel.x, GROUND_Y - 40, 20)) dealDamageToSentinel(dmg, source);
+      if (commander && commander.alive && reaches(commander.x, GROUND_Y - 40, 20)) { commander.hp -= dmg; commander.hitFlash = 4; }
+      if (bossRushDeath && bossRushDeath.hp > 0 && reaches(bossRushDeath.x, bossRushDeath.y - 30, 20)) { bossRushDeath.hp -= dmg; bossRushDeath.hitFlash = 4; }
+      if (bossRushUltra && bossRushUltra.hp > 0 && reaches(bossRushUltra.x, bossRushUltra.y - 30, 20)) dealUltraBossDamage(dmg);
+      if (bossRushSentinel1 && bossRushSentinel1.alive && reaches(bossRushSentinel1.x, GROUND_Y - 40, 20)) dealColossalSentinelDamage(bossRushSentinel1, dmg, source);
+      if (bossRushSentinel2 && bossRushSentinel2.alive && reaches(bossRushSentinel2.x, GROUND_Y - 40, 20)) dealColossalSentinelDamage(bossRushSentinel2, dmg, source);
+      if (bossRushColossal && bossRushColossal.hp > 0 && reaches(bossRushColossal.x, GROUND_Y - 40, 20)) dealColossalDamage(dmg, source);
+    }
+
+    // M1 — the fighter's own punch
+    function performAntidotPunch() { performPunch(); }
+    // M2 — the fighter's own kick
+    function performAntidotBlast() { performKickFighter(); }
+
+    // 1 — GREEN LASER EYE: 2 damage every 0.25s for 5 seconds, aimed with the mouse/drag.
+    function performAntidotLaser() {
+      if (antidotLaserCD > 0 || antidotLaser || antidotBlaze) return;
+      antidotLaserCD = ANTIDOT_LASER_CD;
+      antidotLaser = { timer: ANTIDOT_LASER_DUR, tick: 0 };
+      stick.state = 'shoot'; stick.animTime = 0; attackCooldown = 12;
+      createTextParticle(stick.x, stick.y - 96, '👁 GREEN LASER EYE', ANTIDOT_GREEN, 18);
+      createParticles(antidotEyeX(), antidotEyeY(), 10, ANTIDOT_GREEN);
+      ultraFx.push({ x: antidotEyeX(), y: antidotEyeY(), r: 6, max: 40, color: ANTIDOT_GREEN, type: 'flash', life: 12, maxLife: 12 });
+    }
+    // 2 — GRAVITY PULSE: a 35-damage ground slam that drags everything nearby down.
+    function performAntidotGravity() {
+      if (antidotGravCD > 0) return;
+      antidotGravCD = ANTIDOT_GRAV_CD;
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 20;
+      hitBandScaled(stick.x, ANTIDOT_GRAV_RADIUS, ANTIDOT_GRAV_DMG, 'slam');
+      createExplosion(stick.x, GROUND_Y - 16, ANTIDOT_GRAV_RADIUS * 0.7, ANTIDOT_GREEN);
+      ultraRing(stick.x, GROUND_Y - 10, 16, ANTIDOT_GRAV_RADIUS, ANTIDOT_GREEN, 'ring', 22);
+      ultraRing(stick.x, GROUND_Y - 10, 10, ANTIDOT_GRAV_RADIUS * 0.6, '#bbf7d0', 'wave', 16);
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 14, max: ANTIDOT_GRAV_RADIUS, color: ANTIDOT_GREEN, type: 'crack', count: 9, life: 24, maxLife: 24 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 20, r: 10, max: 90, color: '#bbf7d0', type: 'burst', count: 10, spin: 0, life: 16, maxLife: 16 });
+      createTextParticle(stick.x, stick.y - 100, '🟢 GRAVITY PULSE ' + ANTIDOT_GRAV_DMG, ANTIDOT_GREEN, 20);
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 320);
+    }
+    // E — ORB RAIN: six green orbs fall from the sky, 5 damage each where they land.
+    function performAntidotOrbRain() {
+      if (antidotOrbCD > 0) return;
+      antidotOrbCD = ANTIDOT_ORB_CD;
+      stick.state = 'grenade'; stick.animTime = 0; attackCooldown = 18;
+      var dir = stick.facing || 1;
+      for (var i = 0; i < ANTIDOT_ORB_COUNT; i++) {
+        var spread = (i - (ANTIDOT_ORB_COUNT - 1) / 2) * 62;
+        var ox = Math.max(40, Math.min(CW - 40, stick.x + dir * 110 + spread));
+        antidotOrbs.push({ x: ox, y: -40 - i * 55, vy: 7.5 + i * 0.35, dmg: ANTIDOT_ORB_DMG });
+      }
+      createTextParticle(stick.x, stick.y - 96, '🟢 ORB RAIN ×' + ANTIDOT_ORB_COUNT, ANTIDOT_GREEN, 18);
+      createParticles(stick.x, stick.y - 70, 10, ANTIDOT_GREEN);
+    }
+    // F — LUNGE FLY: a flying pass that deals 35 to everything under it.
+    function performAntidotLunge() {
+      if (antidotLungeCD > 0 || antidotLunge || antidotBlaze) return;
+      antidotLungeCD = ANTIDOT_LUNGE_CD;
+      antidotLunge = { timer: ANTIDOT_LUNGE_DUR, dir: stick.facing || 1 };
+      stick.state = 'jump'; stick.animTime = 0;
+      var midX = stick.x + antidotLunge.dir * ANTIDOT_LUNGE_DIST / 2;
+      hitBandScaled(midX, ANTIDOT_LUNGE_DIST / 2 + 55, ANTIDOT_LUNGE_DMG, 'lunge');
+      createTextParticle(stick.x, stick.y - 96, '🟢 LUNGE FLY ' + ANTIDOT_LUNGE_DMG, ANTIDOT_GREEN, 18);
+      createParticles(stick.x, stick.y - 20, 12, ANTIDOT_GREEN);
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 10, max: 70, color: ANTIDOT_GREEN, type: 'ring', life: 14, maxLife: 14 });
+    }
+    // 3 — ORB BLAZE: rise, charge the eye, then sweep a 5x-thick green beam for 10s.
+    function performAntidotUlt() {
+      if (!ultReady || antidotBlaze) return;
+      ultReady = false; ultCharge = 0;
+      ultBar.style.width = '0%'; ultBarText.textContent = '0%';
+      antidotBlaze = { phase: 'rise', timer: ANTIDOT_BLAZE_RISE, tick: 0 };
+      if (typeof showVoiceBanner === 'function') { try { showVoiceBanner('ORB BLAZE', ANTIDOT_GREEN); } catch (e) {} }
+      createTextParticle(CW / 2, 58, '🟢 ORB BLAZE', '#86efac', 28);
+      createTextParticle(CW / 2, 88, '2 DMG / 0.15s · 10s · 5× BEAM', ANTIDOT_GREEN, 13);
+      ultraFx.push({ x: stick.x, y: GROUND_Y - 40, r: 24, max: 260, color: ANTIDOT_GREEN, type: 'wave', life: 28, maxLife: 28 });
+      ultraFx.push({ x: stick.x, y: GROUND_Y, r: 14, max: 110, color: ANTIDOT_GREEN, type: 'crack', count: 8, life: 24, maxLife: 24 });
+      canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 400);
+    }
+
+    function updateAntidotAbilities() {
+      if (antidotLaserCD > 0) antidotLaserCD--;
+      if (antidotGravCD > 0) antidotGravCD--;
+      if (antidotOrbCD > 0) antidotOrbCD--;
+      if (antidotLungeCD > 0) antidotLungeCD--;
+      // --- 1: the eye beam ticks on its interval, aimed at the cursor / drag point ---
+      if (antidotLaser) {
+        antidotLaser.timer--; antidotLaser.tick++;
+        if (antidotLaser.tick % ANTIDOT_LASER_TICK === 0) {
+          antidotBeamTick(ANTIDOT_LASER_DMG, 8, 'laser');
+          createParticles(antidotEyeX() + 40 * (mouseX > stick.x ? 1 : -1), antidotEyeY(), 2, '#86efac');
+        }
+        if (antidotLaser.timer <= 0) { antidotLaser = null; createTextParticle(stick.x, stick.y - 90, 'LASER OFF', '#64748b', 12); }
+      }
+      // --- E: falling orbs land and splash ---
+      if (antidotOrbs.length) {
+        antidotOrbs.forEach(function(o) { o.y += o.vy; o.vy += 0.35; });
+        var landed = antidotOrbs.filter(function(o) { return o.y >= GROUND_Y - 14; });
+        if (landed.length) {
+          landed.forEach(function(o) {
+            hitBandScaled(o.x, ANTIDOT_ORB_RADIUS, o.dmg, 'orb');
+            createParticles(o.x, GROUND_Y - 12, 8, ANTIDOT_GREEN);
+            ultraRing(o.x, GROUND_Y - 12, 6, ANTIDOT_ORB_RADIUS, '#86efac', 'ring', 12);
+          });
+          antidotOrbs = antidotOrbs.filter(function(o) { return o.y < GROUND_Y - 14; });
+        }
+      }
+      // --- F: the flying pass (updateStickman ran already, so this owns his height) ---
+      if (antidotLunge) {
+        antidotLunge.timer--;
+        var prog = 1 - antidotLunge.timer / ANTIDOT_LUNGE_DUR;
+        stick.x = Math.max(50, Math.min(CW - 50, stick.x + ANTIDOT_LUNGE_DIST / ANTIDOT_LUNGE_DUR * antidotLunge.dir));
+        stick.vy = 0; stick.y = GROUND_Y - Math.sin(prog * Math.PI) * 125;
+        stick.state = 'jump';
+        ultraFx.push({ x: stick.x - 18 * antidotLunge.dir, y: stick.y - 30, r: 4, max: 26, color: ANTIDOT_GREEN, type: 'ring', life: 8, maxLife: 8 });
+        if (antidotLunge.timer <= 0) {
+          stick.y = GROUND_Y; stick.vy = 0; stick.state = 'idle';
+          antidotLunge = null;
+          createExplosion(stick.x, GROUND_Y - 16, 70, ANTIDOT_GREEN);
+          createParticles(stick.x, GROUND_Y - 16, 12, '#86efac');
+          ultraFx.push({ x: stick.x, y: GROUND_Y, r: 10, max: 80, color: ANTIDOT_GREEN, type: 'wave', life: 14, maxLife: 14 });
+        }
+      }
+      // --- 3: rise → charge → beam → fall ---
+      if (antidotBlaze) {
+        if (antidotBlaze.phase === 'rise') {
+          antidotBlaze.timer--;
+          var riseProg = 1 - antidotBlaze.timer / ANTIDOT_BLAZE_RISE;
+          stick.vy = 0; stick.y = GROUND_Y - riseProg * 130;
+          stick.state = 'jump';
+          createParticles(stick.x, GROUND_Y - 4, 2, ANTIDOT_GREEN);
+          if (antidotBlaze.timer <= 0) { antidotBlaze.phase = 'charge'; antidotBlaze.timer = ANTIDOT_BLAZE_CHARGE; }
+        } else if (antidotBlaze.phase === 'charge') {
+          antidotBlaze.timer--;
+          stick.vy = 0; stick.y = GROUND_Y - 130;
+          stick.state = 'jump';
+          if (antidotBlaze.timer % 3 === 0) {
+            var ang = Math.random() * Math.PI * 2;
+            var rad = 34 + Math.random() * 46;
+            particles.push({ x: antidotEyeX() + Math.cos(ang) * rad, y: antidotEyeY() + Math.sin(ang) * rad, vx: -Math.cos(ang) * 2.2, vy: -Math.sin(ang) * 2.2, life: 18, color: antidotBlaze.timer % 6 === 0 ? '#ffffff' : '#22c55e' });
+          }
+          if (antidotBlaze.timer % 12 === 0) createTextParticle(stick.x, stick.y - 110, 'CHARGING…', '#86efac', 13);
+          if (antidotBlaze.timer <= 0) {
+            antidotBlaze.phase = 'beam'; antidotBlaze.timer = ANTIDOT_BLAZE_DUR; antidotBlaze.tick = 0;
+            createTextParticle(CW / 2, 120, '🟢 ORB BLAZE!', '#bbf7d0', 26);
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 300);
+          }
+        } else if (antidotBlaze.phase === 'beam') {
+          antidotBlaze.timer--; antidotBlaze.tick++;
+          stick.vy = 0; stick.y = GROUND_Y - 130;
+          stick.state = 'shoot'; stick.animTime = 0;
+          if (antidotBlaze.tick % ANTIDOT_BLAZE_TICK === 0) {
+            antidotBeamTick(ANTIDOT_BLAZE_DMG, ANTIDOT_BLAZE_HALF_W, 'blaze');
+            createParticles(antidotEyeX(), antidotEyeY(), 3, '#bbf7d0');
+          }
+          if (antidotBlaze.tick % 60 === 0 && antidotBlaze.timer > 0) {
+            createTextParticle(stick.x, stick.y - 120, '🟢 ' + Math.ceil(antidotBlaze.timer / 60) + 's', '#bbf7d0', 14);
+          }
+          if (antidotBlaze.timer <= 0) { antidotBlaze.phase = 'fall'; antidotBlaze.timer = ANTIDOT_BLAZE_FALL; }
+        } else {
+          antidotBlaze.timer--;
+          stick.vy = 0; stick.y = Math.min(GROUND_Y, stick.y + 130 / ANTIDOT_BLAZE_FALL);
+          if (stick.y >= GROUND_Y) {
+            stick.y = GROUND_Y; stick.vy = 0; stick.state = 'idle';
+            antidotBlaze = null;
+            createExplosion(stick.x, GROUND_Y - 16, 90, ANTIDOT_GREEN);
+            createParticles(stick.x, GROUND_Y - 10, 16, '#86efac');
+            canvasWrap.classList.add('shake'); setTimeout(function() { canvasWrap.classList.remove('shake'); }, 300);
+          }
+        }
+      }
+      if (selectedChar !== 'antidot' || gameState !== 'playing') return;
+      // Passive — living energy: every 6s an orb drops on whatever is closest.
+      antidotInkTimer++;
+      if (antidotInkTimer >= ANTIDOT_INK_EVERY) {
+        antidotInkTimer = 0;
+        var nearX = ultraNearestEnemyX(stick.x);
+        var dropX = nearX !== null ? Math.max(40, Math.min(CW - 40, nearX)) : stick.x + (stick.facing || 1) * 120;
+        antidotOrbs.push({ x: dropX, y: -30, vy: 8, dmg: ANTIDOT_ORB_DMG });
+      }
+    }
+
     function updateUltraAbilities() {
       if (ultraPunchCD > 0) ultraPunchCD--;
       if (ultraBlastCD > 0) ultraBlastCD--;
@@ -14195,6 +15401,21 @@
     }
 
     // ==================== PHANTOM SECRET MISSION ====================
+    // The menu-corner star: a clean one-on-one duel against the secret boss.
+    function startNovaritesFight() {
+      if (gameState === 'playing' || gameState === 'paused') return;
+      selectMode('normal');
+      document.getElementById('campaignScreen').classList.add('hidden');
+      document.getElementById('menuScreen').classList.add('hidden');
+      document.getElementById('playBtn').click();
+      // Nothing else on the field: this fight is only Novarites.
+      miniBosses = []; dummies = []; bullets = []; enemyGrenades = []; pickups = [];
+      novaStars = []; novaBeam = null; novaNightmare = null; novaMusicOn = false;
+      spawnNovarites();
+      resumeGameLoop();
+    }
+    window.startNovaritesFight = startNovaritesFight;
+
     function startPhantomMission() {
       document.getElementById('campaignScreen').classList.add('hidden');
       menuScreen.classList.add('hidden');
@@ -15277,6 +16498,12 @@
         if (e.key === '3') performTaoistUlt();
         if (e.key.toLowerCase() === 'f') performTaoistBigZombie();
         if (e.key.toLowerCase() === 'e') performTaoistAmulet();
+      } else if (selectedChar === 'antidot') {
+        if (e.key === '1') performAntidotLaser();
+        if (e.key === '2') performAntidotGravity();
+        if (e.key === '3') performAntidotUlt();
+        if (e.key.toLowerCase() === 'f') performAntidotLunge();
+        if (e.key.toLowerCase() === 'e') performAntidotOrbRain();
       }
     });
     window.addEventListener('keyup', (e) => {
@@ -15316,6 +16543,8 @@
         if (e.button === 2) performSlayerLunge(); else performSlayerSlash();
       } else if (selectedChar === 'taoist') {
         if (e.button === 2) performTaoistPulse(); else performTaoistSword();
+      } else if (selectedChar === 'antidot') {
+        if (e.button === 2) performAntidotBlast(); else performAntidotPunch();
       }
     });
     canvas.addEventListener('mousemove', (e) => {
@@ -15341,7 +16570,7 @@
       mouseY = (t.clientY - rect.top) * (CH / rect.height);
       mobAimTimer = 0; // a direct tap takes the aim back from the sticks
       if (mouseX > stick.x) stick.facing = 1; else stick.facing = -1;
-      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else if (selectedChar === 'ultra') performUltraPunch(); else if (selectedChar === 'cheeser') performCheeserThrow(); else if (selectedChar === 'phantom') performPhantomPunch(); else if (selectedChar === 'slayer') performSlayerSlash(); else if (selectedChar === 'taoist') performTaoistSword(); else performPunch();
+      if (selectedChar === 'soldier') performShoot(); else if (selectedChar === 'mage') performMageFireball(); else if (selectedChar === 'ninja') performNinjaSlash(); else if (selectedChar === 'bots') performBotBlast(); else if (selectedChar === 'knight') performKnightSlash(); else if (selectedChar === 'hyper') performHyperPunch(); else if (selectedChar === 'ultra') performUltraPunch(); else if (selectedChar === 'cheeser') performCheeserThrow(); else if (selectedChar === 'phantom') performPhantomPunch(); else if (selectedChar === 'slayer') performSlayerSlash(); else if (selectedChar === 'taoist') performTaoistSword(); else if (selectedChar === 'antidot') performAntidotPunch(); else performPunch();
     }, { passive: false });
 
     // ==================== RESET ====================
@@ -15357,6 +16586,7 @@
       // A death-mode run starts its own ladder: the clearance trophy is permanent, the
       // "this run is won" flag is not.
       deathRunWon = false; deathHeavyTimer = 0; deathHeavyIdx = 0; deathZombieTimer = 0;
+      lifestealPool = 0;
       playerHP = PLAYER_MAX_HP_CURRENT; attackCooldown = 0;
       // Refresh the HUD here: without this a round started after a death showed the old
       // empty HP bar (0 HP) until the first hit, on every device.
@@ -15412,10 +16642,15 @@
       taoistAmulet = { id: '', name: '', good: true, timer: 0, mult: {} };
       taoistPulseFx = { active: false, timer: 0, x: 0 };
       taoistUltAmulet = { active: false, timer: 0, tick: 0, x: 0 };
+      // Antidot: cooldowns, the awakened state and his dash are per-round too.
+      antidotLaserCD = 0; antidotGravCD = 0; antidotOrbCD = 0; antidotLungeCD = 0;
+      antidotInkTimer = 0; antidotOrbs = [];
+      antidotLaser = null; antidotLunge = null; antidotBlaze = null;
       expKills = 0; expNextLevel = 5;
       campaignTimer = 0; campaignSpawnTimer = 0; campaignSpecialTimers = {}; amethystBolts = []; masterRunes = [];
       // The Time Chainer's projectiles, chains and theme are per-round.
       tcBlasts = []; timeChainTimer = 0; tcMusicOn = false;
+      novaStars = []; novaBeam = null; novaNightmare = null; novaMusicOn = false;
       ultCharge = 0; ultReady = false; ultActive = false; ultTimer = 0;
       ultBar.style.width = '0%'; ultBarText.textContent = '0%';
       isDashing = false; dashDist = 0;
@@ -15447,10 +16682,11 @@
 
     document.getElementById('resetBtn').addEventListener('click', () => { document.getElementById('cutsceneUI').style.display = ''; fullReset(); gameState = 'playing'; resumeGameLoop(); });
     document.getElementById('campSecret').addEventListener('click', function() { startPhantomMission(); });
+    document.getElementById('novaritesSecret').addEventListener('click', function() { startNovaritesFight(); });
     document.getElementById('closeInstructions').addEventListener('click', () => { showInstructions = false; instructionsEl.style.display = 'none'; });
-    ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraLaser() : selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaFarDash() : selectedChar === 'bots' ? performBotJetpack() : performDash(); });
-    ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraPulse() : selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : performSlam(); });
-    ultBtn3.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraUlt() : selectedChar === 'soldier' ? performAllyGunner() : selectedChar === 'super' ? performSuperCrossbowAlly() : selectedChar === 'mage' ? performMageHeal() : selectedChar === 'ninja' ? performNinjaClones() : selectedChar === 'bots' ? performBotLaserCore() : performParry(); });
+    ultBtn1.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraLaser() : selectedChar === 'super' ? performSuperCharge() : selectedChar === 'mage' ? performMageLightning() : selectedChar === 'ninja' ? performNinjaFarDash() : selectedChar === 'bots' ? performBotJetpack() : selectedChar === 'antidot' ? performAntidotLaser() : performDash(); });
+    ultBtn2.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraPulse() : selectedChar === 'soldier' ? performGrenade() : selectedChar === 'super' ? performSuperBlast() : selectedChar === 'mage' ? performMageFrostNova() : selectedChar === 'ninja' ? performNinjaSharin() : selectedChar === 'bots' ? performBotStrider() : selectedChar === 'antidot' ? performAntidotGravity() : performSlam(); });
+    ultBtn3.addEventListener('click', (e) => { e.stopPropagation(); selectedChar === 'ultra' ? performUltraUlt() : selectedChar === 'soldier' ? performAllyGunner() : selectedChar === 'super' ? performSuperCrossbowAlly() : selectedChar === 'mage' ? performMageHeal() : selectedChar === 'ninja' ? performNinjaClones() : selectedChar === 'bots' ? performBotLaserCore() : selectedChar === 'antidot' ? performAntidotLunge() : performParry(); });
     // Gameover screen buttons
     document.getElementById('retryBtn').addEventListener('click', function() {
       document.getElementById('gameoverScreen').classList.add('hidden');
@@ -15583,6 +16819,16 @@
         rows.push(['E', 'AMULET (5+/5−)', 'text-fuchsia-400']);
         rows.push(['3', 'HEAVEN AMULET 250×3', 'text-yellow-300']);
         rows.push(['PASSIVE', 'ZOMBIES −20% · REVIVE', 'text-lime-500']);
+      } else if (selectedChar === 'antidot') {
+        rows.push(['L-CLICK', 'PUNCH (fighter)', 'text-emerald-400']);
+        rows.push(['R-CLICK', 'KICK (fighter)', 'text-rose-400']);
+        rows.push(['1', 'GREEN LASER EYE 2/0.25s · 5s', 'text-green-400']);
+        rows.push(['2', 'GRAVITY PULSE 35', 'text-green-300']);
+        rows.push(['F', 'LUNGE FLY 35', 'text-green-500']);
+        rows.push(['E', 'ORB RAIN 5×6', 'text-emerald-300']);
+        rows.push(['3', 'ORB BLAZE 2/0.15s · 10s · 5× BEAM', 'text-green-200']);
+        rows.push(['3 REQ', 'NEEDS 100% ULT', 'text-amber-400']);
+        rows.push(['PASSIVE', '250 HP · FAST · ORB/6s', 'text-green-600']);
       }
       rows.push(['ESC', 'PAUSE', 'text-slate-500']);
       rows.push(['TAB', 'SHOP', 'text-amber-400']);
@@ -15607,8 +16853,47 @@
       el.textContent = r.rank.name;
       el.style.color = r.rank.color;
       var wrap = document.getElementById('menuRankWrap');
-      if (wrap) wrap.title = r.rank.icon + ' ' + r.rank.name + ' — ' + totalPoints + ' pts' +
-        (r.next ? (' · ' + r.toNext + ' to ' + r.next.name) : ' · MAX RANK');
+      if (wrap) wrap.title = r.rank.icon + ' ' + r.rank.name + ' — ' + rankPointText(rankPoints) + ' rank pts' +
+        (r.next ? (' · ' + rankPointText(r.toNext) + ' to ' + r.next.name) : ' · MAX RANK');
+      updateMenuRecord();
+    }
+    // The menu's record strip: rank progress plus the lifetime numbers a player actually
+    // checks. It reads the saves directly, so it can never disagree with the screens.
+    function updateMenuRecord() {
+      try {
+        var r = currentRank();
+        var icon = document.getElementById('menuRankIcon');
+        var name = document.getElementById('menuRankName');
+        if (icon) icon.textContent = r.rank.icon;
+        if (name) { name.textContent = r.rank.name; name.style.color = r.rank.color; }
+        var next = document.getElementById('menuRankNext');
+        if (next) next.textContent = r.next ? (rankPointText(r.toNext) + ' to ' + r.next.name) : 'MAX RANK';
+        var bar = document.getElementById('menuRankBar');
+        if (bar) {
+          var pct = 100;
+          if (r.next) pct = Math.max(0, Math.min(100, Math.round(((rankPoints - r.rank.min) / (r.next.min - r.rank.min)) * 100)));
+          bar.style.width = pct + '%';
+          bar.style.background = r.rank.color;
+        }
+        function savedObj(key) {
+          try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; }
+        }
+        var life = savedObj('sm_life_stats');
+        var bw = document.getElementById('menuBestWave');
+        if (bw) bw.textContent = life.bestWave || 0;
+        var ach = document.getElementById('menuAchCount');
+        if (ach) ach.textContent = Object.keys(savedObj('sm_ach_unlocked')).length;
+        var streakEl = document.getElementById('menuStreak');
+        if (streakEl) {
+          var streak = parseInt(localStorage.getItem('sm_daily_streak') || '0', 10);
+          if (!isFinite(streak) || streak < 0) streak = 0;
+          var last = localStorage.getItem('sm_daily_lastDone');
+          var now = new Date(), y = new Date(Date.now() - 86400000);
+          var kNow = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
+          var kY = y.getFullYear() + '-' + (y.getMonth() + 1) + '-' + y.getDate();
+          streakEl.textContent = (last === kNow || last === kY) ? streak : 0;
+        }
+      } catch (e) {}
     }
     // Paint the energy balance on load too: without this the menu showed 0 until the
     // first kill or until the skin screen was opened.
@@ -15649,8 +16934,20 @@
       { id: 'spooky',        name: 'Graveyard Waltz',         sub: 'Dark Grave' },
       { id: 'underworld',    name: 'Blood Depths',            sub: 'Blood Bath' },
       { id: 'cheese',        name: "It's Raining Cheese-tos", sub: 'Cheese' },
+      // The last three map themes had music of their own but were missing from this list,
+      // so a player could only hear them by standing on that map.
+      { id: 'desert',        name: 'Sunscorch Dunes',         sub: 'Desert' },
+      { id: 'cave',          name: 'Echoes in the Dark',      sub: 'Cave' },
+      { id: 'landscape',     name: 'Wide Horizon',            sub: 'Landscape' },
       { id: 'bossrush',      name: 'Boss Rush Assault',       sub: 'Boss Rush · The Colossal' },
+      // The Time Chainer's own track, the one boss theme with a separate composer.
+      { id: 'timechainer',   name: 'Clockwork Warden',        sub: 'Time Chainer · boss theme' },
+      { id: 'novarites',     name: 'Last Dance of the Sleepwalker', sub: 'Novarites · secret boss theme' },
       { id: 'multiverse',    name: 'Multiverse Collapse',     sub: 'Multiverse · synth banger' },
+      // Bonus tracks: no map owns them, so they play wherever you like.
+      { id: 'neondrive',     name: 'Neon Skyline',            sub: 'Bonus track · no map' },
+      { id: 'frostbound',    name: 'Frostbound',              sub: 'Bonus track · no map' },
+      { id: 'embercircuit',  name: 'Ember Circuit',           sub: 'Bonus track · no map' },
     ];
     var currentSongId = '';
     function playSong(song) {
@@ -15665,14 +16962,27 @@
     function renderMusic() {
       var list = document.getElementById('musicList'); if (!list) return;
       list.innerHTML = '';
-      SONGS.forEach(function(song) {
-        var playing = currentSongId === song.id;
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'w-full text-left px-3 py-2 rounded-lg border-2 transition-colors ' + (playing ? 'border-cyan-400 bg-cyan-900/40' : 'border-slate-700 bg-slate-700/40 hover:border-cyan-500');
-        btn.innerHTML = '<div class="text-[12px] font-bold text-white">' + (playing ? '▶ ' : '🎵 ') + song.name + '</div><div class="text-[9px] text-slate-400">' + song.sub + '</div>';
-        btn.addEventListener('click', function() { playSong(song); });
-        list.appendChild(btn);
+      // Two shelves: the songs each map owns, then the bonus tracks that no map owns.
+      var shelves = [
+        { label: '🗺️ Map themes', pick: function (s) { return s.sub.indexOf('Bonus') < 0; } },
+        { label: '🎧 Bonus tracks — no map', pick: function (s) { return s.sub.indexOf('Bonus') >= 0; } }
+      ];
+      shelves.forEach(function (shelf) {
+        var songs = SONGS.filter(shelf.pick);
+        if (!songs.length) return;
+        var head = document.createElement('div');
+        head.className = 'text-[9px] font-bold text-slate-400 uppercase tracking-wider pt-1 pb-0.5';
+        head.textContent = shelf.label + ' · ' + songs.length;
+        list.appendChild(head);
+        songs.forEach(function(song) {
+          var playing = currentSongId === song.id;
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'w-full text-left px-3 py-2 rounded-lg border-2 transition-colors ' + (playing ? 'border-cyan-400 bg-cyan-900/40' : 'border-slate-700 bg-slate-700/40 hover:border-cyan-500');
+          btn.innerHTML = '<div class="text-[12px] font-bold text-white">' + (playing ? '▶ ' : '🎵 ') + song.name + '</div><div class="text-[9px] text-slate-400">' + song.sub + '</div>';
+          btn.addEventListener('click', function() { playSong(song); });
+          list.appendChild(btn);
+        });
       });
     }
     document.getElementById('musicClose').addEventListener('click', function() { backToCustomize(); });
@@ -15683,19 +16993,47 @@
       var rc = document.getElementById('rankScreenCurrent');
       if (rc) rc.innerHTML = cur.rank.icon + ' ' + cur.rank.name;
       var rp = document.getElementById('rankScreenPoints');
-      if (rp) rp.textContent = totalPoints;
+      if (rp) rp.textContent = rankPointText(rankPoints);
+      // Progress toward the next tier, so the ladder screen shows the next step too.
+      var nl = document.getElementById('rankScreenNextLabel');
+      if (nl) nl.textContent = cur.next ? (rankPointText(cur.toNext) + ' to ' + cur.next.name) : 'MAX RANK — top of the ladder';
+      var pctEl = document.getElementById('rankScreenPct');
+      var pct = 100;
+      if (cur.next) pct = Math.max(0, Math.min(100, Math.round(((rankPoints - cur.rank.min) / (cur.next.min - cur.rank.min)) * 100)));
+      if (pctEl) pctEl.textContent = pct + '%';
+      var rbar = document.getElementById('rankScreenBar');
+      if (rbar) { rbar.style.width = pct + '%'; rbar.style.background = cur.rank.color; }
       var list = document.getElementById('rankListItems');
       if (!list) return;
       list.innerHTML = '';
       RANKS.forEach(function(rk, idx) {
         var isCurrent = cur.rank.name === rk.name;
+        var isNext = !!cur.next && cur.next.name === rk.name;
+        var locked = idx > cur.index;
         var div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-2 rounded-lg border ' + (isCurrent ? 'border-amber-400 bg-amber-900/30' : 'border-slate-600 bg-slate-700/40');
-        div.innerHTML = '<div class="flex items-center gap-2"><span class="text-lg">' + rk.icon + '</span><span class="font-bold ' + (isCurrent ? 'text-amber-300' : 'text-white') + '">' + rk.name + '</span>' + (isCurrent ? ' <span class="text-[9px] text-amber-400">CURRENT</span>' : '') + '</div><div class="text-xs text-slate-400">' + rk.min + '+ pts</div>';
+        div.className = 'flex items-center justify-between p-2 rounded-lg border ' + (isCurrent
+          ? 'border-amber-400 bg-amber-900/30'
+          : isNext ? 'border-cyan-500/70 bg-cyan-900/20' : locked ? 'border-slate-700 bg-slate-800/50' : 'border-slate-600 bg-slate-700/40');
+        var right = isNext
+          ? '<span class="text-cyan-300 font-bold">' + rankPointText(cur.toNext) + ' to go</span>'
+          : rankPointText(rk.min) + '+ pts';
+        div.innerHTML = '<div class="flex items-center gap-2"><span class="text-lg" style="filter:' + (locked ? 'grayscale(0.7);opacity:.6' : 'none') + '">' + rk.icon + '</span>' +
+          '<span class="font-bold ' + (isCurrent ? 'text-amber-300' : locked ? 'text-slate-400' : 'text-white') + '">' + rk.name + '</span>' +
+          (isCurrent ? ' <span class="text-[9px] text-amber-400">CURRENT</span>' : isNext ? ' <span class="text-[9px] text-cyan-400">NEXT</span>' : '') +
+          '</div><div class="text-xs text-slate-400">' + right + '</div>';
         list.appendChild(div);
       });
     }
-    document.getElementById('rankClose').addEventListener('click', function() { backToCustomize(); });
+    document.getElementById('rankClose').addEventListener('click', function() {
+      // Opened from the menu's RANKS button: go straight back there instead of making
+      // the player pass through the Customize hub they never opened.
+      if (rankFromMenu) {
+        rankFromMenu = false;
+        hideAll(['rankScreen', 'customizeScreen']);
+        document.getElementById('menuScreen').classList.remove('hidden');
+        updateMenuPoints();
+      } else backToCustomize();
+    });
 
     // ==================== QUESTS (daily board + taoist line) ====================
     // One lifetime save feeds both boards. The daily board resets at midnight and pays
@@ -15751,6 +17089,52 @@
       return quests;
     }
 
+    // ---- daily streak: a day counts once the whole board is cleared ----
+    // The panel has always displayed a streak, but nothing ever wrote one, so it read
+    // "0 days" forever. The number lives in its own date-stamped keys (not in the
+    // date-keyed board) so it survives midnight and can be checked on load.
+    var DAILY_STREAK_KEY = 'sm_daily_streak', DAILY_BEST_KEY = 'sm_daily_best', DAILY_LAST_KEY = 'sm_daily_lastDone';
+    function dayKey(offsetDays) {
+      var d = new Date();
+      if (offsetDays) d.setDate(d.getDate() + offsetDays);
+      return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    }
+    // A streak stays alive only while the last cleared board was today or yesterday;
+    // miss a whole day and it reads 0 until the board is cleared again.
+    function dailyStreakNow() {
+      var streak = parseInt(localStorage.getItem(DAILY_STREAK_KEY) || '0', 10);
+      if (!isFinite(streak) || streak < 0) streak = 0;
+      var last = localStorage.getItem(DAILY_LAST_KEY);
+      if (last !== dayKey(0) && last !== dayKey(-1)) return 0;
+      return streak;
+    }
+    function dailyStreakBest() {
+      var best = parseInt(localStorage.getItem(DAILY_BEST_KEY) || '0', 10);
+      if (!isFinite(best) || best < 0) best = 0;
+      return Math.max(best, dailyStreakNow());
+    }
+    // Called with the board that just finished. Clearing it on a new day either extends
+    // yesterday's streak or starts a fresh one; clearing it twice in a day never does.
+    function touchDailyStreak(quests) {
+      quests = quests || loadDailyQuests();
+      var complete = quests.length > 0 && quests.every(function (q) { return !!q.done; });
+      if (!complete) return false;
+      var today = dayKey(0);
+      var last = localStorage.getItem(DAILY_LAST_KEY);
+      if (last === today) return false;
+      var prev = last === dayKey(-1) ? parseInt(localStorage.getItem(DAILY_STREAK_KEY) || '0', 10) : 0;
+      if (!isFinite(prev) || prev < 0) prev = 0;
+      var streak = prev + 1;
+      var best = parseInt(localStorage.getItem(DAILY_BEST_KEY) || '0', 10);
+      if (!isFinite(best) || best < streak) best = streak;
+      try {
+        localStorage.setItem(DAILY_STREAK_KEY, streak);
+        localStorage.setItem(DAILY_LAST_KEY, today);
+        localStorage.setItem(DAILY_BEST_KEY, best);
+      } catch (e) {}
+      return true;
+    }
+
     // ---- the taoist line: five permanent quests, each one a lifetime counter ----
     var TAOIST_QUEST_DEFS = [
       { id: 1, metric: 'kills',   goal: 30,   reward: 100, text: 'Kill 30 enemies',        tag: 'UNLOCKS TAOIST' },
@@ -15796,8 +17180,7 @@
       var paid = 0;
       completed.forEach(function (q) { paid += q.reward || 0; });
       if (paid > 0) {
-        totalPoints += paid;
-        savePoints();
+        grantPoints(paid);
         questLastPoints = totalPoints; // a reward is not "points earned" progress
         updateMenuPoints();
         questToast('☯ TAOIST QUEST +' + paid + ' pts', '#a3e635');
@@ -15842,11 +17225,11 @@
       if (finished.length) {
         var paid = 0;
         finished.forEach(function (q) { paid += q.reward; });
-        totalPoints += paid;
-        savePoints();
+        grantPoints(paid);
         questLastPoints = totalPoints;
         updateMenuPoints();
-        questToast('📅 DAILY DONE +' + paid + ' pts', '#34d399');
+        var streakHit = touchDailyStreak(daily) ? dailyStreakNow() : 0;
+        questToast(streakHit ? '🔥 ' + streakHit + '-DAY STREAK — board cleared!' : '📅 DAILY DONE +' + paid + ' pts', streakHit ? '#fbbf24' : '#34d399');
       }
       refreshTaoistQuests();
     }
@@ -15879,7 +17262,11 @@
       var quests = loadDailyQuests();
       var stats = loadQuestStats();
       var streakEl = document.getElementById('dailyStreak');
-      if (streakEl) streakEl.textContent = parseInt(localStorage.getItem('sm_daily_streak') || '0', 10);
+      if (streakEl) streakEl.textContent = dailyStreakNow();
+      var bestStreakEl = document.getElementById('dailyBestStreak');
+      if (bestStreakEl) bestStreakEl.textContent = dailyStreakBest();
+      var streakUnitEl = document.getElementById('dailyStreakUnit');
+      if (streakUnitEl) streakUnitEl.textContent = dailyStreakNow() === 1 ? 'day' : 'days';
       list.innerHTML = '';
       var doneCount = 0;
       quests.forEach(function (q) {
@@ -15941,8 +17328,8 @@
     questLastPoints = totalPoints;
     refreshTaoistQuests();
     updateTaoistCardUI();
-    // ==================== 100 ACHIEVEMENTS ====================
-    // Fourteen lifetime tracks, each a ladder of thresholds. Every number is derived from
+    // ==================== ACHIEVEMENT BOARD (150) ====================
+    // Sixteen lifetime tracks, each a ladder of thresholds. Every number is derived from
     // a save that already exists (quest stats, points, rank, candy, unlocks) plus one new
     // lifetime counter for bosses, so an old save claims whatever it already earned.
     var ACH_KEY = 'sm_ach_unlocked';
@@ -16060,7 +17447,8 @@
     })();
 
     function achCharCount() {
-      var all = ['fighter', 'soldier', 'super', 'mage', 'ninja', 'bots', 'knight', 'hyper', 'cheeser', 'phantom', 'slayer', 'taoist'];
+      // Ultra counts: leaving him out made "Full Roster" reachable without owning him.
+      var all = ['fighter', 'soldier', 'super', 'mage', 'ninja', 'bots', 'knight', 'hyper', 'ultra', 'cheeser', 'phantom', 'slayer', 'taoist', 'antidot'];
       var n = 0;
       all.forEach(function (c) { if (isCharBought(c)) n++; });
       return n;
@@ -16070,6 +17458,18 @@
       for (var k in ownedSkins) if (ownedSkins[k]) n++;
       if (selectedSkin && !ownedSkins[selectedSkin] && SKINS.some(function (s) { return s.id === selectedSkin; })) n++;
       return n;
+    }
+    // Campaign clears, counted per track. A finished campaign pins its progress to the
+    // last level, so progress-1 alone undercounts a completed one; and the Shadow Magic
+    // track was missing entirely, so five clears including its boss counted for nothing.
+    function achCampaignCleared() {
+      function cleared(progress, total) {
+        if (!(progress > 0)) return 0;
+        return progress >= total ? total : progress - 1;
+      }
+      return cleared(campaignProgress, CAMPAIGN_LEVELS.length)
+        + cleared(soldierProgress, SOLDIER_CAMPAIGN_LEVELS.length)
+        + cleared(shadowProgress, SHADOW_CAMPAIGN_LEVELS.length);
     }
     // One snapshot of every track, read from the saves themselves.
     function achStats() {
@@ -16086,7 +17486,7 @@
         skins: achSkinCount(),
         chars: achCharCount(),
         traits: ownedTraitCount(),
-        campaign: Math.max(0, campaignProgress - 1) + Math.max(0, soldierProgress - 1),
+        campaign: achCampaignCleared(),
         taoist: taoistQuestsDone(),
         rankIdx: currentRank(rankPoints).index,
         waves: lifeGet('bestWave'),
@@ -16199,6 +17599,7 @@
     // The Customize hub owns four tabs and the Quests hub owns two. Each tab opens the
     // real panel that already exists; its Done button comes back to its hub.
     var CUSTO_TABS = { skin: 'skinScreen', music: 'musicScreen', bg: 'bgScreen', rank: 'rankScreen' };
+    var rankFromMenu = false;
     var QUEST_TABS = { daily: 'dailyQuestScreen', taoist: 'taoistQuestScreen' };
     var MAP_LABELS = {
       plain: '🌳 Plain', boss: '🔥 Boss', rain: '🌧️ Rain', house: '🏠 House', desert: '🏜️ Desert',
@@ -16260,7 +17661,14 @@
       document.getElementById('menuScreen').classList.remove('hidden');
     });
     document.querySelectorAll('.custoBtn').forEach(function (btn) {
-      btn.addEventListener('click', function () { openCustomizeTab(btn.getAttribute('data-custo')); });
+      btn.addEventListener('click', function () { rankFromMenu = false; openCustomizeTab(btn.getAttribute('data-custo')); });
+    });
+    // Direct rank list: the ladder is 15 tiers now, so it deserves its own menu button
+    // instead of hiding three clicks inside Customize.
+    document.getElementById('ranksBtn').addEventListener('click', function () {
+      rankFromMenu = true;
+      document.getElementById('menuScreen').classList.add('hidden');
+      openCustomizeTab('rank');
     });
     document.getElementById('bgClose').addEventListener('click', function () { backToCustomize(); });
     document.getElementById('questsBtn').addEventListener('click', function () {
@@ -16288,6 +17696,7 @@
     checkAchievements(false);
     setInterval(function () { if (gameState === 'menu') checkAchievements(false); }, 4000);
 
+    updateMenuRecord();
     startMenuMusic();
     animFrameId = requestAnimationFrame(gameLoop);
   })();
