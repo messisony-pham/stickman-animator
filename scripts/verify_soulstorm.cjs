@@ -1840,7 +1840,7 @@ function check(name, cond, extra) {
       /novaCoda\(ac, dest, at \+ dur \* 0\.88, syl, f, vol\);/.test(html) &&
       // Phrase dynamics and a harmony voice on the held notes.
       /var arc = 0\.82 \+ 0\.33 \* Math\.sin/.test(html) &&
-      /var vol = 0\.19 \* arc \* lvl;/.test(html) &&
+      /var vol = 0\.19 \* arc \* lvl \* \(backing \? 0\.32 : 1\);/.test(html) &&
       // A wordless voice from bar one, and the band ducks under the singer.
       /if \(bar < 4\) \{[\s\S]{0,300}NOVA_CHORDS\[ci\]/.test(html) &&
       /if \(bar >= 4 && bar < 36\) level \*= 0\.86;/.test(html) &&
@@ -1881,16 +1881,18 @@ function check(name, cond, extra) {
       return lines >= 16 && bad === 0;
     })());
 
-    check(file + ': a recorded singer performs the words over the band',
-      // A real voice is baked into an audio file by scripts/make_last_dance_vocal.cjs and
-      // played with the song; the formant synth only carries the track if that file is
-      // missing (an offline copy), so the words never turn back into a pad.
+    check(file + ': the vocal playtest is sung by a recorded voice',
+      // A real voice is baked into an audio file by scripts/make_last_dance_vocal.cjs.
+      // It belongs to the playtest only: the boss fight keeps its synth voice.
       fs.existsSync(path.join(ROOT, 'public', 'last-dance-vocal.mp3')) &&
       fs.statSync(path.join(ROOT, 'public', 'last-dance-vocal.mp3')).size > 200 * 1024 &&
       /function startNovaVocal\(ac, dest, when, theme\)/.test(html) &&
-      /startNovaVocal\(ac, master, ac\.currentTime \+ 0\.1 \+ step \* 16 \* 4, theme\);/.test(html) &&
+      /if \(theme === 'novarites_lyric'\) \{[\s\S]{0,140}startNovaVocal\(ac, master,/.test(html) &&
+      !/theme === 'novarites' \|\| theme === 'novarites_lyric'/.test(html) &&
       /src\.buffer = buf; src\.connect\(g\); g\.connect\(dest\);/.test(html) &&
-      /if \(novaVocalOn && bar >= 4\) return;/.test(html) &&
+      // The synth drops to a quiet double under the words so the held notes still sing.
+      /var backing = novaVocalOn && bar >= 4;/.test(html) &&
+      /var vol = 0\.19 \* arc \* lvl \* \(backing \? 0\.32 : 1\);/.test(html) &&
       // The band steps back while the voice sings, and comes back when it ends.
       /novaDuck = 0\.82; applyDuck\(\);/.test(html) &&
       /src\.onended = function \(\) \{ novaDuck = 1; applyDuck\(\); \};/.test(html));

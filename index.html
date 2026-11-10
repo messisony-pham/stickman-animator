@@ -3132,8 +3132,10 @@
     // consonant and closes with its coda; long notes pick up a harmony voice.
     function novaSing(ac, dest, t0, bar, step) {
       if (bar >= 36) return;
-      // The recorded singer has the words; the synth keeps the wordless intro only.
-      if (novaVocalOn && bar >= 4) return;
+      // With the recorded singer carrying the words, the synth line drops to a quiet
+      // double underneath: it keeps the melody sounding through the held notes while the
+      // words stay the thing you hear.
+      var backing = novaVocalOn && bar >= 4;
       // The four-bar intro already has a voice in it — a wordless "ooh" on the chord —
       // so the song sings from the first second instead of waiting for the first verse.
       if (bar < 4) {
@@ -3167,7 +3169,7 @@
         var vowel = novaVowel(syl);
         // The phrase leans forward into its middle and settles at the end.
         var arc = 0.82 + 0.33 * Math.sin(Math.PI * i / Math.max(1, count - 1));
-        var vol = 0.19 * arc * lvl;
+        var vol = 0.19 * arc * lvl * (backing ? 0.32 : 1);
         // No two human onsets land on the same millisecond.
         var rnd = ((i * 7) % 11) / 11 - 0.5;
         var at = Math.max(0, vt + rnd * 0.014);
@@ -3368,7 +3370,9 @@
           themeTimers.push(tm);
         })(ac.currentTime + 0.1, 0);
         // If a recorded singer is bundled with the game, she takes over the words.
-        if (theme === 'novarites' || theme === 'novarites_lyric') {
+        // The recorded singer is for the vocal playtest only; the boss fight keeps its
+        // own synth voice.
+        if (theme === 'novarites_lyric') {
           startNovaVocal(ac, master, ac.currentTime + 0.1 + step * 16 * 4, theme);
         }
       } catch(e) { console.log('Theme music failed:', e); }

@@ -4,8 +4,10 @@
 // The game's own vocal is a formant synth, which reads as a pad rather than a person.
 // This script bakes an actual voice: every syllable of the lyric is spoken by the
 // Windows speech engine, then pitched onto its written note (resampled to the note's
-// frequency) and stretched to the note's length, and the syllables are placed on the
-// 48-bar grid. The result is a normal audio file the game plays with the song.
+// frequency) and its natural length matched to the note by choosing a quick or a slow
+// take, and the syllables are placed on the 48-bar grid. Nothing is time-stretched: a
+// stretched consonant is what makes a sung word stutter. The result is a normal audio
+// file the game plays with the song.
 //
 //   node scripts/make_last_dance_vocal.cjs
 //
@@ -58,8 +60,15 @@ console.log('score: ' + lines.length + ' lines, ' +
 // ------------------------------------------------------------------ speaking
 // One utterance per unique syllable, from the Windows speech engine.
 const uniq = [...new Set(lines.flatMap((l) => l.syllables))];
-const safeName = (s, i) => 's' + i + '.wav';
-const items = uniq.map((text, i) => ({ file: path.join(WORK, safeName(text, i)), text, id: i }));
+// Two natural takes per syllable: a quick one for short notes and a slow one whose
+// vowel is already long, for the notes that are held. Nothing is stretched by DSP —
+// a time-stretched consonant is exactly what makes the words stutter.
+const safeName = (i, slow) => 's' + i + (slow ? '_slow' : '') + '.wav';
+const items = uniq.map((text, i) => ({
+  file: path.join(WORK, safeName(i, false)),
+  slow: path.join(WORK, safeName(i, true)),
+  text, id: i
+}));
 fs.writeFileSync(path.join(WORK, 'items.json'), JSON.stringify(items, null, 1));
 
 const ps1 = path.join(WORK, 'speak.ps1');
@@ -68,23 +77,25 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Speech
 $s = New-Object System.Speech.Synthesis.SpeechSynthesizer
 $s.SelectVoice('Microsoft Zira Desktop')
-$s.Rate = 0
 $fmt = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(22050, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, [System.Speech.AudioFormat.AudioChannel]::Mono)
 $items = Get-Content -Raw '${path.join(WORK, 'items.json').split(path.sep).join('/')}' | ConvertFrom-Json
 foreach ($it in $items) {
-  if (Test-Path $it.file) { continue }
-  try {
-    $s.SetOutputToWaveFile($it.file, $fmt)
-    $s.Speak($it.text)
-  } catch {
-    Write-Output ("skip " + $it.text + ": " + $_.Exception.Message)
+  foreach ($take in @(@{ file = $it.file; rate = 3 }, @{ file = $it.slow; rate = -3 })) {
+    if (Test-Path $take.file) { continue }
+    try {
+      $s.Rate = $take.rate
+      $s.SetOutputToWaveFile($take.file, $fmt)
+      $s.Speak($it.text)
+    } catch {
+      Write-Output ("skip " + $it.text + ": " + $_.Exception.Message)
+    }
   }
 }
 $s.SetOutputToNull()
 $s.Dispose()
 Write-Output 'spoken'
 `, 'utf8');
-console.log('speaking ' + uniq.length + ' syllables...');
+console.log('speaking ' + uniq.length + ' syllables, quick and slow takes...');
 cp.execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1], { stdio: 'inherit' });
 
 // ------------------------------------------------------------------ wav i/o
@@ -112,18 +123,6 @@ function readWav(file) {
   return { data: out, rate: fmt.rate };
 }
 
-function resample(x, ratio) {
-  const n = Math.max(1, Math.round(x.length / ratio));
-  const out = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const p = i * ratio;
-    const i0 = Math.floor(p), f = p - i0;
-    const a = x[Math.min(x.length - 1, i0)], b = x[Math.min(x.length - 1, i0 + 1)];
-    out[i] = a + (b - a) * f;
-  }
-  return out;
-}
-
 // Resample a syllable onto its note, with the two things that turn a spoken
 // syllable into a sung one: a scoop up into the pitch, and vibrato that swells
 // in over the first fifth of a held note.
@@ -147,65 +146,19 @@ function sing(x, ratio, opts) {
   return out.subarray(0, i);
 }
 
-// A singer holds the vowel. The spoken clip is short, so when a note lasts longer
-// than the word, the loudest vowel inside it is looped with a crossfade until the
-// note is filled — instead of leaving the rest of the note silent.
-function sustain(x, needLen) {
-  if (x.length >= needLen) return x;
-  // Find the loudest 150 ms window: that is the vowel, not the closing consonant.
-  const segLen = Math.round(SR * 0.15);
-  let bestAt = 0, bestE = -1;
-  const stride = Math.round(SR * 0.01);
-  for (let p = 0; p + segLen <= x.length; p += stride) {
-    let e = 0;
-    for (let i = 0; i < segLen; i += 3) e += x[p + i] * x[p + i];
-    if (e > bestE) { bestE = e; bestAt = p; }
-  }
-  const loop = x.subarray(bestAt, Math.min(x.length, bestAt + segLen));
-  const out = new Float32Array(needLen + loop.length);
-  out.set(x);
-  const fade = Math.round(SR * 0.035);
-  let p = x.length;
-  while (p < needLen + loop.length) {
-    for (let i = 0; i < loop.length; i++) {
-      const w = Math.min(1, Math.min(i, loop.length - 1 - i) / fade);
-      if (p + i < out.length) out[p + i] += loop[i] * w;
-    }
-    p += loop.length - fade;
-  }
-  return out.subarray(0, needLen + loop.length);
+// A word that lasts longer than its note: crop it, keeping the attack and the vowel.
+// Cropping never repeats a consonant, so the word is heard once, cleanly.
+function cropWithFade(x, len) {
+  const out = new Float32Array(len);
+  const n = Math.min(len, x.length);
+  out.set(x.subarray(0, n));
+  // A short release only: a long fade eats the word when the note is short.
+  const fade = Math.min(n, Math.round(SR * 0.025));
+  for (let j = 0; j < fade; j++) out[n - 1 - j] *= j / fade;
+  return out;
 }
 
-// Overlap-add time stretch (SOLA): keeps the pitch, changes the length.
-function stretch(x, targetLen) {
-  if (x.length === 0) return new Float32Array(Math.max(1, targetLen));
-  const frame = Math.max(128, Math.round(SR * 0.04)) | 1;
-  const hop = Math.round(frame / 2);
-  const tol = Math.round(SR * 0.012);
-  const win = new Float32Array(frame);
-  for (let i = 0; i < frame; i++) win[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (frame - 1));
-  const out = new Float32Array(Math.max(1, targetLen) + frame);
-  const acc = new Float32Array(out.length);
-  let inPos = 0, outPos = 0;
-  while (outPos < targetLen && inPos < x.length) {
-    let best = inPos, bestScore = -Infinity;
-    for (let d = -tol; d <= tol; d += 2) {
-      const p = inPos + d;
-      if (p < 0 || p + frame > x.length) continue;
-      let score = 0;
-      for (let i = 0; i < frame; i += 4) score += x[p + i] * out[outPos + i];
-      if (score > bestScore) { bestScore = score; best = p; }
-    }
-    if (x.length - best < frame) best = Math.max(0, x.length - frame);
-    for (let i = 0; i < frame; i++) { out[outPos + i] += x[best + i] * win[i]; acc[outPos + i] += win[i]; }
-    inPos += Math.round(hop * (x.length / targetLen));
-    outPos += hop;
-  }
-  const res = new Float32Array(Math.max(1, targetLen));
-  for (let i = 0; i < res.length; i++) res[i] = acc[i] > 1e-6 ? out[i] / acc[i] : 0;
-  return res;
-}
-
+// Cut the silence the speech engine leaves around every word.
 function trim(x) {
   const th = 0.012;
   let a = 0, b = x.length - 1;
@@ -244,11 +197,25 @@ let placed = 0, skipped = 0;
 lines.forEach((line) => {
   for (let i = 0; i < line.syllables.length; i++) {
     const idx = uniq.indexOf(line.syllables[i]);
-    const file = items[idx].file;
-    if (!fs.existsSync(file)) { skipped++; continue; }
-    let { data, rate } = readWav(file);
-    data = trim(data);
-    if (data.length < 200) { skipped++; continue; }
+    // Note length: to the next note of the line, with the last note held.
+    const st = line.notes[i][0];
+    const nx = i + 1 < line.notes.length ? line.notes[i + 1][0] : 32;
+    const durStep = i + 1 < line.notes.length ? nx - st : Math.min(32 - st, 9);
+    const dur = Math.max(1, durStep) * STEP * SR;
+    // Choose the take that fits the note: the quick voice for a passing note, the slow
+    // one — whose vowel is already long — for a note that is held. Never stretch.
+    const takes = [items[idx].file, items[idx].slow]
+      .filter((f) => fs.existsSync(f))
+      .map((f) => {
+        const w = readWav(f);
+        return { data: trim(w.data), rate: w.rate };
+      })
+      .filter((t) => t.data.length >= 200);
+    if (!takes.length) { skipped++; continue; }
+    const pick = takes.reduce((a, b) =>
+      (Math.abs(b.data.length - dur) < Math.abs(a.data.length - dur) ? b : a));
+    const data = pick.data;
+    const rate = pick.rate;
     // Level every syllable, so a soft word ("lights") sits as high as "The".
     let rms = 0;
     for (let k = 0; k < data.length; k++) rms += data[k] * data[k];
@@ -261,22 +228,19 @@ lines.forEach((line) => {
     const target = hz(line.notes[i][1] + TRANSPOSE);
     let ratio = f0 > 60 ? target / f0 : 1;
     ratio = Math.max(0.55, Math.min(2.2, ratio));
-    // Note length: to the next note of the line, with the last note held.
-    const st = line.notes[i][0];
-    const nx = i + 1 < line.notes.length ? line.notes[i + 1][0] : 32;
-    const durStep = i + 1 < line.notes.length ? nx - st : Math.min(32 - st, 9);
-    const dur = Math.max(1, durStep) * STEP * SR;
     // A note that is held gets a full, swelling vibrato; a passing note barely any.
     const held = dur > STEP * SR * 2.4;
     let clip = sing(data, ratio, {
-      vibrato: held ? 0.0085 : 0.0032,
-      scoop: i === 0 ? -1.6 : -0.4
+      vibrato: held ? 0.0075 : 0.0028,
+      scoop: i === 0 ? -1.0 : -0.25
     });
-    clip = sustain(clip, Math.round(dur));
-    clip = stretch(clip, Math.round(dur));
+    // Let the word run a little past its note (that is legato), but never into the next
+    // syllable's attack. Only a cropped tail is cut — the attack is always original.
+    const cap = Math.round(dur * 1.15);
+    if (clip.length > cap) clip = cropWithFade(clip, cap);
     // Soft edges so syllables join instead of clicking.
-    const fadeIn = Math.min(clip.length, Math.round(SR * 0.02));
-    const fadeOut = Math.min(clip.length, Math.round(SR * 0.06));
+    const fadeIn = Math.min(clip.length, Math.round(SR * 0.012));
+    const fadeOut = Math.min(clip.length, Math.round(SR * 0.05));
     for (let j = 0; j < fadeIn; j++) clip[j] *= j / fadeIn;
     for (let j = 0; j < fadeOut; j++) clip[clip.length - 1 - j] *= j / fadeOut;
     const at = Math.round(((line.bar - FIRST_BAR) * BAR + (st * STEP)) * SR);
@@ -285,6 +249,9 @@ lines.forEach((line) => {
   }
 });
 console.log('placed ' + placed + ' syllables (' + skipped + ' skipped)');
+
+// Never let a bad sample poison the file: anything non-finite becomes silence.
+for (let i = 0; i < mix.length; i++) if (!Number.isFinite(mix[i])) mix[i] = 0;
 
 // Normalise, then a touch of presence so it cuts through the band.
 let peak = 0;

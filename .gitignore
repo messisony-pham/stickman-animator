@@ -7,7 +7,6 @@ scripts/_dbg/
 scripts/_chk/
 scripts/_tmp/
 index.dbg.html
-
 # singer build workspace (the mp3 in public/ is the deliverable)
 scripts/_vox/
 scripts/_probe_vocal.cjs
@@ -15,3 +14,4 @@ scripts/_serve_dist.log
 scripts/_serve.log
 scripts/_serve.pid
 scripts/_vercel_login.log
+scripts/_probe_stutter.cjs
