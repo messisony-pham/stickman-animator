@@ -3132,6 +3132,8 @@
     // consonant and closes with its coda; long notes pick up a harmony voice.
     function novaSing(ac, dest, t0, bar, step) {
       if (bar >= 36) return;
+      // The recorded singer has the words; the synth keeps the wordless intro only.
+      if (novaVocalOn && bar >= 4) return;
       // The four-bar intro already has a voice in it — a wordless "ooh" on the chord —
       // so the song sings from the first second instead of waiting for the first verse.
       if (bar < 4) {
@@ -3365,7 +3367,51 @@
           var tm = setTimeout(function() { scheduleBar(startT + step * 16, b + 1); }, barDurMs - 60);
           themeTimers.push(tm);
         })(ac.currentTime + 0.1, 0);
+        // If a recorded singer is bundled with the game, she takes over the words.
+        if (theme === 'novarites' || theme === 'novarites_lyric') {
+          startNovaVocal(ac, master, ac.currentTime + 0.1 + step * 16 * 4, theme);
+        }
       } catch(e) { console.log('Theme music failed:', e); }
+    }
+    // ---- the recorded singer ------------------------------------------------------------
+    // The synth voice reads as a pad, so the game also ships a baked vocal: a real speech
+    // voice singing every syllable on its written note (scripts/make_last_dance_vocal.cjs).
+    // If the file cannot be fetched (an offline copy), the synth voice keeps singing.
+    var novaVocalBuffer = null, novaVocalLoading = false, novaVocalOn = false, novaDuck = 1;
+    function applyDuck() { if (themeMaster) themeMaster.gain.value = themeBaseVol * effMusicVol() * (novaDuck || 1); }
+    function startNovaVocal(ac, dest, when, theme) {
+      function play(buf) {
+        if (!themePlaying || themeCurrent !== theme) return;
+        var src = ac.createBufferSource();
+        var g = ac.createGain(); g.gain.value = 1.12;
+        src.buffer = buf; src.connect(g); g.connect(dest);
+        // Sit the band back a little while the words are being sung, so they read.
+        src.onended = function () { novaDuck = 1; applyDuck(); };
+        novaDuck = 0.82; applyDuck();
+        var now = ac.currentTime + 0.08;
+        if (when <= now) {
+          var offset = now - when;
+          if (offset >= buf.duration - 0.2) return;
+          src.start(now, offset);
+        } else {
+          src.start(when);
+        }
+        themeNoise.push(src);
+        novaVocalOn = true;
+      }
+      if (novaVocalBuffer) { play(novaVocalBuffer); return; }
+      if (novaVocalLoading) return;
+      novaVocalLoading = true;
+      var paths = ['last-dance-vocal.mp3', 'public/last-dance-vocal.mp3'];
+      function tryNext(i) {
+        if (i >= paths.length) { novaVocalLoading = false; return; }
+        fetch(paths[i])
+          .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+          .then(function (ab) { return ac.decodeAudioData(ab); })
+          .then(function (buf) { novaVocalBuffer = buf; novaVocalLoading = false; play(buf); })
+          .catch(function () { tryNext(i + 1); });
+      }
+      tryNext(0);
     }
     function stopThemeMusic() {
       if (themeNoise.length) { themeNoise.forEach(function(n) { try { n.stop(); } catch(e) {} }); themeNoise = []; }
@@ -3374,6 +3420,7 @@
       if (themeCtx) { try { themeCtx.close(); } catch(e) {} themeCtx = null; }
       themeMaster = null;
       themePlaying = false; themeCurrent = null;
+      novaVocalOn = false; novaDuck = 1;
       clearLyrics();
     }
     function themeForBg(bg) {
@@ -3436,7 +3483,7 @@
     var musicMuted = localStorage.getItem('sm_musicMuted') === 'true';
     function effMusicVol() { return musicMuted ? 0 : musicVolume; }
     function applyVolumes() {
-      if (themeMaster) themeMaster.gain.value = themeBaseVol * effMusicVol();
+      if (themeMaster) themeMaster.gain.value = themeBaseVol * effMusicVol() * (novaDuck || 1);
       if (bossMusicMaster) bossMusicMaster.gain.value = bossMusicBaseVol * effMusicVol();
     }
     (function initVolumeUI() {

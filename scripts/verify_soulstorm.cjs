@@ -1881,6 +1881,20 @@ function check(name, cond, extra) {
       return lines >= 16 && bad === 0;
     })());
 
+    check(file + ': a recorded singer performs the words over the band',
+      // A real voice is baked into an audio file by scripts/make_last_dance_vocal.cjs and
+      // played with the song; the formant synth only carries the track if that file is
+      // missing (an offline copy), so the words never turn back into a pad.
+      fs.existsSync(path.join(ROOT, 'public', 'last-dance-vocal.mp3')) &&
+      fs.statSync(path.join(ROOT, 'public', 'last-dance-vocal.mp3')).size > 200 * 1024 &&
+      /function startNovaVocal\(ac, dest, when, theme\)/.test(html) &&
+      /startNovaVocal\(ac, master, ac\.currentTime \+ 0\.1 \+ step \* 16 \* 4, theme\);/.test(html) &&
+      /src\.buffer = buf; src\.connect\(g\); g\.connect\(dest\);/.test(html) &&
+      /if \(novaVocalOn && bar >= 4\) return;/.test(html) &&
+      // The band steps back while the voice sings, and comes back when it ends.
+      /novaDuck = 0\.82; applyDuck\(\);/.test(html) &&
+      /src\.onended = function \(\) \{ novaDuck = 1; applyDuck\(\); \};/.test(html));
+
     check(file + ': the last dance plays once and runs about three minutes',
       // 48 bars at 126 BPM = 182.9s.
       Math.round(48 * (60 / 126 / 2) * 16) === 183 &&

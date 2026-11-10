@@ -3,14 +3,14 @@
 // carry. The hook lands *inside* the game's own IIFE, so it can drive gameStep and read
 // the real variables — no re-implementation of the rules, no guessed numbers.
 //
-//   node scripts/_mk_dbg.cjs            -> scripts/_dbg/index.html
+//   node scripts/_mk_dbg.cjs            -> index.dbg.html (project root, so relative
+//                                          asset paths behave exactly like production)
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const outDir = path.join(__dirname, '_dbg');
-fs.mkdirSync(outDir, { recursive: true });
+const outFile = path.join(ROOT, 'index.dbg.html');
 
 const HOOK = `
     // ---- measurement hook (instrumented copy only, never shipped) -------------
@@ -201,6 +201,26 @@ const HOOK = `
         bars: function () { return THEME_TRACKS.novarites_lyric.bars; },
         vocalBar: function (b) { return THEME_TRACKS.novarites_lyric.bar === novaritesVocalBar && b >= 0; },
         line: function (b) { var l = novaLineAt(b); return l ? { bar: l.bar, text: l.text, s: l.s, n: l.n } : null; },
+        vocal: function () { return { on: novaVocalOn, loaded: !!novaVocalBuffer, loading: novaVocalLoading, dur: novaVocalBuffer ? +novaVocalBuffer.duration.toFixed(1) : 0, duck: novaDuck }; },
+        // Renders the real boss bar plus the recorded singer offline, and reports how the
+        // two sit against each other. Measures the shipped arrangement, not a guess.
+        mixTest: function (bars, useVoice) {
+          bars = bars || 4;
+          var T = THEME_TRACKS.novarites, step = 60 / T.bpm / 2;
+          var off = new OfflineAudioContext(1, Math.ceil((bars * step * 16 + 1) * 22050), 22050);
+          var master = off.createGain(); master.gain.value = T.vol; master.connect(off.destination);
+          for (var b = 0; b < bars; b++) T.bar(off, master, 0.05 + b * step * 16, 4 + b, step);
+          var g = off.createGain(); g.gain.value = 1.12; g.connect(master);
+          // The recording starts at song bar 4, like the live path does.
+          if (novaVocalBuffer && useVoice !== false) { var s = off.createBufferSource(); s.buffer = novaVocalBuffer; s.connect(g); s.start(0.05 + 4 * step * 16); }
+          return off.startRendering().then(function (buf) {
+            var d = buf.getChannelData(0), peak = 0, sum = 0;
+            for (var i = 0; i < d.length; i++) { peak = Math.max(peak, Math.abs(d[i])); sum += d[i] * d[i]; }
+            // Compare the first line (voice) with the four-bar intro (band only).
+            function win(t0, dur) { var s0 = Math.round(t0 * 22050), n = Math.round(dur * 22050), a = 0; for (var i = 0; i < n && s0 + i < d.length; i++) a += d[s0 + i] * d[s0 + i]; return +Math.sqrt(a / n).toFixed(3); }
+            return { peak: +peak.toFixed(3), rms: +Math.sqrt(sum / d.length).toFixed(3), bandOnly: win(0.1, 1.2), withVoice: win(0.1 + 4 * step * 16, 2.2) };
+          });
+        },
         // Offline render of one lyric phrase through the real singer, solo, so the melody
         // can actually be measured: a sung line moves through its written notes.
         render: function (bar) {
@@ -355,5 +375,5 @@ const at = src.lastIndexOf(marker);
 if (at < 0) throw new Error('anchor not found');
 const lineStart = src.lastIndexOf('\n', at) + 1;
 const dbg = src.slice(0, lineStart) + HOOK + '\n' + src.slice(lineStart);
-fs.writeFileSync(path.join(outDir, 'index.html'), dbg);
-console.log('wrote scripts/_dbg/index.html (' + dbg.length + ' bytes)');
+fs.writeFileSync(outFile, dbg);
+console.log('wrote index.dbg.html (' + dbg.length + ' bytes)');
