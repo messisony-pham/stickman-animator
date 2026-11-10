@@ -1783,13 +1783,103 @@ function check(name, cond, extra) {
       /novaNightmare = \{ timer: NOVA_NIGHTMARE_DUR, tick: 0/.test(html));
 
     check(file + ': Novarites has his own last-dance boss theme',
-      /novarites: \{ bpm: 126, vol: 0\.34, rain: false, bar: novaritesBar, bars: 48 \}/.test(html) &&
+      /novarites: \{ bpm: 126, vol: 0\.6, rain: false, hall: true, bar: novaritesBar, bars: 48, lyricBar: novaBossLyricBar \}/.test(html) &&
+      // The ballroom has air around it, so the voice sits in a room.
+      /if \(T\.hall\) \{/.test(html) &&
+      /hallFb\.gain\.value = 0\.24;/.test(html) &&
+      // Clearly louder than the 0.26–0.36 map themes.
+      0.6 > 0.36 &&
       /function novaritesBar\(ac, dest, t0, bar, step\)/.test(html) &&
       /\{ id: 'novarites',     name: 'Last Dance of the Sleepwalker'/.test(html) &&
       /function startNovaritesMusic\(\)/.test(html) &&
       /function stopNovaritesMusic\(\)/.test(html) &&
       /startNovaritesMusic\(\);/.test(html) &&
       /if \(novaMusicOn && \(!miniBosses\.some\(function\(m\) \{ return m\.alive && m\.type === 'novarites'; \}\)/.test(html));
+
+    check(file + ': the lyric playtest sings the same song with words',
+      /novarites_lyric: \{ bpm: 126, vol: 0\.6, rain: false, hall: true, bar: novaritesVocalBar, bars: 48, lyricBar: novaritesLyricBar \}/.test(html) &&
+      /function novaritesVocalBar\(ac, dest, t0, bar, step\)/.test(html) &&
+      /novaritesBar\(ac, dest, t0, bar, step\);/.test(html) &&
+      (html.match(/\{ bar: \d+, +text: /g) || []).length >= 15 &&
+      /\{ bar: 36, text: '' \}/.test(html) &&
+      /if \(T\.lyricBar\) T\.lyricBar\(b\);/.test(html) &&
+      /id="lyricOverlay"/.test(html) &&
+      /id="lyricText"/.test(html) &&
+      /function clearLyrics\(\)/.test(html) &&
+      /clearLyrics\(\);\n    \}/.test(html) &&
+      /\{ id: 'novarites_lyric', name: 'Last Dance \(Vocal Playtest\)'/.test(html));
+
+    check(file + ': the wordless formant voice is really a sung, written phrase',
+      // Five vowels, three formant centres each — the vowel bank a singer is built from.
+      /var VOWEL_FORMANTS = \{/.test(html) &&
+      ['a', 'e', 'i', 'o', 'u'].every(function (v) {
+        return new RegExp(v + ': \\[\\d+, \\d+, \\d+\\]').test(html);
+      }) &&
+      // A sung syllable = three sources into a three-band formant bank, not a spoken word.
+      /function _mVoice\(ac, dest, freq, vol, t, dur, vowel, opts\)/.test(html) &&
+      /bp\.type = 'bandpass';/.test(html) &&
+      // Held notes get a wide vibrato, passing ones only a hint; the mouth opens out of
+      // a neutral shape; air is pushed through the vowel; a 3 kHz ring carries the voice.
+      /var vib = opts\.vib === undefined \? \(dur > 0\.55 \? 22 : 13\) : opts\.vib;/.test(html) &&
+      /bp\.frequency\.setValueAtTime\(NEUTRAL\[i\], t\);/.test(html) &&
+      /var air = ac\.createBufferSource\(\); air\.buffer = _mNoiseBuf\(ac\); air\.loop = true;/.test(html) &&
+      /ring\.frequency\.value = 2950;/.test(html) &&
+      /drift\.frequency\.value = 0\.37 \+ rnd \* 0\.5;/.test(html) &&
+      // Unstressed function words take the schwa instead of a full vowel.
+      /x: \[500, 1500, 2500\]/.test(html) &&
+      /the: 'x', a: 'x', an: 'x', and: 'x'/.test(html) &&
+      // Portamento into the note and a gliding mouth shape between two vowels.
+      /function novaHz\(midi\) \{ return 440 \* Math\.pow\(2, \(midi - 69\) \/ 12\); \}/.test(html) &&
+      /o\.frequency\.setValueAtTime\(from, t\);\n        o\.frequency\.exponentialRampToValueAtTime\(freq, t \+ glideT\);/.test(html) &&
+      /function novaTargets\(v\)/.test(html) &&
+      /bp\.frequency\.linearRampToValueAtTime\(F2\[i\], t \+ Math\.max\(0\.14, dur \* 0\.62\)\)/.test(html) &&
+      // Consonants and codas are what turn a vowel into a word.
+      /function novaConsonant\(ac, dest, t, syl, freq, vol\)/.test(html) &&
+      /function novaCoda\(ac, dest, t, syl, freq, vol\)/.test(html) &&
+      /novaConsonant\(ac, dest, Math\.max\(0, at - 0\.03\), syl, f, vol\);/.test(html) &&
+      /novaCoda\(ac, dest, at \+ dur \* 0\.88, syl, f, vol\);/.test(html) &&
+      // Phrase dynamics and a harmony voice on the held notes.
+      /var arc = 0\.82 \+ 0\.33 \* Math\.sin/.test(html) &&
+      /var vol = 0\.19 \* arc \* lvl;/.test(html) &&
+      // A wordless voice from bar one, and the band ducks under the singer.
+      /if \(bar < 4\) \{[\s\S]{0,300}NOVA_CHORDS\[ci\]/.test(html) &&
+      /if \(bar >= 4 && bar < 36\) level \*= 0\.86;/.test(html) &&
+      /function novaThird\(midi\)/.test(html) &&
+      /_mVoice\(ac, dest, novaHz\(midi - 12\)/.test(html) &&
+      // The vocal is part of the song itself, so the normal boss version sings too, and
+      // its words stay on screen with it.
+      /novaSing\(ac, dest, t0, bar, step\);/.test(html) &&
+      /function novaSing\(ac, dest, t0, bar, step\)/.test(html) &&
+      /function novaBossLyricBar\(bar\)/.test(html) &&
+      /id="lyricTag"/.test(html) &&
+      /function novaLineAt\(bar\)/.test(html) &&
+      // And no speech engine anywhere in the track.
+      !/speechSynthesis/.test(html) &&
+      !/SpeechSynthesisUtterance/.test(html));
+
+    check(file + ': every lyric syllable sits on its own written note', (function () {
+      // The score and the words are read out of the file and lined up: a line whose
+      // syllable count drifted from its melody would silently mis-sing a word.
+      const scoreSrc = (/var NOVA_PH_A[\s\S]*?var NOVA_PH_LAST = \[.*?\];/.exec(html) || [''])[0];
+      const block = (/var NOVA_LYRICS = \[[\s\S]*?\n    \];/.exec(html) || [''])[0];
+      if (!scoreSrc || !block) return false;
+      const P = {};
+      new Function('P', scoreSrc +
+        ';P.A=NOVA_PH_A;P.B=NOVA_PH_B;P.C=NOVA_PH_C;P.D=NOVA_PH_D;P.CHOR=NOVA_PH_CHOR;' +
+        'P.HOOK=NOVA_PH_HOOK;P.E=NOVA_PH_E;P.F=NOVA_PH_F;P.G=NOVA_PH_G;P.BR1=NOVA_PH_BR1;' +
+        'P.BR2=NOVA_PH_BR2;P.FIN=NOVA_PH_FIN;P.LAST=NOVA_PH_LAST;')(P);
+      const re = /\{ bar: (\d+), +text: [^\n]*,\n        s: \[([^\]]*)\], n: NOVA_PH_(\w+) \}/g;
+      let m, lines = 0, bad = 0;
+      while ((m = re.exec(block))) {
+        lines++;
+        const syl = m[2].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean);
+        const notes = P[m[3]];
+        if (!notes || notes.length !== syl.length) { bad++; continue; }
+        for (let i = 1; i < notes.length; i++) if (notes[i][0] <= notes[i - 1][0]) bad++;
+        for (const nt of notes) if (nt[0] < 0 || nt[0] > 31) bad++;
+      }
+      return lines >= 16 && bad === 0;
+    })());
 
     check(file + ': the last dance plays once and runs about three minutes',
       // 48 bars at 126 BPM = 182.9s.

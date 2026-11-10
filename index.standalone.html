@@ -617,6 +617,11 @@
   </div>
 
   <!-- Music Player -->
+  <!-- Lyrics for the Novarites vocal playtest. Pointer-transparent so it never blocks play. -->
+  <div id="lyricOverlay" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-[70] px-4 py-2 rounded-xl bg-slate-900/90 border border-indigo-500/50 text-center pointer-events-none shadow-lg shadow-indigo-900/40" style="max-width:92vw">
+    <div id="lyricText" class="text-indigo-100 font-bold text-sm leading-snug"></div>
+    <div id="lyricTag" class="text-[9px] text-indigo-400 mt-1 tracking-wider">🎤 LAST DANCE</div>
+  </div>
   <div id="musicScreen" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.75);">
     <div class="bg-slate-800 border-2 border-cyan-600 rounded-2xl p-6 w-96 shadow-2xl max-h-[92vh] overflow-y-auto">
       <h2 class="text-white font-bold text-lg mb-1 text-center">🎵 Music Player</h2>
@@ -2361,7 +2366,7 @@
       o.start(t); o.stop(t + dur + 0.05); o2.start(t); o2.stop(t + dur + 0.05);
     }
     // A synthesized human-ish "voice" (detuned saw stack through vowel formants)
-    function _mVoice(ac, dest, t, noteFreq, syllables, vol) {
+    function _mVoiceStack(ac, dest, t, noteFreq, syllables, vol) {
       var voice = ac.createGain(); voice.gain.setValueAtTime(0.0001, t);
       var fMix = ac.createGain(); fMix.gain.value = 0.6;
       [700, 1220, 2600].forEach(function(f, i) {
@@ -2549,7 +2554,7 @@
       }
       // The song sings: "it's RAIN-ing CHEESE-tos" every other bar
       if (bar % 2 === 0) {
-        _mVoice(ac, dest, t0, 392.00, [
+        _mVoiceStack(ac, dest, t0, 392.00, [
           { at: 0.00, dur: 0.16 }, { at: 0.26, dur: 0.34 }, { at: 0.72, dur: 0.30 },
           { at: 1.16, dur: 0.30 }, { at: 1.52, dur: 0.55 }
         ], 0.16);
@@ -2812,6 +2817,9 @@
         : section === 'themeA' ? 1 : section === 'themeB' ? 1.1
         : section === 'bridge' ? 1.15 : section === 'climax' ? 1.25
         : Math.max(0.22, 0.9 - local * 0.12);
+      // While the voice is singing, the band steps back so the words are the loudest thing
+      // in the room. Everything else comes back up when the vocal rests.
+      if (bar >= 4 && bar < 36) level *= 0.86;
       // The ballroom: a wide string bed, one voice a hair flat for unease.
       if (full || local === 0) {
         _mViolin(ac, dest, chord[0] / 2, 0.05 * level, t0, step * 16);
@@ -2856,6 +2864,361 @@
       if (section === 'outro' && local >= 6) {
         _mNote(ac, dest, local === 7 ? 110.00 : 220.00, 'triangle', 0.08, t0, step * 12);
       }
+      // The singer is part of the song itself, so the boss fight and the music player
+      // both get the vocal — not just the playtest track.
+      novaSing(ac, dest, t0, bar, step);
+    }
+    // ---- "Last Dance" — the sung vocal ------------------------------------------------
+    // The 48-bar ballroom carries a written vocal melody, in every version, so the boss
+    // fight sings too. Each lyric line is a real phrase: [startStep, midiNote] pairs with
+    // its words split into the syllables that ride those notes. That is the whole
+    // difference between a singer and a text reader — the line rises, holds, and cadences
+    // on the chord instead of putting one flat note on every word at an even spacing.
+    // Lines 5 and 6 are the chorus, so they reuse the same phrase.
+    var NOVA_PH_A    = [[0,69],[3,72],[6,71],[9,69],[16,65],[18,67],[20,69],[22,67],[24,65]];
+    var NOVA_PH_B    = [[0,71],[3,74],[6,71],[16,68],[18,69],[21,71],[23,76]];
+    var NOVA_PH_C    = [[0,76],[3,72],[6,71],[8,69],[11,67],[16,69],[18,67],[19,65],[21,67],[23,69]];
+    var NOVA_PH_D    = [[0,71],[2,69],[4,67],[7,71],[16,68],[19,71],[22,76]];
+    var NOVA_PH_CHOR = [[0,76],[4,72],[7,69],[16,72],[19,74],[22,72]];
+    var NOVA_PH_HOOK = [[0,67],[2,69],[4,71],[16,71],[19,76]];
+    var NOVA_PH_E    = [[0,71],[3,69],[5,67],[8,71],[16,68],[18,71]];
+    var NOVA_PH_F    = [[0,69],[2,72],[5,71],[7,69],[16,69],[18,72],[21,69],[23,65]];
+    var NOVA_PH_G    = [[0,67],[2,71],[5,74],[8,71],[16,68],[18,71],[21,71],[23,76]];
+    var NOVA_PH_BR1  = [[0,69],[3,74],[6,72],[8,69],[10,65],[16,65],[18,70],[21,72],[23,74]];
+    var NOVA_PH_BR2  = [[0,69],[2,72],[4,69],[7,65],[16,68],[18,71],[20,76]];
+    var NOVA_PH_FIN  = [[0,69],[3,72],[6,71],[16,69],[18,67],[20,65]];
+    var NOVA_PH_LAST = [[0,71],[2,69],[4,67],[7,69],[16,76]];
+    var NOVA_LYRICS = [
+      { bar: 4,  text: 'The lights go down on an empty hall',
+        s: ['The', 'lights', 'go', 'down', 'on', 'an', 'emp', 'ty', 'hall'], n: NOVA_PH_A },
+      { bar: 6,  text: 'One last waltz before the fall',
+        s: ['One', 'last', 'waltz', 'be', 'fore', 'the', 'fall'], n: NOVA_PH_B },
+      { bar: 8,  text: 'I saved you a place by the chandelier',
+        s: ['I', 'saved', 'you', 'a', 'place', 'by', 'the', 'chan', 'de', 'lier'], n: NOVA_PH_C },
+      { bar: 10, text: "But the music's all that's here",
+        s: ['But', 'the', 'mu', "sic's", 'all', "that's", 'here'], n: NOVA_PH_D },
+      { bar: 12, text: 'Dance with me, dance with me',
+        s: ['Dance', 'with', 'me', 'Dance', 'with', 'me'], n: NOVA_PH_CHOR },
+      { bar: 14, text: 'Till the stars go out',
+        s: ['Till', 'the', 'stars', 'go', 'out'], n: NOVA_PH_HOOK },
+      { bar: 16, text: 'Dance with me, dance with me',
+        s: ['Dance', 'with', 'me', 'Dance', 'with', 'me'], n: NOVA_PH_CHOR },
+      { bar: 18, text: "There's no one else around",
+        s: ["There's", 'no', 'one', 'else', 'a', 'round'], n: NOVA_PH_E },
+      { bar: 20, text: 'Every step is a heartbeat slow',
+        s: ['Ev', 'ery', 'step', 'is', 'a', 'heart', 'beat', 'slow'], n: NOVA_PH_F },
+      { bar: 22, text: 'Every turn is a place to go',
+        s: ['Ev', 'ery', 'turn', 'is', 'a', 'place', 'to', 'go'], n: NOVA_PH_G },
+      { bar: 24, text: 'I gave my shadow a name tonight',
+        s: ['I', 'gave', 'my', 'shad', 'ow', 'a', 'name', 'to', 'night'], n: NOVA_PH_BR1 },
+      { bar: 26, text: 'And it held me through the light',
+        s: ['And', 'it', 'held', 'me', 'through', 'the', 'light'], n: NOVA_PH_BR2 },
+      { bar: 28, text: 'Dance with me, dance with me',
+        s: ['Dance', 'with', 'me', 'Dance', 'with', 'me'], n: NOVA_PH_CHOR },
+      { bar: 30, text: 'Till the stars go out',
+        s: ['Till', 'the', 'stars', 'go', 'out'], n: NOVA_PH_HOOK },
+      { bar: 32, text: 'One last dance, one last breath',
+        s: ['One', 'last', 'dance', 'one', 'last', 'breath'], n: NOVA_PH_FIN },
+      { bar: 34, text: 'Then the ballroom sleeps',
+        s: ['Then', 'the', 'ball', 'room', 'sleeps'], n: NOVA_PH_LAST },
+      { bar: 36, text: '' }
+    ];
+    // Vowel formant centres (F1, F2, F3). A sung syllable is a buzzy source pushed
+    // through these three bands — that is what makes an "ah" sound like a mouth
+    // opening instead of a beep or a spoken word.
+    var VOWEL_FORMANTS = {
+      a: [800, 1150, 2900],
+      e: [400, 1600, 2700],
+      i: [350, 1700, 2700],
+      o: [450, 800, 2830],
+      u: [325, 700, 2530],
+      // Schwa: the colour of an unstressed word ("the", "a", "and").
+      x: [500, 1500, 2500]
+    };
+    // Which vowel a syllable is actually sung on. Spelling is not pronunciation, so a
+    // short table settles the words where English lies; the rest is read off the letters.
+    var NOVA_SAY = {
+      the: 'x', a: 'x', an: 'x', and: 'x', i: 'ai', me: 'i', be: 'i', we: 'i', you: 'u', to: 'u', through: 'u',
+      go: 'ou', no: 'ou', so: 'ou', slow: 'ou', one: 'a', on: 'o', all: 'o', hall: 'o',
+      fall: 'o', ball: 'o', waltz: 'o', saved: 'ei', gave: 'ei', name: 'ei', place: 'ei',
+      by: 'ai', my: 'ai', night: 'ai', light: 'ai', here: 'i', heart: 'a', breath: 'e',
+      stars: 'a', dance: 'a', round: 'au', down: 'au', out: 'au'
+    };
+    var NOVA_VOWEL_MAP = {
+      a: 'a', e: 'e', i: 'i', o: 'ou', u: 'u', y: 'i',
+      ai: 'ai', ay: 'ei', au: 'au', aw: 'au', ea: 'i', ee: 'i', ei: 'ei', ew: 'u',
+      ie: 'i', oa: 'ou', oe: 'ou', oi: 'oi', oo: 'u', ou: 'au', ow: 'au', oy: 'oi',
+      ue: 'u', ui: 'u', uy: 'ai'
+    };
+    function novaVowel(syl) {
+      var w = String(syl || '').toLowerCase().replace(/[^a-z]/g, '');
+      if (!w) return 'a';
+      if (NOVA_SAY[w]) return NOVA_SAY[w];
+      var m = /[aeiouy]+/.exec(w);
+      if (!m) return 'a';
+      return NOVA_VOWEL_MAP[m[0]] || m[0].charAt(0);
+    }
+    // A vowel can be a diphthong ("down" is a→u). The formants glide between the two
+    // mouths instead of holding one shape, which is most of what makes a word legible.
+    function novaTargets(v) { return [v.charAt(0), v.length > 1 ? v.charAt(1) : v.charAt(0)]; }
+    // One sung syllable. The note arrives by sliding from the one before it, the mouth
+    // opens out of a neutral shape into its vowel, air is pushed through it, and the
+    // vibrato grows in after the attack. That is a singer, not a text reader with a pitch.
+    function _mVoice(ac, dest, freq, vol, t, dur, vowel, opts) {
+      opts = opts || {};
+      var tg = novaTargets(vowel || 'a');
+      var F1 = VOWEL_FORMANTS[tg[0]] || VOWEL_FORMANTS.a;
+      var F2 = VOWEL_FORMANTS[tg[1]] || F1;
+      var NEUTRAL = VOWEL_FORMANTS.x;
+      var from = opts.from || freq * 0.965;
+      var rnd = opts.rnd || 0;
+      // A held note gets a real, wide vibrato; a passing one only a hint of it.
+      var vib = opts.vib === undefined ? (dur > 0.55 ? 22 : 13) : opts.vib;
+      var core = ac.createGain(); core.gain.value = 0.42;
+      // Three sources: saw for the harmonic stack, triangle for the round body, sine for
+      // the fundamental a listener hears as the pitch.
+      var o1 = ac.createOscillator(); o1.type = 'sawtooth';
+      var o2 = ac.createOscillator(); o2.type = 'triangle'; o2.detune.setValueAtTime(-8 + rnd * 10, t);
+      var o3 = ac.createOscillator(); o3.type = 'sine';
+      var glideT = Math.min(0.1, Math.max(0.03, dur * 0.3));
+      [o1, o2, o3].forEach(function (o) {
+        o.frequency.setValueAtTime(from, t);
+        o.frequency.exponentialRampToValueAtTime(freq, t + glideT);
+      });
+      // No human note is perfectly steady: a slow drift, a fast tremor, then the vibrato.
+      var drift = ac.createOscillator(); drift.type = 'sine'; drift.frequency.value = 0.37 + rnd * 0.5;
+      var driftG = ac.createGain(); driftG.gain.value = 8 + rnd * 6;
+      drift.connect(driftG);
+      var tremor = ac.createOscillator(); tremor.type = 'sine'; tremor.frequency.value = 21 + rnd * 7;
+      var tremorG = ac.createGain(); tremorG.gain.value = 3;
+      tremor.connect(tremorG);
+      var lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.7 + rnd * 1.4;
+      var depth = ac.createGain();
+      depth.gain.setValueAtTime(0, t);
+      depth.gain.linearRampToValueAtTime(vib, t + Math.min(0.6, Math.max(0.22, dur * 0.55)));
+      lfo.connect(depth);
+      [o1, o2, o3].forEach(function (o) {
+        depth.connect(o.detune); driftG.connect(o.detune); tremorG.connect(o.detune);
+      });
+      o1.connect(core); o2.connect(core); o3.connect(core);
+      // Formant bank: F1 carries the vowel, F2 colours it, F3 puts the voice in front.
+      // The mouth opens out of a neutral shape, so a consonant blends into its vowel.
+      var sum = ac.createGain(); sum.gain.value = 1;
+      for (var i = 0; i < 3; i++) {
+        var bp = ac.createBiquadFilter(); bp.type = 'bandpass';
+        bp.frequency.setValueAtTime(NEUTRAL[i], t);
+        bp.frequency.linearRampToValueAtTime(F1[i], t + 0.045);
+        if (F2[i] !== F1[i]) bp.frequency.linearRampToValueAtTime(F2[i], t + Math.max(0.14, dur * 0.62));
+        bp.Q.setValueAtTime([6, 10, 13][i], t);
+        var g = ac.createGain(); g.gain.value = [1.7, 0.95, 0.5][i];
+        core.connect(bp); bp.connect(g); g.connect(sum);
+      }
+      // The singer's formant: the 3 kHz ring that lets a voice carry over an orchestra.
+      var ring = ac.createBiquadFilter(); ring.type = 'bandpass'; ring.frequency.value = 2950; ring.Q.value = 2.2;
+      var ringG = ac.createGain(); ringG.gain.value = 0.26;
+      core.connect(ring); ring.connect(ringG); ringG.connect(sum);
+      // A little unfiltered body keeps chest in the voice instead of a whistle.
+      var body = ac.createGain(); body.gain.value = 0.16;
+      core.connect(body); body.connect(sum);
+      var chest = ac.createBiquadFilter(); chest.type = 'peaking'; chest.frequency.value = 300; chest.Q.value = 1; chest.gain.value = 4;
+      var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7200;
+      sum.connect(chest); chest.connect(lp);
+      // Attack, swell, release. Legato syllables ring past the next note's onset, so the
+      // line joins instead of dropping to silence between every word.
+      var atk = opts.legato ? 0.03 : 0.06;
+      var tail = opts.legato ? 0.09 : 0.04;
+      var peak = t + atk, swell = Math.max(peak + 0.02, t + dur * 0.55);
+      var fall = Math.max(swell + 0.02, t + dur), end = fall + tail;
+      var env = ac.createGain();
+      env.gain.setValueAtTime(0.0001, t);
+      env.gain.linearRampToValueAtTime(vol, peak);
+      env.gain.linearRampToValueAtTime(vol * 1.08, swell);
+      env.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol * 0.5), fall);
+      env.gain.exponentialRampToValueAtTime(0.0001, end);
+      lp.connect(env); env.connect(dest);
+      // Breath: the air a singer pushes through the vowel, loudest at the attack.
+      var air = ac.createBufferSource(); air.buffer = _mNoiseBuf(ac); air.loop = true;
+      var airHp = ac.createBiquadFilter(); airHp.type = 'highpass'; airHp.frequency.value = 1100;
+      var airBp = ac.createBiquadFilter(); airBp.type = 'bandpass'; airBp.frequency.value = 2400; airBp.Q.value = 0.7;
+      var airG = ac.createGain();
+      airG.gain.setValueAtTime(0.0001, t);
+      airG.gain.linearRampToValueAtTime(Math.max(0.004, vol * 0.3), t + atk * 0.8);
+      airG.gain.exponentialRampToValueAtTime(Math.max(0.0015, vol * 0.07), t + Math.min(0.4, Math.max(0.1, dur * 0.5)));
+      airG.gain.exponentialRampToValueAtTime(0.0001, fall);
+      air.connect(airHp); airHp.connect(airBp); airBp.connect(airG); airG.connect(dest);
+      var stopAt = end + 0.05;
+      o1.start(t); o2.start(t); o3.start(t);
+      lfo.start(t); drift.start(t); tremor.start(t);
+      air.start(t, Math.random() * 0.3);
+      o1.stop(stopAt); o2.stop(stopAt); o3.stop(stopAt);
+      lfo.stop(stopAt); drift.stop(stopAt); tremor.stop(stopAt); air.stop(stopAt);
+    }
+    // Consonants are what make a syllable a word: sibilance for s/sh, a tick for p/t/k,
+    // a nasal hum for m/n, a soft glide for l/r/w. Without them the voice is only vowels.
+    function _mNoiseBuf(ac) {
+      if (ac.__smNoise) return ac.__smNoise;
+      var n = Math.floor(ac.sampleRate * 0.5);
+      var b = ac.createBuffer(1, n, ac.sampleRate);
+      var d = b.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      ac.__smNoise = b;
+      return b;
+    }
+    function novaConsonant(ac, dest, t, syl, freq, vol) {
+      var w = String(syl || '').toLowerCase().replace(/[^a-z]/g, '');
+      var on = (/^[^aeiouy]*/.exec(w) || [''])[0];
+      if (!on) return;
+      var kind = /^(s|sh|z|ch|j|x|c)/.test(on) ? 's'
+        : /^(f|th|v|h)/.test(on) ? 'f'
+        : /^(p|t|k|q|b|d|g)/.test(on) ? 'p'
+        : /^(m|n)/.test(on) ? 'm' : 'l';
+      var dur = kind === 's' ? 0.08 : kind === 'p' ? 0.035 : kind === 'm' ? 0.06 : 0.055;
+      if (kind === 'm') {
+        var hum = ac.createOscillator(); hum.type = 'sine'; hum.frequency.value = freq * 0.5;
+        var hlp = ac.createBiquadFilter(); hlp.type = 'lowpass'; hlp.frequency.value = 380;
+        var hg = ac.createGain();
+        hg.gain.setValueAtTime(vol * 0.4, t);
+        hg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        hum.connect(hlp); hlp.connect(hg); hg.connect(dest);
+        hum.start(t); hum.stop(t + dur + 0.02);
+        return;
+      }
+      var src = ac.createBufferSource(); src.buffer = _mNoiseBuf(ac);
+      var f = ac.createBiquadFilter();
+      var g = ac.createGain();
+      var amp = kind === 's' ? 0.55 : kind === 'p' ? 0.5 : kind === 'f' ? 0.4 : 0.3;
+      if (kind === 's') { f.type = 'highpass'; f.frequency.value = 4600; }
+      else if (kind === 'p') { f.type = 'bandpass'; f.frequency.value = 2200; f.Q.value = 0.7; }
+      else if (kind === 'f') { f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.8; }
+      else { f.type = 'bandpass'; f.frequency.value = 950; f.Q.value = 1.2; }
+      g.gain.setValueAtTime(vol * amp, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(dest);
+      src.start(t, Math.random() * 0.3); src.stop(t + dur + 0.02);
+    }
+    // A closing consonant is half of what makes a word recognisable ("lights", "sleeps").
+    function novaCoda(ac, dest, t, syl, freq, vol) {
+      var w = String(syl || '').toLowerCase().replace(/[^a-z]/g, '');
+      var coda = (/[^aeiouy]+$/.exec(w) || [''])[0];
+      if (!coda) return;
+      var kind = /(s|z|ce|se|x|ch|sh)$/.test(coda) ? 's'
+        : /(t|d|k|p|ck)$/.test(coda) ? 't' : '';
+      if (!kind) return;
+      var dur = kind === 's' ? 0.07 : 0.03;
+      var src = ac.createBufferSource(); src.buffer = _mNoiseBuf(ac);
+      var f = ac.createBiquadFilter(); f.type = 'highpass';
+      f.frequency.value = kind === 's' ? 4800 : 2600;
+      var g = ac.createGain();
+      g.gain.setValueAtTime(vol * (kind === 's' ? 0.4 : 0.28), t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(dest);
+      src.start(t, Math.random() * 0.3); src.stop(t + dur + 0.02);
+    }
+    function novaLineAt(bar) {
+      for (var i = 0; i < NOVA_LYRICS.length; i++) {
+        if (bar >= NOVA_LYRICS[i].bar && bar < NOVA_LYRICS[i].bar + 2) return NOVA_LYRICS[i];
+      }
+      return null;
+    }
+    function novaHz(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
+    // Diatonic third below, so the harmony voice stays inside A minor instead of drifting.
+    function novaThird(midi) {
+      var pc = ((midi % 12) + 12) % 12;
+      return [3, 4, 3, 4, 4, 3, 4, 3, 4, 4, 3, 4][pc];
+    }
+    // The sung line. It lives inside the song (called from novaritesBar), so the boss
+    // fight's normal version sings as well — the playtest only adds the words on screen.
+    // Each syllable is placed on its written note, sustains into the next, articulates its
+    // consonant and closes with its coda; long notes pick up a harmony voice.
+    function novaSing(ac, dest, t0, bar, step) {
+      if (bar >= 36) return;
+      // The four-bar intro already has a voice in it — a wordless "ooh" on the chord —
+      // so the song sings from the first second instead of waiting for the first verse.
+      if (bar < 4) {
+        var ci = bar % 4, ch = NOVA_CHORDS[ci];
+        _mVoice(ac, dest, ch[0], 0.075, t0, step * 16, 'u', { from: ch[0] * 0.98, vib: 4, rnd: 0.25, legato: true });
+        _mVoice(ac, dest, ch[1], 0.05, t0, step * 16, 'o', { from: ch[1] * 0.98, vib: 4, rnd: 0.45, legato: true });
+        _mVoice(ac, dest, ch[2], 0.035, t0, step * 16, 'o', { from: ch[2] * 0.99, vib: 4, rnd: 0.65, legato: true });
+        return;
+      }
+      var line = novaLineAt(bar);
+      if (!line || !line.text || !line.n) return;
+      var first = (bar - line.bar) * 16, last = first + 16;
+      var lvl = bar < 8 ? 0.72 : 1;
+      var count = line.n.length;
+      // The choir under the solo: one open vowel per bar on the chord root.
+      var isBridge = bar >= 24 && bar < 32;
+      var root = isBridge ? NOVA_BRIDGE_CHORDS[(bar - 24) % 4][0] : NOVA_CHORDS[bar % 4][0];
+      _mVoice(ac, dest, root, 0.032 * lvl, t0, step * 16, 'o', { from: root * 0.992, vib: 3, rnd: 0.2, legato: true });
+      // One breath in before the first word of the line.
+      if (first === 0) _mNoise(ac, dest, Math.max(0, t0 - 0.05), 0.2, 1700, 0.05);
+      for (var i = 0; i < count; i++) {
+        var st = line.n[i][0];
+        if (st < first || st >= last) continue;
+        // A syllable holds until the next one starts: the line is phrased, not chopped.
+        var durStep = i + 1 < count ? line.n[i + 1][0] - st : Math.min(32 - st, 9);
+        var dur = Math.max(1, durStep) * step;
+        var vt = t0 + (st - first) * step;
+        var midi = line.n[i][1], f = novaHz(midi);
+        var prev = i > 0 ? novaHz(line.n[i - 1][1]) : f * 0.955;
+        var syl = line.s[i] || 'ah';
+        var vowel = novaVowel(syl);
+        // The phrase leans forward into its middle and settles at the end.
+        var arc = 0.82 + 0.33 * Math.sin(Math.PI * i / Math.max(1, count - 1));
+        var vol = 0.19 * arc * lvl;
+        // No two human onsets land on the same millisecond.
+        var rnd = ((i * 7) % 11) / 11 - 0.5;
+        var at = Math.max(0, vt + rnd * 0.014);
+        _mVoice(ac, dest, f, vol, at, dur, vowel, { from: prev, rnd: rnd + 0.5, legato: i > 0 });
+        // The consonant comes just before the vowel opens, not on top of it.
+        novaConsonant(ac, dest, Math.max(0, at - 0.03), syl, f, vol);
+        novaCoda(ac, dest, at + dur * 0.88, syl, f, vol);
+        // A second singer on the long notes: the octave under a cadence, a third below
+        // a held note. Quiet, late and a touch flat, like a real duet partner.
+        if (i + 1 === count) {
+          _mVoice(ac, dest, novaHz(midi - 12), vol * 0.3, vt + 0.035, dur * 0.95, vowel, { from: prev * 0.5, vib: 3, rnd: 0.45, legato: true });
+        } else if (dur >= step * 6) {
+          _mVoice(ac, dest, novaHz(midi - novaThird(midi)), vol * 0.28, vt + 0.045, dur * 0.9, vowel, { from: prev, vib: 4, rnd: 0.7, legato: true });
+        }
+      }
+    }
+    function novaritesVocalBar(ac, dest, t0, bar, step) {
+      // The vocal already ships inside novaritesBar; the playtest just shows the words.
+      novaritesBar(ac, dest, t0, bar, step);
+    }
+    var lyricTimer = null, lyricShown = -1;
+    // There is deliberately no speech engine here: the words are carried by the
+    // formant vocal scheduled in the music, not by a robot reading the line.
+    function clearLyrics() {
+      if (lyricTimer) { clearTimeout(lyricTimer); lyricTimer = null; }
+      lyricShown = -1;
+      var el = document.getElementById('lyricOverlay');
+      if (el) { el.classList.add('hidden'); el.classList.remove('cs-line-in'); }
+    }
+    function showLyricLine(line, tag) {
+      var el = document.getElementById('lyricOverlay');
+      var tx = document.getElementById('lyricText');
+      var tg = document.getElementById('lyricTag');
+      if (!el || !tx) return;
+      if (!line || !line.text) { clearLyrics(); return; }
+      if (line.bar === lyricShown) return;
+      lyricShown = line.bar;
+      tx.textContent = line.text;
+      if (tg) tg.textContent = tag || '🎤 LAST DANCE';
+      el.classList.remove('hidden');
+      tx.classList.remove('cs-line-in'); void tx.offsetWidth; tx.classList.add('cs-line-in');
+    }
+    // The words belong to the song, so the boss version shows them too, not just the
+    // playtest. Each line appears exactly where its first note is sung.
+    function novaBossLyricBar(bar) {
+      if (bar >= 36) { clearLyrics(); return; }
+      var line = novaLineAt(bar);
+      if (line && line.bar === bar) showLyricLine(line, '🎤 LAST DANCE');
+    }
+    function novaritesLyricBar(bar) {
+      if (bar >= 36) { clearLyrics(); return; }
+      var line = novaLineAt(bar);
+      if (line && line.bar === bar) showLyricLine(line, '🎤 LAST DANCE · LYRIC PLAYTEST');
     }
     // ---- Bonus tracks: music with no map attached ------------------------------------
     // Every other track is scenery (the map picks it). These three only play when chosen
@@ -2948,7 +3311,11 @@
       multiverse: { bpm: 140, vol: 0.34, rain: false, bar: multiverseBar },
       timechainer: { bpm: 132, vol: 0.34, rain: false, bar: timeChainerBar },
       // bars: a finite track. The scheduler stops after this many bars instead of looping.
-      novarites: { bpm: 126, vol: 0.34, rain: false, bar: novaritesBar, bars: 48 }
+      // Mixed louder than the map themes — this is a 3-minute boss set piece, and
+      // it sits under combat sounds. 0.6 is about +5 dB over the old 0.34.
+      novarites: { bpm: 126, vol: 0.6, rain: false, hall: true, bar: novaritesBar, bars: 48, lyricBar: novaBossLyricBar },
+      // The playtest: identical ballroom, plus a vocal line and on-screen lyrics.
+      novarites_lyric: { bpm: 126, vol: 0.6, rain: false, hall: true, bar: novaritesVocalBar, bars: 48, lyricBar: novaritesLyricBar }
     };
     function startThemeMusic(theme) {
       if (!theme) return;
@@ -2959,7 +3326,23 @@
         var ac = new (window.AudioContext || window.webkitAudioContext)();
         if (ac.state === 'suspended') ac.resume();
         themeCtx = ac; themePlaying = true; themeCurrent = theme;
-        var master = ac.createGain(); master.gain.value = T.vol * effMusicVol(); master.connect(ac.destination); themeMaster = master; themeBaseVol = T.vol;
+        var master = ac.createGain(); master.gain.value = T.vol * effMusicVol(); themeMaster = master; themeBaseVol = T.vol;
+        if (T.hall) {
+          // The ballroom's air: a short delay loop fed back through a high-pass. The voice
+          // sits in a room instead of being pressed against the listener's ear.
+          var hallDry = ac.createGain(); hallDry.gain.value = 0.84;
+          master.connect(hallDry); hallDry.connect(ac.destination);
+          var hallA = ac.createDelay(0.5); hallA.delayTime.value = 0.093;
+          var hallB = ac.createDelay(0.5); hallB.delayTime.value = 0.147;
+          var hallHp = ac.createBiquadFilter(); hallHp.type = 'highpass'; hallHp.frequency.value = 260;
+          var hallFb = ac.createGain(); hallFb.gain.value = 0.24;
+          var hallWet = ac.createGain(); hallWet.gain.value = 0.2;
+          master.connect(hallA); hallA.connect(hallHp); hallHp.connect(hallB);
+          hallB.connect(hallFb); hallFb.connect(hallA); hallHp.connect(hallWet);
+          hallWet.connect(ac.destination);
+        } else {
+          master.connect(ac.destination);
+        }
         if (T.rain) {
           var rbuf = ac.createBuffer(1, Math.floor(ac.sampleRate * 2), ac.sampleRate);
           var rd = rbuf.getChannelData(0);
@@ -2976,6 +3359,7 @@
         (function scheduleBar(startT, b) {
           if (!themePlaying || themeCurrent !== theme) return;
           T.bar(ac, master, startT, b, step);
+          if (T.lyricBar) T.lyricBar(b);
           // A finite track (Novarites' last dance) plays its written bars once and ends.
           if (totalBars && b + 1 >= totalBars) return;
           var tm = setTimeout(function() { scheduleBar(startT + step * 16, b + 1); }, barDurMs - 60);
@@ -2990,6 +3374,7 @@
       if (themeCtx) { try { themeCtx.close(); } catch(e) {} themeCtx = null; }
       themeMaster = null;
       themePlaying = false; themeCurrent = null;
+      clearLyrics();
     }
     function themeForBg(bg) {
       switch (bg) {
@@ -16990,7 +17375,8 @@
       { id: 'bossrush',      name: 'Boss Rush Assault',       sub: 'Boss Rush · The Colossal' },
       // The Time Chainer's own track, the one boss theme with a separate composer.
       { id: 'timechainer',   name: 'Clockwork Warden',        sub: 'Time Chainer · boss theme' },
-      { id: 'novarites',     name: 'Last Dance of the Sleepwalker', sub: 'Novarites · secret boss theme' },
+      { id: 'novarites',     name: 'Last Dance of the Sleepwalker', sub: 'Novarites · secret boss theme, sung' },
+      { id: 'novarites_lyric', name: 'Last Dance (Vocal Playtest)', sub: 'Novarites · sung choir vocal + lyrics' },
       { id: 'multiverse',    name: 'Multiverse Collapse',     sub: 'Multiverse · synth banger' },
       // Bonus tracks: no map owns them, so they play wherever you like.
       { id: 'neondrive',     name: 'Neon Skyline',            sub: 'Bonus track · no map' },

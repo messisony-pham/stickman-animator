@@ -182,7 +182,69 @@ const HOOK = `
         var bar = document.getElementById('menuRankBar');
         return { rank: g('menuRank'), next: g('menuRankNext'), width: bar ? bar.style.width : null, wave: g('menuBestWave'), streak: g('menuStreak'), ach: g('menuAchCount') };
       },
-      theme: function () { return { current: themeCurrent, playing: themePlaying }; },
+      theme: function () { return { current: themeCurrent, playing: themePlaying, gain: themeMaster ? +themeMaster.gain.value.toFixed(3) : null, base: themeBaseVol }; },
+      music: {
+        songs: function () { return SONGS.map(function (s) { return s.id; }); },
+        play: function (id) {
+          var s = null;
+          for (var i = 0; i < SONGS.length; i++) if (SONGS[i].id === id) s = SONGS[i];
+          if (!s) return null;
+          playSong(s);
+          return { current: themeCurrent, gain: themeMaster ? +themeMaster.gain.value.toFixed(3) : null };
+        },
+        lyric: function () {
+          var el = document.getElementById('lyricOverlay');
+          return { hidden: el ? el.classList.contains('hidden') : null, text: (document.getElementById('lyricText') || {}).textContent || '', shown: lyricShown };
+        },
+        atBar: function (b) { novaritesLyricBar(b); return this.lyric(); },
+        clear: function () { clearLyrics(); return this.lyric(); },
+        bars: function () { return THEME_TRACKS.novarites_lyric.bars; },
+        vocalBar: function (b) { return THEME_TRACKS.novarites_lyric.bar === novaritesVocalBar && b >= 0; },
+        line: function (b) { var l = novaLineAt(b); return l ? { bar: l.bar, text: l.text, s: l.s, n: l.n } : null; },
+        // Offline render of one lyric phrase through the real singer, solo, so the melody
+        // can actually be measured: a sung line moves through its written notes.
+        render: function (bar) {
+          var T = THEME_TRACKS.novarites;
+          var step = 60 / T.bpm / 2;
+          if (bar < 0 || bar >= 36) return Promise.resolve(null);
+          var sr = 22050, secs = step * 32 + 0.4;
+          var ac = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, Math.ceil(sr * secs), sr);
+          // A lyric line is two bars: sing both, or the render is only half the phrase.
+          novaSing(ac, ac.destination, 0.05, bar, step);
+          novaSing(ac, ac.destination, 0.05 + step * 16, bar + 1, step);
+          return ac.startRendering().then(function (buf) {
+            var d = buf.getChannelData(0), peak = 0, sum = 0;
+            for (var i = 0; i < d.length; i++) { var a = Math.abs(d[i]); if (a > peak) peak = a; sum += d[i] * d[i]; }
+            var win = Math.floor(sr * 0.04), hop = Math.floor(sr * 0.12), hz = [];
+            for (var o = 0; o + win + 260 < d.length; o += hop) {
+              var rms = 0;
+              for (var k = 0; k < win; k += 4) rms += d[o + k] * d[o + k];
+              rms = Math.sqrt(rms / (win / 4));
+              if (rms < 0.008) { hz.push(0); continue; }
+              var best = -1, bestLag = 0;
+              for (var lag = Math.floor(sr / 900); lag <= Math.floor(sr / 90); lag++) {
+                var s = 0;
+                for (var j = 0; j < win; j += 4) s += d[o + j] * d[o + j + lag];
+                if (s > best) { best = s; bestLag = lag; }
+              }
+              hz.push(bestLag ? Math.round(sr / bestLag) : 0);
+            }
+            return { peak: +peak.toFixed(3), rms: +Math.sqrt(sum / d.length).toFixed(4), hz: hz };
+          });
+        },
+        // The whole arrangement offline: peak and clipping under the real master gain.
+        renderMix: function (bar, bars) {
+          var T = THEME_TRACKS.novarites, step = 60 / T.bpm / 2, n = bars || 2, sr = 22050;
+          var ac = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, Math.ceil(sr * (step * 16 * n + 0.5)), sr);
+          var master = ac.createGain(); master.gain.value = T.vol; master.connect(ac.destination);
+          for (var i = 0; i < n; i++) novaritesBar(ac, master, 0.02 + i * step * 16, bar + i, step);
+          return ac.startRendering().then(function (buf) {
+            var d = buf.getChannelData(0), peak = 0, sum = 0, clip = 0;
+            for (var k = 0; k < d.length; k++) { var a = Math.abs(d[k]); if (a > peak) peak = a; if (a > 0.99) clip++; sum += d[k] * d[k]; }
+            return { peak: +peak.toFixed(3), rms: +Math.sqrt(sum / d.length).toFixed(4), clipped: clip };
+          });
+        }
+      },
       frame: function () { return { acc: FRAME.acc, step: FRAME.step, maxSteps: FRAME.maxSteps }; },
       loop: function (dt) { FRAME.acc = dt; FRAME.last = 0; gameLoop(0); },
       // --- Shadow Magic campaign -------------------------------------------------
