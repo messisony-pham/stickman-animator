@@ -3,11 +3,13 @@
 //
 // The game's own vocal is a formant synth, which reads as a pad rather than a person.
 // This script bakes an actual voice: every syllable of the lyric is spoken by the
-// Windows speech engine, then pitched onto its written note (resampled to the note's
-// frequency) and its natural length matched to the note by choosing a quick or a slow
-// take, and the syllables are placed on the 48-bar grid. Nothing is time-stretched: a
-// stretched consonant is what makes a sung word stutter. The result is a normal audio
-// file the game plays with the song.
+// Windows speech engine, then rebuilt onto its written note by TD-PSOLA, one pitch
+// period at a time. Raising the pitch that way leaves the vowel's formants where the
+// voice put them, so the singer stays warm instead of turning thin the way plain
+// resampling makes it; the vowel is then held to fill its note, while the consonants
+// keep their own single, natural articulation. The syllables are placed on the 48-bar
+// grid and given a hall to sing in. The result is a normal audio file the game plays
+// with the song.
 //
 //   node scripts/make_last_dance_vocal.cjs
 //
@@ -123,10 +125,9 @@ function readWav(file) {
   return { data: out, rate: fmt.rate };
 }
 
-// Resample a syllable onto its note, with the two things that turn a spoken
-// syllable into a sung one: a scoop up into the pitch, and vibrato that swells
-// in over the first fifth of a held note.
-function sing(x, ratio, opts) {
+// Plain resampling, kept only as the fallback for a syllable with no voiced part
+// ("sh", a plosive): nothing there to sing, so it is simply moved to the note.
+function resample(x, ratio, opts) {
   const out = new Float32Array(Math.ceil(x.length / ratio) + 4);
   let pos = 0, i = 0;
   while (pos < x.length - 1 && i < out.length) {
@@ -144,6 +145,145 @@ function sing(x, ratio, opts) {
     i++;
   }
   return out.subarray(0, i);
+}
+
+// ------------------------------------------------------------------ the singer
+// A spoken syllable has to become a sung note. Resampling it up to the note is what
+// makes a machine singer sound thin: the formants — the resonances that make a vowel
+// a vowel — are dragged up with the pitch, so the voice turns bright and papery. These
+// functions instead rebuild the vowel one pitch period at a time (TD-PSOLA): the
+// periods are re-spaced to the note's frequency while each period itself is copied
+// untouched, so the pitch moves and the vowel's own timbre stays put. Consonants are
+// never rebuilt — they keep their single natural articulation.
+function pitchTrack(x, rate) {
+  const hop = Math.max(1, Math.round(rate * 0.01));
+  const win = Math.round(rate * 0.035);
+  const lo = Math.round(rate / 450), hi = Math.round(rate / 75);
+  const frames = [];
+  for (let p = 0; p + win + hi < x.length; p += hop) {
+    let e = 0;
+    for (let i = 0; i < win; i += 2) e += x[p + i] * x[p + i];
+    e = Math.sqrt(e / (win / 2));
+    let best = 0, bestLag = 0;
+    for (let lag = lo; lag <= hi; lag++) {
+      let s = 0, n1 = 0, n2 = 0;
+      for (let i = 0; i < win; i += 4) {
+        const a = x[p + i], b = x[p + i + lag];
+        s += a * b; n1 += a * a; n2 += b * b;
+      }
+      const r = n1 > 1e-9 && n2 > 1e-9 ? s / Math.sqrt(n1 * n2) : 0;
+      if (r > best) { best = r; bestLag = lag; }
+    }
+    frames.push({ t: p, e, r: best, period: bestLag });
+  }
+  return frames;
+}
+
+// The vowel: the longest stretch of the syllable that is clearly voiced.
+function voicedNucleus(x, rate) {
+  const frames = pitchTrack(x, rate);
+  if (!frames.length) return null;
+  let maxE = 0;
+  for (const f of frames) maxE = Math.max(maxE, f.e);
+  const on = frames.map((f) => f.r > 0.42 && f.e > 0.1 * maxE);
+  let bestA = -1, bestB = -1, a = -1, gap = 0;
+  for (let i = 0; i < on.length; i++) {
+    if (on[i]) {
+      if (a < 0) a = i;
+      gap = 0;
+      if (bestA < 0 || i - a > bestB - bestA) { bestA = a; bestB = i; }
+    } else if (a >= 0 && ++gap > 2) { a = -1; gap = 0; }
+  }
+  if (bestA < 0) return null;
+  const win = Math.round(rate * 0.035);
+  const start = frames[bestA].t;
+  const end = Math.min(x.length, frames[bestB].t + win);
+  // A period for the region: the median over its voiced frames.
+  const periods = frames.slice(bestA, bestB + 1).filter((f) => f.period).map((f) => f.period).sort((p, q) => p - q);
+  if (!periods.length) return null;
+  const period = periods[periods.length >> 1];
+  if (end - start < period * 2.5) return null;
+  return { start, end, period };
+}
+
+// Rebuild the vowel onto the note. outLen is the note's length, so a held note is a
+// sustained vowel (never a repeated consonant) and a short note is simply sung faster.
+function singNote(x, rate, targetF0, outLen, opts) {
+  const nucleus = voicedNucleus(x, rate);
+  if (!nucleus) {
+    const f0 = medianF0(x, rate);
+    const ratio = f0 > 60 ? Math.max(0.55, Math.min(2.2, targetF0 / f0)) : 1;
+    const bare = resample(x, ratio, opts);
+    return bare.length > outLen ? cropWithFade(bare, outLen) : bare;
+  }
+  const { start, end, period } = nucleus;
+  // Analysis marks: one per pitch period, nudged to the local peak of the waveform so
+  // every grain starts at the same point of the glottal cycle.
+  const marks = [];
+  for (let p = start + Math.round(period / 2); p < end - Math.round(period / 2); p += period) {
+    const reach = Math.round(period / 4);
+    let bestP = p, bestV = -1;
+    for (let q = Math.max(1, p - reach); q <= Math.min(x.length - 2, p + reach); q++) {
+      const v = Math.abs(x[q]);
+      if (v > bestV) { bestV = v; bestP = q; }
+    }
+    marks.push(bestP);
+  }
+  if (marks.length < 3) {
+    const f0 = medianF0(x, rate);
+    const ratio = f0 > 60 ? Math.max(0.55, Math.min(2.2, targetF0 / f0)) : 1;
+    const bare = resample(x, ratio, opts);
+    return bare.length > outLen ? cropWithFade(bare, outLen) : bare;
+  }
+  const P1 = rate / targetF0;
+  const onsetLen = start;
+  const codaLen = x.length - end;
+  const vowelOut = Math.max(P1 * 2, outLen - onsetLen - codaLen);
+  const total = Math.ceil(onsetLen + vowelOut + codaLen) + Math.round(period * 2);
+  const out = new Float32Array(total);
+  const norm = new Float32Array(total);
+  // The consonant of the attack, exactly as the voice said it.
+  for (let i = 0; i < onsetLen; i++) out[i] += x[i];
+  // The vowel: synthesis periods on the note, sampling analysis periods from the voice.
+  const span = end - start;
+  let t = 0;
+  while (t < vowelOut) {
+    const sec = t / rate;
+    let P = P1;
+    if (opts.vibrato) {
+      const env = Math.min(1, Math.max(0, (sec - 0.05) / 0.16));
+      P *= 1 + opts.vibrato * env * Math.sin(2 * Math.PI * 5.15 * sec + 0.7);
+    }
+    // A singer does not snap onto a high note: they scoop up into it.
+    if (opts.scoop && sec < 0.075) P *= Math.pow(2, (opts.scoop * (1 - sec / 0.075)) / 12);
+    const at = start + (vowelOut > 0 ? (t / vowelOut) * span : 0);
+    let m = marks[0];
+    for (let k = 0; k < marks.length; k++) { if (Math.abs(marks[k] - at) < Math.abs(m - at)) m = marks[k]; }
+    const half = Math.round(period);
+    const base = onsetLen + Math.round(t);
+    // A held note blooms: it is taken a whisper under and swells into the middle, which
+    // is how a singer shapes a long line instead of striking every note the same.
+    const bloom = 0.94 + 0.06 * Math.sin(Math.PI * Math.min(1, Math.max(0, t / vowelOut)));
+    for (let k = -half; k <= half; k++) {
+      const oi = base + k;
+      if (oi < 0 || oi >= total) continue;
+      const si = m + k;
+      const v = (si >= start - period && si < end + period) ? (x[si] || 0) : 0;
+      const w = 0.5 - 0.5 * Math.cos((Math.PI * (k + half)) / half);
+      out[oi] += v * w * bloom;
+      norm[oi] += w;
+    }
+    t += P;
+  }
+  // Overlap-add weighting: keep the level even, but never amplify a quiet grain.
+  for (let i = 0; i < total; i++) if (norm[i] > 0.35) out[i] /= norm[i];
+  // The coda ("-ts", "-n", "-s") closes the word, in place, once.
+  const codaAt = Math.round(onsetLen + vowelOut);
+  for (let i = 0; i < codaLen && codaAt + i < total; i++) out[codaAt + i] += x[end + i];
+  const n = Math.min(total, Math.ceil(onsetLen + vowelOut + codaLen));
+  const cut = out.subarray(0, n);
+  for (let i = 0; i < cut.length; i++) if (!Number.isFinite(cut[i])) cut[i] = 0;
+  return cut;
 }
 
 // A word that lasts longer than its note: crop it, keeping the attack and the vowel.
@@ -191,7 +331,7 @@ const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
 
 // ------------------------------------------------------------------ singing
 const totalLen = Math.round((LAST_BAR - FIRST_BAR) * BAR * SR);
-const mix = new Float32Array(totalLen);
+let mix = new Float32Array(totalLen);
 let placed = 0, skipped = 0;
 
 lines.forEach((line) => {
@@ -224,14 +364,13 @@ lines.forEach((line) => {
       const k = Math.min(4.5, 0.12 / rms);
       for (let j = 0; j < data.length; j++) data[j] *= k;
     }
-    const f0 = medianF0(data, rate);
     const target = hz(line.notes[i][1] + TRANSPOSE);
-    let ratio = f0 > 60 ? target / f0 : 1;
-    ratio = Math.max(0.55, Math.min(2.2, ratio));
     // A note that is held gets a full, swelling vibrato; a passing note barely any.
     const held = dur > STEP * SR * 2.4;
-    let clip = sing(data, ratio, {
-      vibrato: held ? 0.0075 : 0.0028,
+    // The word is rebuilt onto the note: its pitch rises, its vowel keeps its own
+    // resonance, and a held note is a sustained vowel rather than a stretched consonant.
+    let clip = singNote(data, rate, target, dur, {
+      vibrato: held ? 0.0095 : 0.003,
       scoop: i === 0 ? -1.0 : -0.25
     });
     // Let the word run a little past its note (that is legato), but never into the next
@@ -250,6 +389,24 @@ lines.forEach((line) => {
 });
 console.log('placed ' + placed + ' syllables (' + skipped + ' skipped)');
 
+// A quiet breath before the first word of every line: the sound of a person about to
+// sing, which is most of what separates a sung line from recited words.
+(function breaths() {
+  for (const line of lines) {
+    const at = Math.round((line.bar - FIRST_BAR) * BAR * SR);
+    const len = Math.round(SR * 0.17);
+    const from = at - len;
+    if (from < 0) continue;
+    let lp = 0;
+    for (let i = 0; i < len; i++) {
+      const env = Math.sin((Math.PI * i) / len);
+      const n = (Math.random() * 2 - 1) * env * env * 0.02;
+      lp = lp * 0.86 + n * 0.14;
+      mix[from + i] += (n - lp) * 0.9;
+    }
+  }
+})();
+
 // Never let a bad sample poison the file: anything non-finite becomes silence.
 for (let i = 0; i < mix.length; i++) if (!Number.isFinite(mix[i])) mix[i] = 0;
 
@@ -265,9 +422,57 @@ for (let i = 0; i < mix.length; i++) mix[i] *= gain;
   const a = Math.exp((-2 * Math.PI * 1800) / SR);
   for (let i = 0; i < mix.length; i++) {
     lp = a * lp + (1 - a) * mix[i];
-    mix[i] = mix[i] + (mix[i] - lp) * 0.35;
+    mix[i] = mix[i] + (mix[i] - lp) * 0.26;
   }
 })();
+// Warmth: a little weight under 250 Hz gives the voice a chest instead of leaving it
+// bright and papery — the difference between a person and a loudspeaker.
+(function warmth() {
+  let lp = 0;
+  const a = Math.exp((-2 * Math.PI * 240) / SR);
+  for (let i = 0; i < mix.length; i++) {
+    lp = a * lp + (1 - a) * mix[i];
+    mix[i] += lp * 0.32;
+  }
+})();
+// A small hall, so the voice sits in the room with the band instead of being pressed
+// against the listener's ear. Four comb filters and two allpasses: short, cheap, and
+// enough to give a held note an afterglow.
+(function hall() {
+  const tail = Math.round(SR * 1.8);
+  const dry = mix;
+  const wet = new Float32Array(dry.length + tail);
+  const combs = [0.0297, 0.0331, 0.0371, 0.0411].map((s) => {
+    const d = Math.round(s * SR);
+    return { d, buf: new Float32Array(d), i: 0, lp: 0 };
+  });
+  const aps = [0.005, 0.0017].map((s) => {
+    const d = Math.round(s * SR);
+    return { d, buf: new Float32Array(d), i: 0 };
+  });
+  for (let n = 0; n < wet.length; n++) {
+    const input = n < dry.length ? dry[n] : 0;
+    let acc = 0;
+    for (const c of combs) {
+      const y = c.buf[c.i];
+      c.lp = y * 0.75 + c.lp * 0.25;
+      c.buf[c.i] = input + c.lp * 0.86;
+      c.i = (c.i + 1) % c.d;
+      acc += y;
+    }
+    acc *= 0.25;
+    for (const a of aps) {
+      const y = a.buf[a.i];
+      const outv = y - acc;
+      a.buf[a.i] = acc + y * 0.5;
+      a.i = (a.i + 1) % a.d;
+      acc = outv;
+    }
+    wet[n] = (n < dry.length ? dry[n] : 0) + acc * 0.3;
+  }
+  mix = wet;
+})();
+
 // The shelf can lift the peak, so tame the file to a safe ceiling just below full scale.
 let peak2 = 0;
 for (let i = 0; i < mix.length; i++) peak2 = Math.max(peak2, Math.abs(mix[i]));

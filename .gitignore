@@ -15,3 +15,4 @@ scripts/_serve.log
 scripts/_serve.pid
 scripts/_vercel_login.log
 scripts/_probe_stutter.cjs
+scripts/_probe_beauty.cjs
