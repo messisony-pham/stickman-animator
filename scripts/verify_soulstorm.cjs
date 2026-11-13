@@ -1881,14 +1881,15 @@ function check(name, cond, extra) {
       return lines >= 16 && bad === 0;
     })());
 
-    check(file + ': the vocal playtest is sung by a recorded voice',
+    check(file + ': the last dance is sung by a recorded voice, in the fight too',
       // A real voice is baked into an audio file by scripts/make_last_dance_vocal.cjs.
-      // It belongs to the playtest only: the boss fight keeps its synth voice.
+      // It sings in the boss fight as well as the playtest — the words belong to the song.
       fs.existsSync(path.join(ROOT, 'public', 'last-dance-vocal.mp3')) &&
       fs.statSync(path.join(ROOT, 'public', 'last-dance-vocal.mp3')).size > 200 * 1024 &&
       /function startNovaVocal\(ac, dest, when, theme\)/.test(html) &&
-      /if \(theme === 'novarites_lyric'\) \{[\s\S]{0,140}startNovaVocal\(ac, master,/.test(html) &&
-      !/theme === 'novarites' \|\| theme === 'novarites_lyric'/.test(html) &&
+      /if \(theme === 'novarites' \|\| theme === 'novarites_lyric'\) \{[\s\S]{0,160}startNovaVocal\(ac, master,/.test(html) &&
+      // The boss spawns the theme that the singer is attached to.
+      /function startNovaritesMusic\(\) \{[\s\S]{0,160}startThemeMusic\('novarites'\)/.test(html) &&
       /src\.buffer = buf; src\.connect\(g\); g\.connect\(dest\);/.test(html) &&
       // The synth drops to a quiet double under the words so the held notes still sing.
       /var backing = novaVocalOn && bar >= 4;/.test(html) &&
