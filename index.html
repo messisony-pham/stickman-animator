@@ -3369,10 +3369,10 @@
           var tm = setTimeout(function() { scheduleBar(startT + step * 16, b + 1); }, barDurMs - 60);
           themeTimers.push(tm);
         })(ac.currentTime + 0.1, 0);
-        // If a recorded singer is bundled with the game, she takes over the words — in the
-        // boss fight exactly as in the playtest. The words belong to the song, so the voice
-        // that sings them does too; the synth line stays underneath as a quiet double.
-        if (theme === 'novarites' || theme === 'novarites_lyric') {
+        // If a recorded singer is bundled with the game, she takes over the words.
+        // The recorded singer is for the vocal playtest only; the boss fight keeps its
+        // own synth voice.
+        if (theme === 'novarites_lyric') {
           startNovaVocal(ac, master, ac.currentTime + 0.1 + step * 16 * 4, theme);
         }
       } catch(e) { console.log('Theme music failed:', e); }
